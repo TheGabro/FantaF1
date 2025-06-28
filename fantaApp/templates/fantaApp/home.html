@@ -1,0 +1,12 @@
+{% extends 'fantaApp/base.html' %}
+
+
+{% block content %}
+<h1>Benvenuto su FantaF1</h1>
+
+<p>Accedi o registrati per partecipare ai tuoi campionati di Formula 1 personalizzati.</p>
+
+<a href="{% url 'login' %}" class="btn">Login</a>
+<a href="{% url 'register' %}" class="btn">Registrati</a>
+{% endblock %}
+
