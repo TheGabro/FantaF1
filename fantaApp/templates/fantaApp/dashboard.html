@@ -5,7 +5,7 @@
     <h1>Ciao {{ user.username }}! Questa è la tua dashboard FantaF1</h1>
 
     {% if is_admin %}
-    <p>Hai accesso admin: <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
+    <p>Hai accesso al <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
     {% elif is_staff %}
     <p>Hai accesso staff: <a href="{% url 'admin:index' %}">Pannello Staff</a></p>
     <!-- funzioni extra -->

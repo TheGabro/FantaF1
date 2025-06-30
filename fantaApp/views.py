@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .forms import CustomUserRegistrationForm
+from .forms import CustomUserRegistrationForm, UsernameOrEmailAuthenticationForm
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
@@ -40,13 +40,13 @@ def register(request):
 
 def login(request):
     if request.method == "POST":
-        form_login = AuthenticationForm(request, data=request.POST)
+        form_login = UsernameOrEmailAuthenticationForm(request.POST)
         if form_login.is_valid():
             user = form_login.get_user()
             auth_login(request, user)
             return redirect("dashboard")
     else:
-        form_login = AuthenticationForm()
+        form_login = UsernameOrEmailAuthenticationForm()
 
     return render(request, "fantaApp/login.html", {
         "form_login": form_login

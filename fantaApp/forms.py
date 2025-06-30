@@ -1,8 +1,11 @@
 from django import forms
 from .models import CustomUser
 from django.core.exceptions import ValidationError
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 
 class CustomUserRegistrationForm(forms.ModelForm):
+
     password = forms.CharField(
         label="Password",
         widget=forms.PasswordInput
@@ -42,3 +45,33 @@ class CustomUserRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+    
+
+class UsernameOrEmailAuthenticationForm(forms.Form):
+    identifier = forms.CharField(label="Username o Email")
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        identifier = cleaned_data.get("identifier")
+        password = cleaned_data.get("password")
+
+
+        UserModel = get_user_model()
+
+        try:
+            user = UserModel.objects.get(email=identifier)
+        except UserModel.DoesNotExist:
+            try:
+                user = UserModel.objects.get(username=identifier)
+            except UserModel.DoesNotExist:
+                raise ValidationError("Utente non trovato con questo username o email.")
+
+        self.user = authenticate(username=user.username, password=password)
+        if self.user is None:
+            raise ValidationError("Password errata.")
+
+        return cleaned_data
+
+    def get_user(self):
+        return self.user

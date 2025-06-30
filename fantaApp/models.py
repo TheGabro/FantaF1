@@ -7,6 +7,9 @@ class CustomUserManager(BaseUserManager):
         if not username:
             raise ValueError('The Username must be set')
         
+        if not email:
+            raise ValueError('The Email must be set') 
+        
         email = self.normalize_email(email)
         role = extra_fields.get('role', 'user')
         extra_fields.setdefault('role', role)
@@ -57,7 +60,7 @@ class CustomUser(AbstractUser):
         choices=Role.choices,
         default=Role.USER
     )
-
+    email = models.EmailField(unique=True, blank=False, null=False)
     birthday = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(null=True, blank=True)
