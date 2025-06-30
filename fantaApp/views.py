@@ -3,14 +3,28 @@ from django.http import HttpResponse
 from .forms import CustomUserRegistrationForm
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.decorators import login_required
 
 
 def home(response):
     return render(response, "fantaApp/home.html", {})
 
-def dashboard(response):
-    return render(response, "fantaApp/dashboard.html", {
-    })
+@login_required
+def dashboard(request):
+    user = request.user
+    context = {
+        "user": user,
+        "is_admin": user.role == "admin",
+        "is_staff": user.role == "staff",
+        "is_premium": user.role == "premium"
+    }
+    return render(request, "fantaApp/dashboard.html", context)
+
+def logout(request):
+    auth_logout(request)
+    return redirect("home")
+
 
 def register(request):
     if request.method == "POST":

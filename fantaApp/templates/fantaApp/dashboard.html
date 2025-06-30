@@ -3,6 +3,18 @@
 {% block content %}
     {% csrf_token %}
     <h1>Ciao {{ user.username }}! Questa è la tua dashboard FantaF1</h1>
-    <!--  <a href="{% url 'logout' %}" class="btn">Logout</a>  Pulsante per uscire -->
+
+    {% if is_admin %}
+    <p>Hai accesso admin: <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
+    {% elif is_staff %}
+    <p>Hai accesso staff: <a href="{% url 'admin:index' %}">Pannello Staff</a></p>
+    <!-- funzioni extra -->
+    {% elif is_premium %}
+    <p>Utente premium, hai più funzionalità</p>
+    {% else %}
+    <p>Benvenuto nel gioco!</p>
+    {% endif %}
+
+    <a href="{% url 'logout' %}" class="btn">Logout</a>
 
 {% endblock %}
