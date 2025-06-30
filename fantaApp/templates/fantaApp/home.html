@@ -1,12 +1,24 @@
 {% extends 'fantaApp/base.html' %}
 
-
 {% block content %}
-<h1>Benvenuto su FantaF1</h1>
+<h1>FantaF1 homepage</h1>
 
-<p>Accedi o registrati per partecipare ai tuoi campionati di Formula 1 personalizzati.</p>
+    {% if user.is_authenticated %}
+    <p>Ciao {{user.username}}, accedi alla tua dashboard per vedere i tuoi campionati</p>
 
-<a href="{% url 'login' %}" class="btn">Login</a>
-<a href="{% url 'register' %}" class="btn">Registrati</a>
+    <form method="post" action="{% url 'dashboard' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Dashboard</button>
+    </form>
+    
+    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Logout</button>
+    </form>
+    {% else %}
+    <p>Benvenuto nel sito del Fanta F1, accedi o registrati per cominciare a giocare</p>
+        <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+        <a href="{% url 'register' %}" class="btn btn-secondary">Registrati</a>
+    {% endif %}
 {% endblock %}
 
