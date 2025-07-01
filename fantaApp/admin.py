@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
-from .models import CustomUser
+from .models import CustomUser, Driver, Team
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -34,3 +34,6 @@ class CustomUserAdmin(UserAdmin):
         elif not obj.is_staff and obj.role == CustomUser.Role.STAFF:
             obj.role = CustomUser.Role.USER
         obj.save()
+
+admin.site.register(Driver)
+admin.site.register(Team)

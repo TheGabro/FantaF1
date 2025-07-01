@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+import uuid
 
 class CustomUserManager(BaseUserManager):
 
@@ -75,3 +76,42 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+    
+
+    from django.db import models
+
+class Driver(models.Model):
+    name = models.CharField(max_length=50)
+    surname = models.CharField(max_length=50)
+    number = models.IntegerField()
+    short_name = models.CharField(max_length=3)  # ad es. 'VER' per Verstappen
+    team = models.ForeignKey('Team', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+    is_valid = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} {self.surname} ({self.number}) - {self.short_name}"
+    
+    class Meta:
+        ordering = ['team__name', 'name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
+    
+    
+class Team(models.Model):
+    name = models.CharField(max_length=50)
+    short_name = models.CharField(max_length=3) 
+    nationality = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['name'] #serve a far tornare sempre i piloti in ordine alfabetico
+
+
