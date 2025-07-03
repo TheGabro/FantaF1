@@ -13,13 +13,13 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The Email must be set') 
         
         email = self.normalize_email(email)
-        type = extra_fields.get('type', 'user')
-        extra_fields.setdefault('type', type)
+        user_type = extra_fields.get('user_type', 'user')
+        extra_fields.setdefault('user_type', user_type)
 
-        if type == 'admin':
+        if user_type == 'admin':
             extra_fields['is_staff'] = True
             extra_fields['is_superuser'] = True
-        elif type == 'staff':
+        elif user_type == 'staff':
             extra_fields['is_staff'] = True
             extra_fields['is_superuser'] = False
         else:
@@ -34,7 +34,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('type', 'admin')
+        extra_fields.setdefault('user_type', 'admin')
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -46,21 +46,21 @@ class CustomUserManager(BaseUserManager):
     def create_staffuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', False)
-        extra_fields.setdefault('type', 'staff')
+        extra_fields.setdefault('user_type', 'staff')
         return self.create_user(username, email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
    
-    class Role(models.TextChoices):
+    class UserType(models.TextChoices):
         USER = 'user', 'User'
         PREMIUM = 'premium', 'Premium'
         STAFF = 'staff', 'Staff'
         ADMIN = 'admin', 'Admin'
 
-    type = models.CharField(
+    user_type = models.CharField(
         max_length=10,
-        choices=Role.choices,
-        default=Role.USER
+        choices=UserType.choices,
+        default=UserType.USER
     )
     email = models.EmailField(unique=True, blank=False, null=False)
     birthday = models.DateField(null=True, blank=True)
@@ -73,10 +73,10 @@ class CustomUser(AbstractUser):
 
     def is_at_least(self, level: str) -> bool:
         hierarchy = ['user', 'premium', 'staff', 'admin']
-        return hierarchy.index(self.type) >= hierarchy.index(level)
+        return hierarchy.index(self.user_type) >= hierarchy.index(level)
 
     def __str__(self):
-        return f"{self.username} ({self.type})"
+        return f"{self.username} ({self.user_type})"
     
 
     from django.db import models

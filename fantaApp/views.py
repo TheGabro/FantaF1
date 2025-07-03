@@ -14,9 +14,9 @@ def dashboard(request):
     user = request.user
     context = {
         "user": user,
-        "is_admin": user.role == "admin",
-        "is_staff": user.role == "staff",
-        "is_premium": user.role == "premium"
+        "is_admin": user.user_type == "admin",
+        "is_staff": user.user_type == "staff",
+        "is_premium": user.user_type == "premium"
     }
     return render(request, "fantaApp/dashboard.html", context)
 
