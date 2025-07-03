@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .forms import CustomUserRegistrationForm, UsernameOrEmailAuthenticationForm
+from .forms import CustomUserRegistrationForm, UsernameOrEmailAuthenticationForm, ChampionshipForm, LeagueFormSet
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
@@ -51,4 +51,31 @@ def login(request):
 
     return render(request, "fantaApp/login.html", {
         "form_login": form_login
+    })
+
+
+@login_required
+def create_championship(request):
+
+
+    if request.method == 'POST':
+        form = ChampionshipForm(request.POST)
+        if form.is_valid():
+            championship = form.save(commit=False)
+            championship.created_by = request.user
+            championship.save()  # ora ha la PK!
+
+            formset = LeagueFormSet(request.POST, instance=championship)
+            if formset.is_valid():
+                formset.save()
+                return redirect('dashboard')
+
+            return redirect('dashboard')  # o altra pagina
+    else:
+        form = ChampionshipForm()
+        formset = LeagueFormSet()
+
+    return render(request, 'fantaApp/create_championship.html', {
+        'form': form,
+        'formset': formset
     })

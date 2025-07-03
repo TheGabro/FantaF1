@@ -1,0 +1,36 @@
+{% extends 'fantaApp/base.html' %}
+
+{% block title %}Crea Campionato{% endblock %}
+
+{% block content %}
+  <h1>Crea un nuovo campionato</h1>
+
+  <form method="post">
+    {% csrf_token %}
+    
+    {{ form.non_field_errors }}
+    <div>
+      <label for="{{ form.name.id_for_label }}">Nome del Campionato:</label>
+      {{ form.name }}
+      {{ form.name.errors }}
+    </div>
+    <div>
+      <label for="{{ form.year.id_for_label }}">Anno:</label>
+      {{ form.year }}
+      {{ form.year.errors }}
+    </div>
+
+    <hr>
+    <h3>Leghe del Campionato</h3>
+    {{ formset.management_form }}
+
+    {% for subform in formset %}
+      <div>
+        {{ subform.name.label_tag }} {{ subform.name }}
+        {{ subform.name.errors }}
+      </div>
+    {% endfor %}
+
+    <button type="submit">Crea campionato</button>
+  </form>
+{% endblock %}

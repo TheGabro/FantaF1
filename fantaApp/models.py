@@ -208,8 +208,14 @@ class Championship(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
+        if not self.pk:
+            return  # evita di validare se il campionato non è ancora stato salvato
+
         if not self.managers.exists():
             raise ValidationError("The championship must have at least one manager")
+        
+        if self.leagues.exists():
+            raise ValidationError("The championship must have at least one league")
 
     def __str__(self):
         return f"{self.name} ({self.year})"

@@ -1,8 +1,9 @@
 from django import forms
-from .models import CustomUser
+from .models import CustomUser, Championship, League
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from django.forms import inlineformset_factory, BaseInlineFormSet
 
 class CustomUserRegistrationForm(forms.ModelForm):
 
@@ -75,3 +76,35 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
 
     def get_user(self):
         return self.user
+    
+
+class ChampionshipForm(forms.ModelForm):
+    class Meta:
+        model = Championship
+        fields = ['name', 'year']
+
+class LeagueForm(forms.ModelForm):
+    class Meta:
+        model = League
+        fields = ['name']
+
+
+class RequiredLeagueFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        has_valid = any(
+            form.cleaned_data and not form.cleaned_data.get('DELETE', False)
+            for form in self.forms
+        )
+        if not has_valid:
+            raise ValidationError("Devi creare almeno una lega per il campionato.")
+
+
+LeagueFormSet = inlineformset_factory(
+    Championship,
+    League,
+    form=LeagueForm,
+    formset=RequiredLeagueFormSet, 
+    extra=2,  # default: due leghe (F1 e DFA)
+    can_delete=False
+)
