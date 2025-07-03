@@ -98,7 +98,6 @@ class Driver(models.Model):
     class Meta:
         ordering = ['team__name', 'name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
     
-    
 class Team(models.Model):
     name = models.CharField(max_length=50)
     short_name = models.CharField(max_length=3) 
@@ -114,4 +113,91 @@ class Team(models.Model):
     class Meta:
         ordering = ['name'] #serve a far tornare sempre i piloti in ordine alfabetico
 
+class Circuit(models.Model):
+    name = models.CharField(max_length=100)
+    continent = models.CharField(max_length=50)
+    state = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+class Race(models.Model):
+    RACE_TYPES = [
+        ('regular', 'Regular Race'),
+        ('sprint', 'Sprint Race')
+    ]
+
+    circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    week = models.IntegerField()
+    fp1_start = models.DateTimeField(null=True, blank=True)
+    fp2_start = models.DateTimeField(null=True, blank=True)
+    fp3_start = models.DateTimeField(null=True, blank=True)
+    sprint_start = models.DateTimeField(null=True, blank=True)
+    qualifying_start = models.DateTimeField(null=True, blank=True)
+    race_start = models.DateTimeField(null=True, blank=True)
+    race_type = models.CharField(max_length=20, choices=RACE_TYPES, default='regular')
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.circuit.name} - {self.year} (W{self.week})"
+
+    class Meta:
+        ordering = ['year', 'week']
+        unique_together = ('circuit', 'year', 'week')
+
+class RaceEntry(models.Model):
+    STATUS_CHOICES = [
+        ('finished', 'Finished'),
+        ('dnf', 'Did Not Finish'),
+        ('disqualified', 'Disqualified'),
+        ('dns', 'Did Not Start'),
+        ('retired', 'Retired'),
+    ]
+
+    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='entries')
+    driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
+    position = models.IntegerField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    starting_grid = models.IntegerField(null=True, blank=True)
+    points = models.IntegerField(default=0)
+    best_lap = models.DurationField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.driver.short_name} - {self.race} (P{self.position})"
+
+    class Meta:
+        unique_together = ('race', 'driver')
+        ordering = ['race', 'position']
+
+class QualifingEntry(models.Model):
+    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='qualifing_entries')
+    driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
+
+    q1_position = models.IntegerField(null=True, blank=True)
+    q1_time = models.DurationField(null=True, blank=True)
+
+    q2_position = models.IntegerField(null=True, blank=True)
+    q2_time = models.DurationField(null=True, blank=True)
+
+    q3_position = models.IntegerField(null=True, blank=True)
+    q3_time = models.DurationField(null=True, blank=True)
+
+    best_lap = models.DurationField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.driver.short_name} - {self.race} (Quali)"
+
+    class Meta:
+        unique_together = ('race', 'driver')
+        ordering = ['race', 'q3_position']
 
