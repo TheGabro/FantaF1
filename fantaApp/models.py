@@ -13,13 +13,13 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The Email must be set') 
         
         email = self.normalize_email(email)
-        role = extra_fields.get('role', 'user')
-        extra_fields.setdefault('role', role)
+        type = extra_fields.get('type', 'user')
+        extra_fields.setdefault('type', type)
 
-        if role == 'admin':
+        if type == 'admin':
             extra_fields['is_staff'] = True
             extra_fields['is_superuser'] = True
-        elif role == 'staff':
+        elif type == 'staff':
             extra_fields['is_staff'] = True
             extra_fields['is_superuser'] = False
         else:
@@ -34,7 +34,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
+        extra_fields.setdefault('type', 'admin')
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -46,7 +46,7 @@ class CustomUserManager(BaseUserManager):
     def create_staffuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', False)
-        extra_fields.setdefault('role', 'staff')
+        extra_fields.setdefault('type', 'staff')
         return self.create_user(username, email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
@@ -57,7 +57,7 @@ class CustomUser(AbstractUser):
         STAFF = 'staff', 'Staff'
         ADMIN = 'admin', 'Admin'
 
-    role = models.CharField(
+    type = models.CharField(
         max_length=10,
         choices=Role.choices,
         default=Role.USER
@@ -73,10 +73,10 @@ class CustomUser(AbstractUser):
 
     def is_at_least(self, level: str) -> bool:
         hierarchy = ['user', 'premium', 'staff', 'admin']
-        return hierarchy.index(self.role) >= hierarchy.index(level)
+        return hierarchy.index(self.type) >= hierarchy.index(level)
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return f"{self.username} ({self.type})"
     
 
     from django.db import models
