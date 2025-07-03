@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 import uuid
@@ -201,3 +202,51 @@ class QualifingEntry(models.Model):
         unique_together = ('race', 'driver')
         ordering = ['race', 'q3_position']
 
+class Championship(models.Model):
+    name = models.CharField(max_length=100)
+    year = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if not self.managers.exists():
+            raise ValidationError("The championship must have at least one manager")
+
+    def __str__(self):
+        return f"{self.name} ({self.year})"
+    
+class League(models.Model):
+    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='leagues')
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if not self.championship:
+            raise ValidationError("A legue must be inside of a championship")
+
+    def __str__(self):
+        return f"{self.name} - {self.championship.name}"
+    
+class PlayerEntry(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='participants')
+    league = models.ForeignKey(League, on_delete=models.SET_NULL, null=True, blank=True, related_name='participants')
+    player_name = models.CharField(max_length=50)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('user', 'championship'), ('player_name', 'championship')]
+
+    def __str__(self):
+        league = f" - {self.league.name}" if self.league else ""
+        return f"{self.player_name} ({self.user.username}) in {self.championship.name}{league}"
+    
+class ChampionshipManager(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='managers')
+    appointed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'championship')
+
+    def __str__(self):
+        return f"{self.user.username} manager of {self.championship.name}"
