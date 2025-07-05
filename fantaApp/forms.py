@@ -1,9 +1,13 @@
 from django import forms
-from .models import CustomUser, Championship, League
+from .models import CustomUser, Championship, League, PlayerEntry
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.forms import inlineformset_factory, BaseInlineFormSet
+
+from datetime import datetime
+
+CURRENT_YEAR = datetime.now().year
 
 class CustomUserRegistrationForm(forms.ModelForm):
 
@@ -79,9 +83,20 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
     
 
 class ChampionshipForm(forms.ModelForm):
+
+    year = forms.IntegerField(widget=forms.HiddenInput(), initial=CURRENT_YEAR)
+
     class Meta:
         model = Championship
         fields = ['name', 'year']
+
+    def clean(self):
+        name = self.cleaned_data.get('name')
+        year = self.cleaned_data.get('year')
+        if Championship.objects.filter(name=name, year=year).exists():
+            raise ValidationError("Questo nome per il campionato è già in uso quest'anno")
+        return name
+
 
 class LeagueForm(forms.ModelForm):
     class Meta:
@@ -108,3 +123,27 @@ LeagueFormSet = inlineformset_factory(
     extra=2,  # default: due leghe (F1 e DFA)
     can_delete=False
 )
+
+
+class PlayerEntryForm(forms.ModelForm):
+
+    class Meta:
+        model = PlayerEntry
+        fields = ['championship', 'player_name', 'league']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        championship = cleaned_data.get('championship')
+        player_name = cleaned_data.get('player_name')
+
+        if championship and player_name:
+            exists = PlayerEntry.objects.filter(
+                championship = forms.ModelChoiceField(
+                queryset=Championship.objects.all().order_by('-year', 'name'),
+                label="Campionato"),
+                player_name=player_name
+            ).exists()
+            if exists:
+                raise ValidationError("Questo nome giocatore è già stato usato in questo campionato.")
+
+        return cleaned_data

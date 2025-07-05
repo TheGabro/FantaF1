@@ -20,12 +20,10 @@ def dashboard(request):
     }
     return render(request, "fantaApp/dashboard.html", context)
 
-
 @login_required
 def logout(request):
     auth_logout(request)
     return redirect("home")
-
 
 def register(request):
     if request.method == "POST":
@@ -53,11 +51,8 @@ def login(request):
         "form_login": form_login
     })
 
-
 @login_required
 def create_championship(request):
-
-
     if request.method == 'POST':
         form = ChampionshipForm(request.POST)
         if form.is_valid():
@@ -79,3 +74,4 @@ def create_championship(request):
         'form': form,
         'formset': formset
     })
+

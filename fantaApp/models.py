@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 import uuid
 
+
 class CustomUserManager(BaseUserManager):
 
     def create_user(self, username, email=None, password=None, **extra_fields):
@@ -205,7 +206,10 @@ class QualifingEntry(models.Model):
 class Championship(models.Model):
     name = models.CharField(max_length=100)
     year = models.IntegerField()
+    active = models.BooleanField(default=True)
+    is_private = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
 
     def clean(self):
         if not self.pk:
@@ -217,6 +221,9 @@ class Championship(models.Model):
         if self.leagues.exists():
             raise ValidationError("The championship must have at least one league")
 
+    class Meta:
+        unique_together = [('name', 'year')]
+
     def __str__(self):
         return f"{self.name} ({self.year})"
     
@@ -227,17 +234,24 @@ class League(models.Model):
 
     def clean(self):
         if not self.championship:
-            raise ValidationError("A legue must be inside of a championship")
+            raise ValidationError("A league must be inside of a championship")
 
     def __str__(self):
         return f"{self.name} - {self.championship.name}"
     
 class PlayerEntry(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='participants')
-    league = models.ForeignKey(League, on_delete=models.SET_NULL, null=True, blank=True, related_name='participants')
+    championship = models.ForeignKey(Championship, on_delete=models.PROTECT, related_name='participants')
+    league = models.ForeignKey(League, on_delete=models.PROTECT, blank=True, related_name='participants')
     player_name = models.CharField(max_length=50)
     joined_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if PlayerEntry.objects.filter(
+        championship=self.championship,
+        player_name=self.player_name
+        ).exclude(pk=self.pk).exists():
+            raise ValidationError("Player Name alredy taken in this championship")
 
     class Meta:
         unique_together = [('user', 'championship'), ('player_name', 'championship')]
