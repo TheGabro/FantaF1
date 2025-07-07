@@ -239,7 +239,7 @@ class League(models.Model):
     def __str__(self):
         return f"{self.name} - {self.championship.name}"
     
-class PlayerEntry(models.Model):
+class ChampionshipPlayer(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     championship = models.ForeignKey(Championship, on_delete=models.PROTECT, related_name='participants')
     league = models.ForeignKey(League, on_delete=models.PROTECT, related_name='participants')
@@ -247,7 +247,7 @@ class PlayerEntry(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        if PlayerEntry.objects.filter(
+        if ChampionshipPlayer.objects.filter(
         championship=self.championship,
         player_name=self.player_name
         ).exclude(pk=self.pk).exists():
