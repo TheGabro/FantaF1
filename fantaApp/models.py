@@ -242,7 +242,7 @@ class League(models.Model):
 class PlayerEntry(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     championship = models.ForeignKey(Championship, on_delete=models.PROTECT, related_name='participants')
-    league = models.ForeignKey(League, on_delete=models.PROTECT, blank=True, related_name='participants')
+    league = models.ForeignKey(League, on_delete=models.PROTECT, related_name='participants')
     player_name = models.CharField(max_length=50)
     joined_at = models.DateTimeField(auto_now_add=True)
 

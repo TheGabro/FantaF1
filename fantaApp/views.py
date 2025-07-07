@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .forms import CustomUserRegistrationForm, UsernameOrEmailAuthenticationForm, ChampionshipForm, LeagueFormSet
+from .models import League, ChampionshipManager
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
@@ -55,17 +56,30 @@ def login(request):
 def create_championship(request):
     if request.method == 'POST':
         form = ChampionshipForm(request.POST)
-        if form.is_valid():
+        formset = LeagueFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
             championship = form.save(commit=False)
             championship.created_by = request.user
             championship.save()  # ora ha la PK!
 
-            formset = LeagueFormSet(request.POST, instance=championship)
-            if formset.is_valid():
-                formset.save()
-                return redirect('dashboard')
+            leagues = formset.save(commit=False)
+            for league in leagues:
+                league.championship = championship
+                league.save()
+            # If the user did not specify any league, create a default one
+            if not leagues:
+                League.objects.create(
+                    championship=championship,
+                    name=f"Lega Unica"
+                )
+            
+            ChampionshipManager.objects.get_or_create(
+                user=request.user,
+                championship=championship
+            )
 
-            return redirect('dashboard')  # o altra pagina
+
+            return redirect('dashboard')
     else:
         form = ChampionshipForm()
         formset = LeagueFormSet()

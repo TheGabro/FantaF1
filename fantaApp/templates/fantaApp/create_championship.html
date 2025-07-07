@@ -9,27 +9,25 @@
     {% csrf_token %}
     
     {{ form.non_field_errors }}
+    {{form.year}}
     <div>
       <label for="{{ form.name.id_for_label }}">Nome del Campionato:</label>
       {{ form.name }}
       {{ form.name.errors }}
     </div>
-    <div>
-      <label for="{{ form.year.id_for_label }}">Anno:</label>
-      {{ form.year }}
-      {{ form.year.errors }}
-    </div>
 
-    <hr>
-    <h3>Leghe del Campionato</h3>
+        <hr>
+    <h3>Leghe del Campionato (opzionali)</h3>
     {{ formset.management_form }}
 
-    {% for subform in formset %}
+        {% for subform in formset %}
       <div>
         {{ subform.name.label_tag }} {{ subform.name }}
         {{ subform.name.errors }}
       </div>
     {% endfor %}
+
+
 
     <button type="submit">Crea campionato</button>
   </form>

@@ -3,7 +3,7 @@ from .models import CustomUser, Championship, League, PlayerEntry
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
-from django.forms import inlineformset_factory, BaseInlineFormSet
+from django.forms import inlineformset_factory
 
 from datetime import datetime
 
@@ -91,11 +91,12 @@ class ChampionshipForm(forms.ModelForm):
         fields = ['name', 'year']
 
     def clean(self):
+        cleaned_data = super().clean()
         name = self.cleaned_data.get('name')
         year = self.cleaned_data.get('year')
         if Championship.objects.filter(name=name, year=year).exists():
             raise ValidationError("Questo nome per il campionato è già in uso quest'anno")
-        return name
+        return cleaned_data
 
 
 class LeagueForm(forms.ModelForm):
@@ -103,29 +104,20 @@ class LeagueForm(forms.ModelForm):
         model = League
         fields = ['name']
 
-
-class RequiredLeagueFormSet(BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        has_valid = any(
-            form.cleaned_data and not form.cleaned_data.get('DELETE', False)
-            for form in self.forms
-        )
-        if not has_valid:
-            raise ValidationError("Devi creare almeno una lega per il campionato.")
-
-
 LeagueFormSet = inlineformset_factory(
     Championship,
     League,
     form=LeagueForm,
-    formset=RequiredLeagueFormSet, 
-    extra=2,  # default: due leghe (F1 e DFA)
+    # extra=2,  # default: due leghe (F1 e DFA)
     can_delete=False
 )
 
 
 class PlayerEntryForm(forms.ModelForm):
+
+    championship = forms.ModelChoiceField(
+                queryset=Championship.objects.all().order_by('-year', 'name'),
+                label="Campionato")
 
     class Meta:
         model = PlayerEntry
@@ -138,9 +130,7 @@ class PlayerEntryForm(forms.ModelForm):
 
         if championship and player_name:
             exists = PlayerEntry.objects.filter(
-                championship = forms.ModelChoiceField(
-                queryset=Championship.objects.all().order_by('-year', 'name'),
-                label="Campionato"),
+                championship=championship,
                 player_name=player_name
             ).exists()
             if exists:
