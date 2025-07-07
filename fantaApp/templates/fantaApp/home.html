@@ -6,7 +6,7 @@
     {% if user.is_authenticated %}
     <p>Ciao {{user.username}}, accedi alla tua dashboard per vedere i tuoi campionati</p>
 
-    <form method="post" action="{% url 'dashboard' %}" style="display: inline;">
+    <form method="post" action="{% url 'user_dashboard' %}" style="display: inline;">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Dashboard</button>
     </form>

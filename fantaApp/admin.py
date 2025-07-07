@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
-from .models import CustomUser, Driver, Team, Circuit, Race, Championship,ChampionshipManager, League
+from .models import CustomUser, Driver, Team, Circuit, Race, Championship,ChampionshipManager, League, ChampionshipPlayer
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -42,4 +42,5 @@ admin.site.register(Race)
 admin.site.register(Championship)
 admin.site.register(ChampionshipManager)
 admin.site.register(League)
+admin.site.register(ChampionshipPlayer)
 

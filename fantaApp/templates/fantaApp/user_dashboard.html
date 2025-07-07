@@ -20,4 +20,19 @@
     <a href="{% url 'home' %}" class="btn">Home</a>
     <a href="{% url 'logout' %}" class="btn">Logout</a>
 
+
+    <h2>I miei campionati</h2>
+        <ul>
+        {% for e in championship %}
+            <li>
+            <a href="{% url 'championship_dashboard' e.championship.id %}">
+                {{ e.championship.name }} ({{ e.championship.year }})
+            </a>
+            - lega: {{ e.league.name }}
+            </li>
+        {% empty %}
+            <li>Non sei ancora iscritto a nessun campionato.</li>
+        {% endfor %}
+        </ul>
+
 {% endblock %}

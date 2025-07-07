@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, Championship, League, PlayerEntry
+from .models import CustomUser, Championship, League, ChampionshipPlayer
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -113,14 +113,14 @@ LeagueFormSet = inlineformset_factory(
 )
 
 
-class PlayerEntryForm(forms.ModelForm):
+class ChampionshipPlayerForm(forms.ModelForm):
 
     championship = forms.ModelChoiceField(
                 queryset=Championship.objects.all().order_by('-year', 'name'),
                 label="Campionato")
 
     class Meta:
-        model = PlayerEntry
+        model = ChampionshipPlayer
         fields = ['championship', 'player_name', 'league']
 
     def clean(self):
@@ -129,7 +129,7 @@ class PlayerEntryForm(forms.ModelForm):
         player_name = cleaned_data.get('player_name')
 
         if championship and player_name:
-            exists = PlayerEntry.objects.filter(
+            exists = ChampionshipPlayer.objects.filter(
                 championship=championship,
                 player_name=player_name
             ).exists()

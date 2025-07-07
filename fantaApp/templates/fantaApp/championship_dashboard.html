@@ -1,0 +1,25 @@
+{% extends "fantaApp/base.html" %}
+{% block content %}
+  <h1>{{ championship.name }} ({{ championship.year }})</h1>
+
+  <p>Manager:
+    {% for m in managers %}
+      {{ m.user.username }}{% if not forloop.last %}, {% endif %}
+    {% empty %} -
+    {% endfor %}
+  </p>
+
+  <h3>Le mie info</h3>
+  {% if my_entry %}
+    <p>Nome giocatore: {{ my_entry.player_name }} - Lega: {{ my_entry.league.name }}</p>
+  {% else %}
+    <p>Non sei iscritto a questo campionato.</p>
+  {% endif %}
+
+  <h3>Partecipanti</h3>
+  <ul>
+  {% for p in participants %}
+    <li>{{ p.player_name }} ({{ p.user.username }}) - {{ p.league.name }}</li>
+  {% endfor %}
+  </ul>
+{% endblock %}
