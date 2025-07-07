@@ -4,21 +4,21 @@
 
   <p>Manager:
     {% for m in managers %}
-      {{ m.user.username }}{% if not forloop.last %}, {% endif %}
+      {{ m.player_name}}{% if not forloop.last %}, {% endif %}
     {% empty %} -
     {% endfor %}
   </p>
 
   <h3>Le mie info</h3>
-  {% if my_entry %}
-    <p>Nome giocatore: {{ my_entry.player_name }} - Lega: {{ my_entry.league.name }}</p>
+  {% if current_championship_player %}
+    <p>Nome giocatore: {{ current_championship_player.player_name }} - Lega: {{ current_championship_player.league.name }}</p>
   {% else %}
     <p>Non sei iscritto a questo campionato.</p>
   {% endif %}
 
   <h3>Partecipanti</h3>
   <ul>
-  {% for p in participants %}
+  {% for p in championship_participants %}
     <li>{{ p.player_name }} ({{ p.user.username }}) - {{ p.league.name }}</li>
   {% endfor %}
   </ul>
