@@ -244,6 +244,8 @@ class ChampionshipPlayer(models.Model):
     championship = models.ForeignKey(Championship, on_delete=models.PROTECT, related_name='participants')
     league = models.ForeignKey(League, on_delete=models.PROTECT, related_name='participants')
     player_name = models.CharField(max_length=50)
+    available_credit = models.IntegerField(default=2000)
+    total_score = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
