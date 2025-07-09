@@ -81,7 +81,7 @@ class CustomUser(AbstractUser):
     
 
     from django.db import models
-    
+
 class Driver(models.Model):
     name = models.CharField(max_length=50)
     surname = models.CharField(max_length=50)
@@ -272,3 +272,11 @@ class ChampionshipManager(models.Model):
 
     def __str__(self):
         return f"{self.user.username} manager of {self.championship.name}"
+    
+class RaceResult(models.Model):
+    #TODO singola scelta dei piloti per gara e qualifiche con relativi punteggi ai giocatori
+    '''
+        foreign key: ChampionshipPlayer e Race
+        field: driver_choice, 
+    '''
+    pass
