@@ -12,6 +12,7 @@
   <h3>Le mie info</h3>
   {% if current_championship_player %}
     <p>Nome giocatore: {{ current_championship_player.player_name }} - Lega: {{ current_championship_player.league.name }}</p>
+    <p>Crediti rimanenti : {{current_championship_player.available_credit}}</p>
   {% else %}
     <p>Non sei iscritto a questo campionato.</p>
   {% endif %}
@@ -19,7 +20,7 @@
   <h3>Partecipanti</h3>
   <ul>
   {% for p in championship_participants %}
-    <li>{{ p.player_name }} ({{ p.user.username }}) - {{ p.league.name }}</li>
+    <li>{{ p.player_name }} ({{ p.user.username }}) - {{p.total_score}} - {{ p.league.name }}</li>
   {% endfor %}
   </ul>
 {% endblock %}
