@@ -10,11 +10,20 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ['user_type', 'is_staff', 'is_superuser']
 
     fieldsets = UserAdmin.fieldsets + (
-        ('Informazioni aggiuntive', {'fields': ('user_type', 'birthday', 'active', 'deleted_at')}),
+        ('Additional information', {'fields': ('user_type', 'birthday', 'active', 'deleted_at')}),
     )
 
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Informazioni aggiuntive', {'fields': ('user_type',)}),
+        ('Additional information', {'fields': ('user_type',)}),
+    )
+
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }
+        ),
+        ('Additional information', {'fields': ('user_type',)})
     )
 
     def save_model(self, request, obj, form, change):

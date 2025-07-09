@@ -6,7 +6,7 @@ import uuid
 
 class CustomUserManager(BaseUserManager):
 
-    def create_user(self, username, email=None, password=None, **extra_fields):
+    def create_user(self, username, email, password=None, **extra_fields):
         if not username:
             raise ValueError('The Username must be set')
         
@@ -81,7 +81,7 @@ class CustomUser(AbstractUser):
     
 
     from django.db import models
-
+    
 class Driver(models.Model):
     name = models.CharField(max_length=50)
     surname = models.CharField(max_length=50)
