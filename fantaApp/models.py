@@ -83,11 +83,12 @@ class CustomUser(AbstractUser):
     from django.db import models
 
 class Driver(models.Model):
-    name = models.CharField(max_length=50)
-    surname = models.CharField(max_length=50)
-    number = models.IntegerField()
-    short_name = models.CharField(max_length=3)  # ad es. 'VER' per Verstappen
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    number = models.PositiveSmallIntegerField()
+    short_name = models.CharField(max_length=3)
     team = models.ForeignKey('Team', on_delete=models.CASCADE)
+    api_id = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -95,14 +96,15 @@ class Driver(models.Model):
     is_valid = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.name} {self.surname} ({self.number}) - {self.short_name}"
+        return f"{self.first_name} {self.last_name} ({self.number}) - {self.short_name}"
     
     class Meta:
-        ordering = ['team__name', 'name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
+        ordering = ['team__name', 'first_name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
     
 class Team(models.Model):
     name = models.CharField(max_length=50)
-    short_name = models.CharField(max_length=3) 
+    short_name = models.CharField(max_length=3)
+    api_id = models.CharField(max_length=50)
     nationality = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -117,12 +119,11 @@ class Team(models.Model):
 
 class Circuit(models.Model):
     name = models.CharField(max_length=100)
-    continent = models.CharField(max_length=50)
-    state = models.CharField(max_length=50)
+    country = models.CharField(max_length=50)
+    location = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -137,12 +138,14 @@ class Race(models.Model):
     ]
 
     circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
-    year = models.IntegerField()
-    week = models.IntegerField()
+    event_name = models.CharField(max_length=100)
+    round_number = models.PositiveSmallIntegerField()
+    year = models.PositiveSmallIntegerField()
     fp1_start = models.DateTimeField(null=True, blank=True)
     fp2_start = models.DateTimeField(null=True, blank=True)
     fp3_start = models.DateTimeField(null=True, blank=True)
     sprint_start = models.DateTimeField(null=True, blank=True)
+    sprint_qualifying_start = models.DateTimeField(null=True, blank=True)
     qualifying_start = models.DateTimeField(null=True, blank=True)
     race_start = models.DateTimeField(null=True, blank=True)
     race_type = models.CharField(max_length=20, choices=RACE_TYPES, default='regular')
@@ -151,11 +154,11 @@ class Race(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.circuit.name} - {self.year} (W{self.week})"
+        return f"{self.circuit.name} - {self.year} (W{self.round_number})"
 
     class Meta:
-        ordering = ['year', 'week']
-        unique_together = ('circuit', 'year', 'week')
+        ordering = ['year', 'round_number']
+        unique_together = ('circuit', 'year', 'round_number')
 
 class RaceEntry(models.Model):
     STATUS_CHOICES = [
