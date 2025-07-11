@@ -121,6 +121,7 @@ class Circuit(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=50)
     location = models.CharField(max_length=100)
+    api_id =  models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
