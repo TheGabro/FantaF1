@@ -21,6 +21,7 @@ def get_drivers(season:int) -> list[dict]:
             "last_name":  d["familyName"],
             "number":     d["permanentNumber"],
             "short_name": d["code"],
+            "season": season,
             "team": constructor[["constructorId"]]
         })
     return drivers 
