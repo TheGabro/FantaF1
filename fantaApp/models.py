@@ -142,7 +142,7 @@ class Race(models.Model):
     circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
     event_name = models.CharField(max_length=100)
     round_number = models.PositiveSmallIntegerField()
-    year = models.PositiveSmallIntegerField()
+    season = models.PositiveSmallIntegerField()
     fp1_start = models.DateTimeField(null=True, blank=True)
     fp2_start = models.DateTimeField(null=True, blank=True)
     fp3_start = models.DateTimeField(null=True, blank=True)
@@ -152,15 +152,15 @@ class Race(models.Model):
     race_start = models.DateTimeField(null=True, blank=True)
     race_type = models.CharField(max_length=20, choices=RACE_TYPES, default='regular')
     created_at = models.DateTimeField(auto_now_add=True)
-    modified_at = models.DateTimeField(auto_now=True)
+    modified_at = models.DateTimeField(null = True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.circuit.name} - {self.year} (W{self.round_number})"
+        return f"{self.circuit.name} - {self.season} (W{self.round_number})"
 
     class Meta:
-        ordering = ['year', 'round_number']
-        unique_together = ('circuit', 'year', 'round_number')
+        ordering = ['season', 'round_number']
+        unique_together = ('circuit', 'season', 'round_number')
 
 class RaceEntry(models.Model):
     STATUS_CHOICES = [

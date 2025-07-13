@@ -1,41 +1,59 @@
 import requests
+import time
+
+# ── Simple module‑level rate‑limiter ────────────────────────────────────
+_RATE_LIMIT_SEC = 0.35                # max ~3 requests per second
+_last_call_ts = 0.0                   # perf_counter timestamp of last call
+
+def rate_limited_get(url: str, **kwargs):
+    """
+    Wrapper attorno a requests.get che assicura di non superare
+    ~3 req/sec (Jolpica ne permette 4).  Usa perf_counter per
+    gestire anche chiamate molto ravvicinate.
+    """
+    global _last_call_ts
+    now = time.perf_counter()
+    elapsed = now - _last_call_ts
+    if elapsed < _RATE_LIMIT_SEC:
+        time.sleep(_RATE_LIMIT_SEC - elapsed)
+    response = requests.get(url, **kwargs)
+    _last_call_ts = time.perf_counter()
+    return response
 
 BASE_URL = 'https://api.jolpi.ca/ergast/f1/'
 
 
 def get_drivers(season:int) -> list[dict]:
-    drivers_url = f"{BASE_URL}/{season}/drivers.json"
-    driver_r = requests.get(drivers_url, timeout=10)
+    drivers_url = f"{BASE_URL}{season}/drivers.json"
+    driver_r = rate_limited_get(drivers_url, timeout=10)
     driver_r.raise_for_status()
-    drivers = []
+    drivers : list[dict] = []
     for d in driver_r.json()["MRData"]["DriverTable"]["Drivers"]:
-        driver_id = d["driverId"]
-        constructor_url = f"{BASE_URL}/{season}/drivers/{driver_id}/constructors"
-        constructor_r = requests.get(constructor_url, timeout = 10)
+        diver_id = d["driverId"]
+        constructor_url = f"{BASE_URL}/2025/drivers/{diver_id}/constructors"
+        constructor_r = rate_limited_get(constructor_url, timeout = 10)
         constructor_r.raise_for_status()
-        constructor = driver_r.json()["MRData"]["ConstructorTable"]["Constructors"][0]
-    
+        costructor = constructor_r.json()["MRData"]["ConstructorTable"]["Constructors"][0]
         drivers.append({
-            "api_id": d["driverId"],
+            "drivers_api_id": d["driverId"],
             "first_name": d["givenName"],
             "last_name":  d["familyName"],
             "number":     d["permanentNumber"],
             "short_name": d["code"],
-            "season": season,
-            "team": constructor[["constructorId"]]
+            "team": costructor["constructorId"] #controlla sta cosa
         })
     return drivers 
 
 def get_teams(season:int) -> list[dict]:
-    teams_url = f"{BASE_URL}/{season}/constructors"
-    teams_r = requests.get(teams_url, timeout = 10)
+    teams_url = f"{BASE_URL}{season}/constructors"
+    teams_r = rate_limited_get(teams_url, timeout = 10)
     teams_r.raise_for_status()
-    teams = []
+    teams : list[dict] = []
     for c in teams_r.json()["MRData"]["ConstructorTable"]["Constructors"]:
         teams.append({
             "name": c['name'],
             "nationality":c['nationality'],
-            "api_id": c['constructorId'],
+            "constructor_api_id": c['constructorId'],
             "short_name": c['name'][:3].upper()
             }
         )
@@ -43,16 +61,50 @@ def get_teams(season:int) -> list[dict]:
     return teams
 
 def get_circuits(season: int) -> list[dict]:
-    circuits_url = f'{BASE_URL}/{season}/circuits'
-    circuits_r = requests.get(circuits_url, timeout = 10)
+    circuits_url = f'{BASE_URL}{season}/circuits'
+    circuits_r = rate_limited_get(circuits_url, timeout = 10)
     circuits_r.raise_for_status()
-    circuits = []
+    circuits : list[dict] = []
     for c in circuits_r.json()["MRData"]["CircuitTable"]["Circuits"]:
         circuits.append({
             "name": c["circuitName"],
             "country": c["Location"]["country"],
             "location": c["Location"]["locality"],
-            "api_id": c["circuitId"]
+            "circuit_api_id": c["circuitId"]
         })
+        
+    return circuits
+        
+def get_races(season:int) -> list[dict]:
+    race_url = f'{BASE_URL}{season}/races'
+    race_r = rate_limited_get(race_url, timeout=10)
+    race_r.raise_for_status()
+    races : list[dict] = []
+    for r in race_r.json()['MRData']['RaceTable']['Races']:
+        race = {
+            "circuit_api_id": r["Circuit"]["circuitId"],
+            "event_name": r["raceName"],
+            "round_number": int(r["round"]),
+            "fp1_start": f"{r['FirstPractice']['date']} {r['FirstPractice']['time']}",
+            "qualifying_start": f"{r['Qualifying']['date']} {r['Qualifying']['time']}",
+            "race_start": f"{r['date']} {r['time']}",
+        }
+        if 'Sprint' in r :
+            race["race_type"] = "sprint"
+            race["sprint_qualifying_start"] = f"{r['SprintQualifying']['date']} {r['SprintQualifying']['time']}"
+            race["sprint_start"] = f"{r['Sprint']['date']} {r['Sprint']['time']}"
+        else:
+            race["race_type"] = "regular"
+            race["fp2_start"] = f"{r['SecondPractice']['date']} {r['SecondPractice']['time']}"
+            race["fp3_start"] = f"{r['ThirdPractice']['date']} {r['ThirdPractice']['time']}"
+            
+        races.append(race)
+        
+    return races
+        
+
+        
+        
+    
 
     
