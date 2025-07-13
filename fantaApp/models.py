@@ -156,7 +156,7 @@ class Race(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.circuit.name} - {self.season} (W{self.round_number})"
+        return f"{self.event_name} - {self.season} (Round:{self.round_number})"
 
     class Meta:
         ordering = ['season', 'round_number']
