@@ -7,7 +7,6 @@ Scarica piloti, circuiti e calendario per la stagione indicata tramite
 le funzioni del layer `services` e li salva/aggiorna nel database Django.
 """
 from datetime import datetime
-import time
 
 from django.core.management.base import BaseCommand
 from django.db import transaction

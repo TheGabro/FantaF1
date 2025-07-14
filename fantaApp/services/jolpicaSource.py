@@ -101,6 +101,42 @@ def get_races(season:int) -> list[dict]:
         races.append(race)
         
     return races
+
+def get_qualyfication_result(season : int, round :int) -> list[dict]:
+    qualy_url = f"{BASE_URL}{season}/{round}/qualifying"
+    qualy_r = rate_limited_get(qualy_url, timeout=10)
+    qualy_r.raise_for_status()
+    qualy_results : list[dict] = []
+    for q in qualy_r.json()['MRData']['RaceTable']['Races']['QualifyingResults']:
+        qualy_results.append({
+            "driver_api_id": q["Driver"]["driverId"],
+            "q3_position": q["position"],
+            "q1_time": q["Q1"],
+            "q2_time": q["Q2"],
+            "q3_time": q["Q3"]
+        })
+
+    return qualy_results
+
+def get_race_result(season: int, round: int) -> list[dict]:
+    race_url = f"{BASE_URL}{season}/{round}/results"
+    race_r = rate_limited_get(race_url, timeout=10)
+    race_r.raise_for_status()
+    race_results: list[dict] = []
+    for r in race_r.json()['MRData']['RaceTable']['Races']['Results']:
+        race_results.append({
+            "driver_api_id": r["Driver"]["driverId"],
+            "constructor_api_id": r["Constructor"]["constructorId"],
+            "position": int(r["position"]),
+            "starting_grid": r["grid"],
+            "points": int(r["points"]),
+            "laps": int(r["laps"]),
+            "status": r["status"],
+            "best_lap": r['FastestLap']['lap'],
+            "fast_lap": r['FastestLap']['Time']['time']
+        })
+
+    return race_results
         
 
         
