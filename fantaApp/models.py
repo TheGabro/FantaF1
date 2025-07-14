@@ -141,8 +141,8 @@ class Race(models.Model):
 
     circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
     event_name = models.CharField(max_length=100)
-    round_number = models.PositiveSmallIntegerField()
-    season = models.PositiveSmallIntegerField()
+    round_number = models.PositiveSmallIntegerField(null=False)
+    season = models.PositiveSmallIntegerField(null=False)
     fp1_start = models.DateTimeField(null=True, blank=True)
     fp2_start = models.DateTimeField(null=True, blank=True)
     fp3_start = models.DateTimeField(null=True, blank=True)
@@ -190,13 +190,13 @@ class QualifingEntry(models.Model):
     race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='qualifing_entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
 
-    q1_position = models.IntegerField(null=True, blank=True)
+    q1_position = models.PositiveSmallIntegerField(null=True, blank=True)
     q1_time = models.DurationField(null=True, blank=True)
 
-    q2_position = models.IntegerField(null=True, blank=True)
+    q2_position = models.PositiveSmallIntegerField(null=True, blank=True)
     q2_time = models.DurationField(null=True, blank=True)
 
-    q3_position = models.IntegerField(null=True, blank=True)
+    q3_position = models.PositiveSmallIntegerField(null=True, blank=True)
     q3_time = models.DurationField(null=True, blank=True)
 
     best_lap = models.DurationField(null=True, blank=True)
