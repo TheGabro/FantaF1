@@ -164,11 +164,11 @@ class Race(models.Model):
 
 class RaceEntry(models.Model):
     STATUS_CHOICES = [
-        ('finished', 'Finished'),
-        ('dnf', 'Did Not Finish'),
-        ('disqualified', 'Disqualified'),
-        ('dns', 'Did Not Start'),
-        ('retired', 'Retired'),
+        ('Finished', 'Finished'),
+        ('Retired', 'Did Not Finish'),
+        ('Lapped', 'Lapped'),
+        ('Disqualified', 'Disqualified'),
+        ('Did not start', 'DNS'),
     ]
 
     race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='entries')
@@ -177,7 +177,8 @@ class RaceEntry(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     starting_grid = models.IntegerField(null=True, blank=True)
     points = models.IntegerField(default=0)
-    best_lap = models.DurationField(null=True, blank=True)
+    best_lap = models.SmallIntegerField(null=True, blank=True)
+    fast_lap = models.DurationField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.driver.short_name} - {self.race} (P{self.position})"
@@ -186,7 +187,7 @@ class RaceEntry(models.Model):
         unique_together = ('race', 'driver')
         ordering = ['race', 'position']
 
-class QualifingEntry(models.Model):
+class QualifyingEntry(models.Model):
     race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='qualifing_entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
 
