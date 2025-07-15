@@ -3,7 +3,7 @@ from django.utils.dateparse import parse_duration
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Weekend, Driver, RaceEntry
+from fantaApp.models import Weekend, Race, Driver, RaceEntry
 from fantaApp.services.jolpicaSource import get_race_result
 
 
@@ -34,11 +34,16 @@ class Command(BaseCommand):
         year: int = options["year"]
         round: int = options["round"]
         dry_run: bool = options["dry_run"]
-        race : Weekend = Weekend.objects.get(season = year, round_number = round)
+        weekend = Weekend.objects.get(season=year, round_number=round)
+        race, _ = Race.objects.get_or_create(
+            weekend=weekend,
+            defaults={"type": "regular"}
+        )
         quali_objs :list[RaceEntry] = []
         for data in get_race_result(year, round):
+            fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
             quali_objs.append(
-                Weekend(
+                RaceEntry(
                     race = race,
                     driver = Driver.objects.get(api_id=data["driver_api_id"]),
                     position = data["position"],
@@ -46,12 +51,12 @@ class Command(BaseCommand):
                     starting_grid = data["starting_grid"],
                     points = data["points"],
                     best_lap = data["best_lap"],
-                    fast_lap = parse_duration(data["fast_lap"]),
+                    fast_lap = fast_lap,
                 )
             )
 
         RaceEntry.objects.bulk_create(quali_objs, ignore_conflicts=True)
-        self.stdout.write(self.style.SUCCESS(f"• Races imported: {len(quali_objs)}"))
+        self.stdout.write(self.style.SUCCESS(f"• Races resuls imported: {len(quali_objs)}"))
 
         # ------------------------------------------------------------------
         # Commit / Rollback

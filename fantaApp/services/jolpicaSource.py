@@ -135,7 +135,7 @@ def get_race_result(season: int, round: int) -> list[dict]:
     race_r = rate_limited_get(race_url, timeout=10)
     race_r.raise_for_status()
     race_results: list[dict] = []
-    for r in race_r.json()['MRData']['RaceTable']['Races']['Results']:
+    for r in race_r.json()['MRData']['RaceTable']['Races'][0]['Results']:
         result = {
             "driver_api_id": r["Driver"]["driverId"],
             "position": int(r["position"]),
@@ -144,7 +144,7 @@ def get_race_result(season: int, round: int) -> list[dict]:
         result["starting_grid"] = r["grid"] if "grid" in r else None
         result["status"] = r["status"] if "status" in r else None
         if 'FastestLap' in r:
-            result["best_lap"] = r['FastestLap']['lap']
+            result["best_lap"] = int(r['FastestLap']['lap'])
             result["fast_lap"] = r['FastestLap']['Time']['time']
         else:
             result["best_lap"] = None
