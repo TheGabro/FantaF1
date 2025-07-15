@@ -201,13 +201,14 @@ class QualifyingEntry(models.Model):
     q3_time = models.DurationField(null=True, blank=True)
 
     best_lap = models.DurationField(null=True, blank=True)
+    position = models.PositiveSmallIntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.driver.short_name} - {self.race} (Quali)"
+        return f"{self.race} - {self.driver.short_name} ({self.position})"
 
     class Meta:
         unique_together = ('race', 'driver')
-        ordering = ['race', 'q3_position']
+        ordering = ['race', 'position']
 
 class Championship(models.Model):
     name = models.CharField(max_length=100)
