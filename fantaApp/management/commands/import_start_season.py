@@ -11,11 +11,11 @@ from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Circuit, Driver, Race, Team
+from fantaApp.models import Circuit, Driver, Weekend, Team
 from fantaApp.services.jolpicaSource import (
     get_circuits,
     get_drivers,
-    get_races,
+    get_weekends,
     get_teams,
 )
 
@@ -100,18 +100,18 @@ class Command(BaseCommand):
         
 
         # ------------------------------------------------------------------
-        # 4) Races
+        # 4) Weekends
         # ------------------------------------------------------------------
-        races_payload = get_races(year)
-        race_objs: list[Race] = []
-        for data in races_payload:
-            race_objs.append(
-                Race(
+        weekends_payload = get_weekends(year)
+        weekend_objs: list[Weekend] = []
+        for data in weekends_payload:
+            weekend_objs.append(
+                Weekend(
                     circuit=circuits_cache[data["circuit_api_id"]],
                     season=year,
                     round_number=data["round_number"],
                     event_name=data["event_name"],
-                    race_type = data['race_type'],
+                    weekend_type = data['weekend_type'],
                     fp1_start=datetime.strptime(data["fp1_start"], '%Y-%m-%d %H:%M:00Z'),
                     fp2_start = datetime.strptime(data["fp2_start"], '%Y-%m-%d %H:%M:00Z') if 'fp2_start' in data else None,
                     fp3_start = datetime.strptime(data["fp3_start"], '%Y-%m-%d %H:%M:00Z') if 'fp3_start' in data else None,
@@ -123,8 +123,8 @@ class Command(BaseCommand):
             )
 
         # Inserimento veloce: una singola INSERT
-        Race.objects.bulk_create(race_objs, ignore_conflicts=True)
-        self.stdout.write(self.style.SUCCESS(f"• Races imported: {len(races_payload)}"))
+        Weekend.objects.bulk_create(weekend_objs, ignore_conflicts=True)
+        self.stdout.write(self.style.SUCCESS(f"• Races imported: {len(weekends_payload)}"))
 
         # ------------------------------------------------------------------
         # Commit / Rollback

@@ -75,7 +75,7 @@ def get_circuits(season: int) -> list[dict]:
         
     return circuits
         
-def get_races(season:int) -> list[dict]:
+def get_weekends(season:int) -> list[dict]:
     race_url = f'{BASE_URL}{season}/races'
     race_r = rate_limited_get(race_url, timeout=10)
     race_r.raise_for_status()

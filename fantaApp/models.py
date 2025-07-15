@@ -133,7 +133,8 @@ class Circuit(models.Model):
     class Meta:
         ordering = ['name']
 
-class Race(models.Model):
+
+class Weekend(models.Model):
     RACE_TYPES = [
         ('regular', 'Regular Race'),
         ('sprint', 'Sprint Race')
@@ -171,7 +172,7 @@ class RaceEntry(models.Model):
         ('Did not start', 'DNS'),
     ]
 
-    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='entries')
+    weekend = models.ForeignKey('Weekend', on_delete=models.CASCADE, related_name='entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
     position = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -184,11 +185,11 @@ class RaceEntry(models.Model):
         return f"{self.driver.short_name} - {self.race} (P{self.position})"
 
     class Meta:
-        unique_together = ('race', 'driver')
-        ordering = ['race', 'position']
+        unique_together = ('weekend', 'driver')
+        ordering = ['weekend', 'position']
 
 class QualifyingEntry(models.Model):
-    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='qualifing_entries')
+    weekend = models.ForeignKey('Weekend', on_delete=models.CASCADE, related_name='qualifing_entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
 
     q1_position = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -204,11 +205,11 @@ class QualifyingEntry(models.Model):
     position = models.PositiveSmallIntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.race} - {self.driver.short_name} ({self.position})"
+        return f"{self.weekend} - {self.driver.short_name} ({self.position})"
 
     class Meta:
-        unique_together = ('race', 'driver')
-        ordering = ['race', 'position']
+        unique_together = ('weekend', 'driver')
+        ordering = ['weekend', 'position']
 
 class Championship(models.Model):
     name = models.CharField(max_length=100)

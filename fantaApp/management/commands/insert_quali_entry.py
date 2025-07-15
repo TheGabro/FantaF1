@@ -3,7 +3,7 @@ from django.utils.dateparse import parse_duration
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Race, Driver, QualifyingEntry
+from fantaApp.models import Weekend, Driver, QualifyingEntry
 from fantaApp.services.jolpicaSource import get_qualifying_result
 
 
@@ -34,7 +34,7 @@ class Command(BaseCommand):
         year: int = options["year"]
         round: int = options["round"]
         dry_run: bool = options["dry_run"]
-        race : Race = Race.objects.get(season = year, round_number = round)
+        race : Weekend = Weekend.objects.get(season = year, round_number = round)
         quali_objs :list[QualifyingEntry] = []
         for data in get_qualifying_result(year, round):
             q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
