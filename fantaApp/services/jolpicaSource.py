@@ -136,17 +136,21 @@ def get_race_result(season: int, round: int) -> list[dict]:
     race_r.raise_for_status()
     race_results: list[dict] = []
     for r in race_r.json()['MRData']['RaceTable']['Races']['Results']:
-        race_results.append({
+        result = {
             "driver_api_id": r["Driver"]["driverId"],
-            "constructor_api_id": r["Constructor"]["constructorId"],
             "position": int(r["position"]),
-            "starting_grid": r["grid"],
-            "points": int(r["points"]),
-            "laps": int(r["laps"]),
-            "status": r["status"],
-            "best_lap": r['FastestLap']['lap'],
-            "fast_lap": r['FastestLap']['Time']['time']
-        })
+            "points": int(r["points"])
+        }
+        result["starting_grid"] = r["grid"] if "grid" in r else None
+        result["status"] = r["status"] if "status" in r else None
+        if 'FastestLap' in r:
+            result["best_lap"] = r['FastestLap']['lap']
+            result["fast_lap"] = r['FastestLap']['Time']['time']
+        else:
+            result["best_lap"] = None
+            result["fast_lap"] = None
+
+        race_results.append(result)
 
     return race_results
         
