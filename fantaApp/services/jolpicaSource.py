@@ -90,11 +90,11 @@ def get_weekends(season:int) -> list[dict]:
             "race_start": f"{r['date']} {r['time']}",
         }
         if 'Sprint' in r :
-            race["race_type"] = "sprint"
+            race["weekend_type"] = "sprint"
             race["sprint_qualifying_start"] = f"{r['SprintQualifying']['date']} {r['SprintQualifying']['time']}"
             race["sprint_start"] = f"{r['Sprint']['date']} {r['Sprint']['time']}"
         else:
-            race["race_type"] = "regular"
+            race["weekend_type"] = "regular"
             race["fp2_start"] = f"{r['SecondPractice']['date']} {r['SecondPractice']['time']}"
             race["fp3_start"] = f"{r['ThirdPractice']['date']} {r['ThirdPractice']['time']}"
             

@@ -135,7 +135,7 @@ class Circuit(models.Model):
 
 
 class Weekend(models.Model):
-    RACE_TYPES = [
+    WEEKEND_TYPES = [
         ('regular', 'Regular Race'),
         ('sprint', 'Sprint Race')
     ]
@@ -151,7 +151,7 @@ class Weekend(models.Model):
     sprint_qualifying_start = models.DateTimeField(null=True, blank=True)
     qualifying_start = models.DateTimeField(null=True, blank=True)
     race_start = models.DateTimeField(null=True, blank=True)
-    race_type = models.CharField(max_length=20, choices=RACE_TYPES, default='regular')
+    weekend_type = models.CharField(max_length=20, choices = WEEKEND_TYPES, default='regular')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(null = True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -163,6 +163,35 @@ class Weekend(models.Model):
         ordering = ['season', 'round_number']
         unique_together = ('circuit', 'season', 'round_number')
 
+
+class Race(models.Model):
+    TYPES = [
+        ('regular', 'Regular Race'),
+        ('sprint', 'Sprint Race')
+    ]
+
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='Race')
+    type = models.CharField(max_length=20, choices = TYPES, default='regular')
+
+
+    def __str__(self):
+        return f"{self.weekend} - {self.type}"
+    
+
+class Qualifying(models.Model):
+    TYPES = [
+        ('regular', 'Regular Race Qualifying'),
+        ('sprint', 'Sprint Race Qualifying')
+    ]
+
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='Qualifying')
+    type = models.CharField(max_length=20, choices = TYPES, default='regular')
+
+
+    def __str__(self):
+        return f"{self.weekend} - {self.type}"
+
+
 class RaceEntry(models.Model):
     STATUS_CHOICES = [
         ('Finished', 'Finished'),
@@ -172,7 +201,7 @@ class RaceEntry(models.Model):
         ('Did not start', 'DNS'),
     ]
 
-    weekend = models.ForeignKey('Weekend', on_delete=models.CASCADE, related_name='entries')
+    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
     position = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
@@ -182,14 +211,14 @@ class RaceEntry(models.Model):
     fast_lap = models.DurationField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.driver.short_name} - {self.race} (P{self.position})"
+        return f"{self.race} - {self.driver.short_name} (P{self.position})"
 
     class Meta:
-        unique_together = ('weekend', 'driver')
-        ordering = ['weekend', 'position']
+        unique_together = ('race', 'driver')
+        ordering = ['race', 'position']
 
 class QualifyingEntry(models.Model):
-    weekend = models.ForeignKey('Weekend', on_delete=models.CASCADE, related_name='qualifing_entries')
+    qualifying = models.ForeignKey('Qualifying', on_delete=models.CASCADE, related_name='qualifying_entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
 
     q1_position = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -205,11 +234,11 @@ class QualifyingEntry(models.Model):
     position = models.PositiveSmallIntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.weekend} - {self.driver.short_name} ({self.position})"
+        return f"{self.qualifying} - {self.driver.short_name} ({self.position})"
 
     class Meta:
-        unique_together = ('weekend', 'driver')
-        ordering = ['weekend', 'position']
+        unique_together = ('qualifying', 'driver')
+        ordering = ['qualifying', 'position']
 
 class Championship(models.Model):
     name = models.CharField(max_length=100)
