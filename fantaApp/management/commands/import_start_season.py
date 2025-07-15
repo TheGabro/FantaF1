@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "year",
+            "--year",
             type=int,
             help="year to inizialize",
         )
