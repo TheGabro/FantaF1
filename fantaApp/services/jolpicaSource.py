@@ -40,7 +40,7 @@ def get_drivers(season:int) -> list[dict]:
             "last_name":  d["familyName"],
             "number":     d["permanentNumber"],
             "short_name": d["code"],
-            "team": costructor["constructorId"] #controlla sta cosa
+            "team": costructor["constructorId"]
         })
     return drivers 
 
@@ -102,21 +102,33 @@ def get_races(season:int) -> list[dict]:
         
     return races
 
-def get_qualyfication_result(season : int, round :int) -> list[dict]:
+def get_qualifying_result(season : int, round :int) -> list[dict]:
     qualy_url = f"{BASE_URL}{season}/{round}/qualifying"
     qualy_r = rate_limited_get(qualy_url, timeout=10)
     qualy_r.raise_for_status()
     qualy_results : list[dict] = []
-    for q in qualy_r.json()['MRData']['RaceTable']['Races']['QualifyingResults']:
-        qualy_results.append({
+    for q in qualy_r.json()['MRData']['RaceTable']['Races'][0]['QualifyingResults']:
+        driver_quali = {
             "driver_api_id": q["Driver"]["driverId"],
-            "q3_position": q["position"],
-            "q1_time": q["Q1"],
-            "q2_time": q["Q2"],
-            "q3_time": q["Q3"]
-        })
+            "position": q["position"],
+        }
+        if 'Q1' in q:
+            driver_quali["q1_time"] = q["Q1"]
+        else:
+            driver_quali["q1_time"] = None
+        if 'Q2' in q:
+            driver_quali["q2_time"] = q["Q2"]
+        else:
+            driver_quali["q2_time"] = None
+        if 'Q3' in q:
+            driver_quali["q3_time"] = q["Q3"]
+        else:
+            driver_quali["q3_time"] = None
+        
+        qualy_results.append(driver_quali)
 
     return qualy_results
+
 
 def get_race_result(season: int, round: int) -> list[dict]:
     race_url = f"{BASE_URL}{season}/{round}/results"
