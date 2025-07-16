@@ -24,6 +24,12 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
+            "--type",
+            type=str,
+            help="round to call",
+        )
+
+        parser.add_argument(
             "--dry-run", #it's a boolean flag, if present it will roll back at the end
             action="store_true",
             help="Execute command without final commit",
@@ -33,11 +39,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         year: int = options["year"]
         round: int = options["round"]
+        type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=year, round_number=round)
         race, _ = Race.objects.get_or_create(
             weekend=weekend,
-            defaults={"type": "regular"}
+            defaults={"type": type}
         )
         quali_objs :list[RaceEntry] = []
         for data in get_race_result(year, round):

@@ -130,12 +130,19 @@ def get_qualifying_result(season : int, round :int) -> list[dict]:
     return qualy_results
 
 
-def get_race_result(season: int, round: int) -> list[dict]:
-    race_url = f"{BASE_URL}{season}/{round}/results"
-    race_r = rate_limited_get(race_url, timeout=10)
+def get_race_result(season: int, round: int, is_sprint : bool = False) -> list[dict]:
+    if is_sprint:
+        event = 'sprint'
+        endpoint = 'SprintResults'
+    else:
+        event = 'results'
+        endpoint = 'Results'
+
+    race_url = f"{BASE_URL}{season}/{round}/{event}"
+    race_r = requests.get(race_url, timeout=10)
     race_r.raise_for_status()
     race_results: list[dict] = []
-    for r in race_r.json()['MRData']['RaceTable']['Races'][0]['Results']:
+    for r in race_r.json()['MRData']['RaceTable']['Races'][0][endpoint]:
         result = {
             "driver_api_id": r["Driver"]["driverId"],
             "position": int(r["position"]),

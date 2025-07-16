@@ -136,8 +136,8 @@ class Circuit(models.Model):
 
 class Weekend(models.Model):
     WEEKEND_TYPES = [
-        ('regular', 'Regular Race'),
-        ('sprint', 'Sprint Race')
+        ('regular', 'Regular Weekend'),
+        ('sprint', 'Sprint Weekend')
     ]
 
     circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
