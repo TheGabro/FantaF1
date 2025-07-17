@@ -101,6 +101,7 @@ class Driver(models.Model):
     
     class Meta:
         ordering = ['team__name', 'first_name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
+        unique_together = ('number', 'season')
     
 class Team(models.Model):
     name = models.CharField(max_length=50)
