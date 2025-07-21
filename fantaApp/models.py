@@ -311,10 +311,27 @@ class ChampionshipManager(models.Model):
     def __str__(self):
         return f"{self.user.username} manager of {self.championship.name}"
     
-class RaceResult(models.Model):
-    #TODO singola scelta dei piloti per gara e qualifiche con relativi punteggi ai giocatori
-    '''
-        foreign key: ChampionshipPlayer e Race
-        field: driver_choice, 
-    '''
-    pass
+class AbstractPlayerChoice(models.Model):
+    """Base comune: tiene traccia di chi sceglie cosa e quanto spende."""
+    player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
+    driver = models.ForeignKey(Driver, on_delete=models.PROTECT)
+    cost = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+        indexes = [models.Index(fields=["player", "driver"])]
+
+class PlayerQualifyingChoice(AbstractPlayerChoice):
+    qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
+
+    class Meta(AbstractPlayerChoice.Meta):
+        unique_together = [("player", "qualifying")]
+
+class PlayerRaceChoice(AbstractPlayerChoice):
+    race = models.ForeignKey(Race, on_delete=models.CASCADE)
+    is_pupillo = models.BooleanField(default=False)
+
+    class Meta(AbstractPlayerChoice.Meta):
+        unique_together = [("player", "race", "driver")]
+        
