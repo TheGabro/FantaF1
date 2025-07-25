@@ -163,13 +163,18 @@ class Weekend(models.Model):
         ordering = ['season', 'round_number']
         unique_together = ('circuit', 'season', 'round_number')
 
-class Race(models.Model):
+class Event(models.Model):
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE)
+    
+    class Meta:
+        abstract = True
+
+class Race(Event):
     TYPES = [
         ('regular', 'Regular Race'),
         ('sprint', 'Sprint Race')
     ]
 
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='Race')
     type = models.CharField(max_length=20, choices = TYPES, default='regular')
 
 
@@ -179,13 +184,12 @@ class Race(models.Model):
     class Meta:
         ordering = ['weekend__round_number', '-type']
     
-class Qualifying(models.Model):
+class Qualifying(Event):
     TYPES = [
         ('regular', 'Regular Race Qualifying'),
         ('sprint', 'Sprint Race Qualifying')
     ]
 
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='Qualifying')
     type = models.CharField(max_length=20, choices = TYPES, default='regular')
 
 
