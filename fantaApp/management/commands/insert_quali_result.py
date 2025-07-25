@@ -3,9 +3,9 @@ from django.utils.dateparse import parse_duration
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Weekend, Qualifying, Driver, QualifyingEntry
+from fantaApp.models import Weekend, Qualifying, Driver, QualifyingResult
 from fantaApp.services.jolpicaSource import get_qualifying_result
-from fantaApp.services.fastf1Source import get_sprint_qualifying_entry
+from fantaApp.services.fastf1Source import get_sprint_qualifying_result
 
 
 class Command(BaseCommand):
@@ -35,27 +35,32 @@ class Command(BaseCommand):
             action="store_true",
             help="Execute command without final commit",
         )
+        
+    TYPES = [
+        ('regular', 'Regular Race Qualifying'),
+        ('sprint', 'Sprint Race Qualifying')
+    ]
     
     @transaction.atomic
     def handle(self, *args, **options):
         season: int = options["season"]
         round: int = options["round"]
-        type: str = options["type"]
+        q_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
-        qualifying, _ = Qualifying.objects.get_or_create(
+        qualifying = Qualifying.objects.get(
             weekend=weekend,
-            defaults={"type": type}
+            type = q_type
         )
-        quali_objs :list[QualifyingEntry] = []
-        if type == 'regular':
+        quali_objs :list[QualifyingResult] = []
+        if q_type == 'regular':
             self.stdout.write(self.style.SUCCESS("=== Import regular qualigfying ==="))
             for data in get_qualifying_result(season, round):
                 q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
                 q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
                 q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None
                 quali_objs.append(
-                    QualifyingEntry(
+                    QualifyingResult(
                         qualifying = qualifying,
                         driver = Driver.objects.get(api_id=data["driver_api_id"]),
                         q1_time = q1_time,
@@ -67,13 +72,13 @@ class Command(BaseCommand):
                 )
         else:
             self.stdout.write(self.style.SUCCESS("=== Import sprint qualigfying ==="))
-            for data in get_sprint_qualifying_entry(season, round):
+            for data in get_sprint_qualifying_result(season, round):
                 q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
                 q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
                 q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None
                 driver_number = 33 if data["number"] == 1 else data["number"]
                 quali_objs.append(
-                    QualifyingEntry(
+                    QualifyingResult(
                         qualifying = qualifying,
                         driver = Driver.objects.get(number=driver_number, season = season),
                         q1_time = q1_time,
@@ -86,7 +91,7 @@ class Command(BaseCommand):
         
 
         # Inserimento veloce: una singola INSERT
-        QualifyingEntry.objects.bulk_create(quali_objs, ignore_conflicts=True)
+        QualifyingResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
         self.stdout.write(self.style.SUCCESS(f"• Races qualifying imported: {len(quali_objs)}"))
 
         # ------------------------------------------------------------------

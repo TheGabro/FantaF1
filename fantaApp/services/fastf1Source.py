@@ -5,7 +5,7 @@ import logging
 logging.getLogger("fastf1").setLevel(logging.CRITICAL)
 
 
-def get_sprint_qualifying_entry(season: int, round: int):
+def get_sprint_qualifying_result(season: int, round: int):
 
     ss = fastf1.get_session(season, round, "Sprint Qualifying")
     ss.load(telemetry=False)

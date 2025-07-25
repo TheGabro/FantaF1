@@ -3,7 +3,7 @@ from django.utils.dateparse import parse_duration
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Weekend, Race, Driver, RaceEntry
+from fantaApp.models import Weekend, Race, Driver, RaceResult
 from fantaApp.services.jolpicaSource import get_race_result
 
 
@@ -12,9 +12,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--year",
+            "--season",
             type=int,
-            help="year to call",
+            help="seasonto call",
         )
 
         parser.add_argument(
@@ -37,20 +37,20 @@ class Command(BaseCommand):
     
     @transaction.atomic
     def handle(self, *args, **options):
-        year: int = options["year"]
+        season: int = options["season"]
         round: int = options["round"]
-        type: str = options["type"]
+        q_type: str = options["type"]
         dry_run: bool = options["dry_run"]
-        weekend = Weekend.objects.get(season=year, round_number=round)
-        race, _ = Race.objects.get_or_create(
+        weekend = Weekend.objects.get(season=season, round_number=round)
+        race = Race.objects.get(
             weekend=weekend,
-            defaults={"type": type}
+            type = q_type
         )
-        quali_objs :list[RaceEntry] = []
-        for data in get_race_result(year, round):
+        quali_objs :list[RaceResult] = []
+        for data in get_race_result(season, round):
             fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
             quali_objs.append(
-                RaceEntry(
+                RaceResult(
                     race = race,
                     driver = Driver.objects.get(api_id=data["driver_api_id"]),
                     position = data["position"],
@@ -62,7 +62,7 @@ class Command(BaseCommand):
                 )
             )
 
-        RaceEntry.objects.bulk_create(quali_objs, ignore_conflicts=True)
+        RaceResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
         self.stdout.write(self.style.SUCCESS(f"• Races resuls imported: {len(quali_objs)}"))
 
         # ------------------------------------------------------------------
