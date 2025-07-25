@@ -11,7 +11,7 @@ from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from fantaApp.models import Circuit, Driver, Weekend, Team
+from fantaApp.models import Circuit, Driver, Weekend, Team, Race, Qualifying
 from fantaApp.services.jolpicaSource import (
     get_circuits,
     get_drivers,
@@ -25,9 +25,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--year",
+            "--season",
             type=int,
-            help="year to inizialize",
+            help="season to inizialize",
         )
         parser.add_argument(
             "--dry-run", #it's a boolean flag, if present it will roll back at the end
@@ -37,16 +37,16 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        year: int = options["year"]
+        season: int = options["season"]
         dry_run: bool = options["dry_run"]
 
-        self.stdout.write(self.style.MIGRATE_HEADING(f"=== Import season {year} ==="))
+        self.stdout.write(self.style.MIGRATE_HEADING(f"=== Import season {season} ==="))
 
         # ------------------------------------------------------------------
         # 1) Circuits
         # ------------------------------------------------------------------
         circuits_cache: dict[str, Circuit] = {}
-        for data in get_circuits(year):
+        for data in get_circuits(season):
             circuit, _ = Circuit.objects.update_or_create(
                 api_id=data["circuit_api_id"],
                 defaults={
@@ -66,7 +66,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         
         teams_cache: dict[str, Team] = {}
-        for data in get_teams(year):
+        for data in get_teams(season):
             team, _ = Team.objects.update_or_create(
                 api_id=data["constructor_api_id"],
                 defaults={
@@ -83,7 +83,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # 3) Drivers
         # ------------------------------------------------------------------
-        drivers_payload = get_drivers(year)
+        drivers_payload = get_drivers(season)
         for data in drivers_payload:
             Driver.objects.update_or_create(
                 api_id=data["drivers_api_id"],
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                     "last_name":  data["last_name"],
                     "number":     data["number"],
                     "short_name": data["short_name"],
-                    "season": year,
+                    "season": season,
                     "team": teams_cache[data["team"]],
                 },
             )
@@ -102,13 +102,13 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # 4) Weekends
         # ------------------------------------------------------------------
-        weekends_payload = get_weekends(year)
+        weekends_payload = get_weekends(season)
         weekend_objs: list[Weekend] = []
         for data in weekends_payload:
             weekend_objs.append(
                 Weekend(
                     circuit=circuits_cache[data["circuit_api_id"]],
-                    season=year,
+                    season=season,
                     round_number=data["round_number"],
                     event_name=data["event_name"],
                     weekend_type = data['weekend_type'],
@@ -125,6 +125,33 @@ class Command(BaseCommand):
         # Inserimento veloce: una singola INSERT
         Weekend.objects.bulk_create(weekend_objs, ignore_conflicts=True)
         self.stdout.write(self.style.SUCCESS(f"• Races imported: {len(weekends_payload)}"))
+        
+        
+        # ------------------------------------------------------------------
+        # 4b) Races & Qualifying sessions
+        # ------------------------------------------------------------------
+        race_objs: list[Race] = []
+        qual_objs: list[Qualifying] = []
+
+        # we need the PKs – refetch the weekends we just inserted/updated
+        for w in Weekend.objects.filter(season=season):
+            # Regular race and qualifying
+            race_objs.append(Race(weekend=w, type="regular"))
+            qual_objs.append(Qualifying(weekend=w, type="regular"))
+
+            # Sprint race/qualifying only if weekend is sprint‑type
+            if w.weekend_type == "sprint":
+                race_objs.append(Race(weekend=w, type="sprint"))
+                qual_objs.append(Qualifying(weekend=w, type="sprint"))
+
+        # create, skipping duplicates if command rerun
+        Race.objects.bulk_create(race_objs, ignore_conflicts=True)
+        Qualifying.objects.bulk_create(qual_objs, ignore_conflicts=True)
+
+        self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {len(race_objs)}"))
+        self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {len(qual_objs)}"))
+
+        
 
         # ------------------------------------------------------------------
         # Commit / Rollback
