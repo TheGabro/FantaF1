@@ -134,7 +134,6 @@ class Circuit(models.Model):
     class Meta:
         ordering = ['name']
 
-
 class Weekend(models.Model):
     WEEKEND_TYPES = [
         ('regular', 'Regular Weekend'),
@@ -164,7 +163,6 @@ class Weekend(models.Model):
         ordering = ['season', 'round_number']
         unique_together = ('circuit', 'season', 'round_number')
 
-
 class Race(models.Model):
     TYPES = [
         ('regular', 'Regular Race'),
@@ -178,7 +176,9 @@ class Race(models.Model):
     def __str__(self):
         return f"{self.weekend} - {self.type}"
     
-
+    class Meta:
+        ordering = ['weekend__round_number', '-type']
+    
 class Qualifying(models.Model):
     TYPES = [
         ('regular', 'Regular Race Qualifying'),
@@ -191,9 +191,11 @@ class Qualifying(models.Model):
 
     def __str__(self):
         return f"{self.weekend} - {self.type}"
+    
+    class Meta:
+        ordering = ['weekend__round_number', '-type']
 
-
-class RaceEntry(models.Model):
+class RaceResult(models.Model):
     STATUS_CHOICES = [
         ('Finished', 'Finished'),
         ('Retired', 'Did Not Finish'),
@@ -218,7 +220,7 @@ class RaceEntry(models.Model):
         unique_together = ('race', 'driver')
         ordering = ['race', 'position']
 
-class QualifyingEntry(models.Model):
+class QualifyingResult(models.Model):
     qualifying = models.ForeignKey('Qualifying', on_delete=models.CASCADE, related_name='qualifying_entries')
     driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
 
@@ -327,6 +329,41 @@ class PlayerQualifyingChoice(AbstractPlayerChoice):
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "qualifying")]
+        
+class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
+    qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
+    
+    SELECTION_SLOTS = [
+        ('q1_pass',  'Pass Q1'),
+        ('q2_pass',  'Pass Q2'),
+        ('q3_top5',  'Q3 – Top-5'),
+    ]
+    selection_slot = models.CharField(max_length=8, choices=SELECTION_SLOTS)
+
+    class Meta(AbstractPlayerChoice.Meta):
+        unique_together = [("player", "qualifying","selection_slot")]
+        
+class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
+    qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
+    
+    # Identifica la categoria di scelta nei weekend sprint:
+    # - 'q1'  → pilota eliminato in Q1
+    # - 'q2'  → pilota eliminato in Q2
+    # - 'q3'  → pilota che accede a Q3 ma NON finisce nei primi 5
+    SELECTION_SLOTS = [
+        ('q1', 'Out in Q1'),
+        ('q2', 'Out in Q2'),
+        ('q3', 'Q3 (6‑10)'),
+    ]
+    selection_slot = models.CharField(
+        max_length=2,
+        choices=SELECTION_SLOTS,
+    )
+
+    
+
+    class Meta(AbstractPlayerChoice.Meta):
+        unique_together = [("player", "qualifying", "selection_slot")]
 
 class PlayerRaceChoice(AbstractPlayerChoice):
     race = models.ForeignKey(Race, on_delete=models.CASCADE)
