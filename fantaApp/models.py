@@ -336,7 +336,7 @@ class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
     SELECTION_SLOTS = [
         ('q1_pass',  'Pass Q1'),
         ('q2_pass',  'Pass Q2'),
-        ('q3_top5',  'Q3 – Top-5'),
+        ('q3_top5',  'Q3 - Top-5'),
     ]
     selection_slot = models.CharField(max_length=8, choices=SELECTION_SLOTS)
 
@@ -346,21 +346,15 @@ class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
 class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
     
-    # Identifica la categoria di scelta nei weekend sprint:
-    # - 'q1'  → pilota eliminato in Q1
-    # - 'q2'  → pilota eliminato in Q2
-    # - 'q3'  → pilota che accede a Q3 ma NON finisce nei primi 5
     SELECTION_SLOTS = [
-        ('q1', 'Out in Q1'),
-        ('q2', 'Out in Q2'),
-        ('q3', 'Q3 (6‑10)'),
+        ('sq1', 'Out in SQ1'),
+        ('sq2', 'Out in SQ2'),
+        ('sq3', 'SQ3 (6-10)'),
     ]
     selection_slot = models.CharField(
-        max_length=2,
+        max_length=3,
         choices=SELECTION_SLOTS,
     )
-
-    
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "qualifying", "selection_slot")]
