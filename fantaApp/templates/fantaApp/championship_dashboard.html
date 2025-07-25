@@ -1,26 +1,39 @@
-{% extends "fantaApp/base.html" %}
-{% block content %}
-  <h1>{{ championship.name }} ({{ championship.year }})</h1>
-
-  <p>Manager:
-    {% for m in managers %}
-      {{ m.player_name}}{% if not forloop.last %}, {% endif %}
-    {% empty %} -
-    {% endfor %}
-  </p>
-
-  <h3>Le mie info</h3>
-  {% if current_championship_player %}
-    <p>Nome giocatore: {{ current_championship_player.player_name }} - Lega: {{ current_championship_player.league.name }}</p>
-    <p>Crediti rimanenti : {{current_championship_player.available_credit}}</p>
-  {% else %}
-    <p>Non sei iscritto a questo campionato.</p>
-  {% endif %}
-
-  <h3>Partecipanti</h3>
-  <ul>
+{% extends "fantaApp/base.html" %} {% block content %}
+<h2>{{ championship.name }} {{ championship.year }}</h2>
+<h3>Classifica</h3>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Player</th>
+    <th>Lega</th>
+    <th>Punti</th>
+  </tr>
   {% for p in championship_participants %}
-    <li>{{ p.player_name }} ({{ p.user.username }}) - {{p.total_score}} - {{ p.league.name }}</li>
+  <tr>
+    <td>{{ forloop.counter }}</td>
+    <td>{{ p.player_name }}</td>
+    <td>{{ p.league.name }}</td>
+    <td>{{ p.total_score }}</td>
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="4">Nessun partecipante.</td>
+  </tr>
   {% endfor %}
-  </ul>
+</table>
+
+<hr />
+
+<h3>Calendario</h3>
+<ul>
+  {% for w in weekends %}
+  <li>
+    <a href="{% url 'weekend_details' championship.id w.id %}">
+      {{ w.event_name }} – {{ w.season }} (Round: {{ w.round_number }})
+    </a>
+  </li>
+  {% empty %}
+  <li>Nessun weekend disponibile.</li>
+  {% endfor %}
+</ul>
 {% endblock %}

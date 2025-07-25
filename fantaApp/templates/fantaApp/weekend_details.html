@@ -1,0 +1,35 @@
+{% extends "fantaApp/base.html" %} {% block content %}
+<h2>
+  <!-- prettier-ignore -->
+  {{ championship.name }} {{ championship.year }} — Round {{ weekend.round_number }} · {{ weekend.event_name }}
+</h2>
+
+<p>
+  <!-- prettier-ignore -->
+  Circuito: {{ weekend.circuit.name }} · {% if weekend.weekend_type == "sprint"%} Weekend Sprint {% else %} Weekend Regular {% endif %}
+</p>
+
+<hr />
+
+<h3>Eventi disponibili</h3>
+<ul>
+  {% for ev in events %}
+  <li>
+    <a
+      href="{% url 'event_driver_choice'
+                     championship.id
+                     weekend.id
+                     ev.event_type
+                     ev.event_id %}"
+    >
+      {{ ev.label }}
+    </a>
+  </li>
+  {% empty %}
+  <li>Nessun evento trovato.</li>
+  {% endfor %}
+</ul>
+
+<p class="text-muted">Scegli un evento per selezionare i piloti.</p>
+
+{% endblock %}
