@@ -46,10 +46,11 @@ class Command(BaseCommand):
             weekend=weekend,
             type = q_type
         )
-        quali_objs :list[RaceResult] = []
-        for data in get_race_result(season, round):
+        
+        race_objs :list[RaceResult] = []
+        for data in get_race_result(season, round, True if q_type=='sprint' else False):
             fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
-            quali_objs.append(
+            race_objs.append(
                 RaceResult(
                     race = race,
                     driver = Driver.objects.get(api_id=data["driver_api_id"]),
@@ -62,8 +63,8 @@ class Command(BaseCommand):
                 )
             )
 
-        RaceResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
-        self.stdout.write(self.style.SUCCESS(f"• Races resuls imported: {len(quali_objs)}"))
+        RaceResult.objects.bulk_create(race_objs, ignore_conflicts=True)
+        self.stdout.write(self.style.SUCCESS(f"• Races resuls imported: {len(race_objs)}"))
 
         # ------------------------------------------------------------------
         # Commit / Rollback
