@@ -164,7 +164,7 @@ class Weekend(models.Model):
         unique_together = ('circuit', 'season', 'round_number')
 
 class Event(models.Model):
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE)
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE,related_name='%(class)ss' )
     
     class Meta:
         abstract = True
