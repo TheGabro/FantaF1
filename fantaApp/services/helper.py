@@ -13,13 +13,13 @@ def _event_has_started(event) -> bool:
 
     # ---- ricava l'orario di start -------------------------------------------------
     if isinstance(event, Qualifying):
-        start = event.start_at or getattr(
+        start = getattr(
             event.weekend,
             "sprint_qualifying_start" if event.type == "sprint" else "qualifying_start",
             None,
         )
     else:  # Race
-        start = event.start_at or getattr(
+        start = getattr(
             event.weekend,
             "sprint_start" if event.type == "sprint" else "race_start",
             None,

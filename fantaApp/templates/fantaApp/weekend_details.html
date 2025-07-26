@@ -15,15 +15,28 @@
 <ul>
   {% for ev in events %}
   <li>
+    {% if ev.entity == "qualifying" and ev.subtype == "sprint" %}
     <a
-      href="{% url 'event_driver_choice'
-                     championship.id
-                     weekend.id
-                     ev.event_type
-                     ev.event_id %}"
+      href="{% url 'sprint_qualifying_choice' championship.id weekend.id ev.event_id %}"
+      >{{ ev.label }}</a
     >
-      {{ ev.label }}
-    </a>
+    {% comment %} {% elif ev.entity == "qualifying" and ev.subtype == "regular"
+    %}
+    <a
+      href="{% url 'regular_qualifying_choice' championship.id weekend.id ev.event_id %}"
+      >{{ ev.label }}</a
+    >
+    {% elif ev.entity == "race" and ev.subtype == "sprint" %}
+    <a
+      href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}"
+      >{{ ev.label }}</a
+    >
+    {% elif ev.entity == "race" and ev.subtype == "regular" %}
+    <a
+      href="{% url 'grand_prix_choice' championship.id weekend.id ev.event_id %}"
+      >{{ ev.label }}</a
+    >
+    {% endcomment %} {% else %} {{ ev.label }} {% endif %}
   </li>
   {% empty %}
   <li>Nessun evento trovato.</li>
