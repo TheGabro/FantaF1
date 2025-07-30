@@ -58,39 +58,6 @@ def create_championship(request):
         'formset': formset
     })
 
-@login_required
-def championship_dashboard(request, championship_id):
-    championship = get_object_or_404(Championship, pk=championship_id)
-
-    current_championship_player = ChampionshipPlayer.objects.filter(
-        user=request.user, championship=championship).select_related('league').first()
-    
-    championship_participants = ChampionshipPlayer.objects.filter(
-        championship=championship
-    ).select_related('league') #carica in memoria anche la tabella per il quale league è chiave esterna
-
-    user_managers = ChampionshipManager.objects.filter(
-        championship=championship
-    ).select_related('user') 
-
-    managers = ChampionshipPlayer.objects.filter(
-        championship=championship,
-        user__in=[m.user for m in user_managers]
-    ).select_related('league')
-    
-    weekends = Weekend.objects.filter(season=championship.year).order_by("round_number")
-
-
-
-    context = {
-        "championship": championship,
-        "current_championship_player": current_championship_player,
-        "championship_participants": championship_participants,
-        "managers": managers,
-        "weekends" : weekends
-    }
-
-    return render(request, "fantaApp/championship_dashboard.html", context)
 
 @login_required
 def championship_dashboard(request, championship_id):

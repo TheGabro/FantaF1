@@ -1,38 +1,32 @@
-{% extends 'fantaApp/base.html' %}
+{% extends 'fantaApp/base.html' %} {% block content %} {% csrf_token %}
+<h1>Ciao {{ user.username }}! Questa è la tua dashboard FantaF1</h1>
 
-{% block content %}
-    {% csrf_token %}
-    <h1>Ciao {{ user.username }}! Questa è la tua dashboard FantaF1</h1>
+{% if is_admin %}
+<p>Hai accesso al <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
+{% elif is_staff %}
+<p>Hai accesso staff: <a href="{% url 'admin:index' %}">Pannello Staff</a></p>
+<!-- funzioni extra -->
+{% elif is_premium %}
+<p>Utente premium, hai più funzionalità</p>
+{% else %}
+<p>Benvenuto nel gioco!</p>
+{% endif %}
 
-    {% if is_admin %}
-    <p>Hai accesso al <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
-    {% elif is_staff %}
-    <p>Hai accesso staff: <a href="{% url 'admin:index' %}">Pannello Staff</a></p>
-    <!-- funzioni extra -->
-    {% elif is_premium %}
-    <p>Utente premium, hai più funzionalità</p>
-    {% else %}
-    <p>Benvenuto nel gioco!</p>
-    {% endif %}
-    
-    
+<a href="{% url 'home' %}" class="btn">Home</a>
+<a href="{% url 'logout' %}" class="btn">Logout</a>
 
-    <a href="{% url 'home' %}" class="btn">Home</a>
-    <a href="{% url 'logout' %}" class="btn">Logout</a>
-
-
-    <h2>I miei campionati</h2>
-        <ul>
-        {% for e in championship %}
-            <li>
-            <a href="{% url 'championship_dashboard' e.championship.id %}">
-                {{ e.championship.name }} ({{ e.championship.year }})
-            </a>
-            - lega: {{ e.league.name }}
-            </li>
-        {% empty %}
-            <li>Non sei ancora iscritto a nessun campionato.</li>
-        {% endfor %}
-        </ul>
+<h2>I miei campionati</h2>
+<ul>
+  {% for e in championship %}
+  <li>
+    <a href="{% url 'championship_dashboard' e.championship.id %}">
+      {{ e.championship.name }} ({{ e.championship.year }})
+    </a>
+    - lega: {{ e.league.name }}
+  </li>
+  {% empty %}
+  <li>Non sei ancora iscritto a nessun campionato.</li>
+  {% endfor %}
+</ul>
 
 {% endblock %}
