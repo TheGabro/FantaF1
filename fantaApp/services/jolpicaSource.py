@@ -30,7 +30,7 @@ def get_drivers(season:int) -> list[dict]:
     drivers : list[dict] = []
     for d in driver_r.json()["MRData"]["DriverTable"]["Drivers"]:
         diver_id = d["driverId"]
-        constructor_url = f"{BASE_URL}/2025/drivers/{diver_id}/constructors"
+        constructor_url = f"{BASE_URL}{season}/drivers/{diver_id}/constructors"
         constructor_r = rate_limited_get(constructor_url, timeout = 10)
         constructor_r.raise_for_status()
         costructor = constructor_r.json()["MRData"]["ConstructorTable"]["Constructors"][0]
