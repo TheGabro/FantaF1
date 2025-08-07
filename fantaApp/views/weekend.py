@@ -97,35 +97,44 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                      .select_related("driver")
     }
     taken_ids = [c.driver_id for c in existing.values()]
+    
 
     if request.method == "POST" and not event_started:
-        errors = 0
-        for code, _label in slots:
-            drv_id = request.POST.get(f"driver_{code}")
-            if not drv_id:   # slot lasciato vuoto
-                continue
-            drv_id = int(drv_id)
-            try:
+        
+        selections = [
+        request.POST.get(f"driver_{code}") for code, _ in slots
+        ]
+        
+        # Filtra via valori vuoti e controlla la lunghezza
+        selected_clean = [s for s in selections if s]
+        if len(selected_clean) != len(set(selected_clean)):
+            # c’è un duplicato
+            messages.error(request, "Non puoi selezionare lo stesso pilota più di una volta.")
+            # tornare subito al form senza salvare
+            return render(request, "fantaApp/sprint_qualifying_choice.html", context)
+        
+        
+        for code in ("sq1", "sq2", "sq3"):
+            drv = request.POST.get(f"driver_{code}")
+            if drv:
                 pc.choose_sprint_quali_driver(
                     player=player,
                     qualifying=qualifying,
-                    driver_id=drv_id,
+                    driver_id=int(drv),
                     slot=code,
                 )
-            except ValidationError as e:
-                errors += 1
-                messages.error(request, f"{code.upper()}: {e.message}")
-        if errors == 0:
-            messages.success(request, "Scelte registrate.")
-        return redirect(request.path)
-
-    # GET → piloti disponibili (escludendo già scelti)
-    drivers_avail = (Driver.objects.filter(season=weekend.season)
-                                   .exclude(id__in=taken_ids)
-                                   .select_related("team"))
-
+        messages.success(request, "Scelte registrate con successo.")
+        return redirect("championship_dashboard", championship_id=champ.id)
+            
     if event_started:
-        drivers_avail = []  # nessuna scelta più consentita sul form
+        drivers_avail = []
+    else:
+        drivers_avail = (
+            Driver.objects
+            .filter(season=weekend.season)
+            .exclude(id__in=taken_ids)
+            .select_related("team")
+        )
 
     context = {
         "championship": champ,

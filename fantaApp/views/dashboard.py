@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from ..forms import ChampionshipForm, LeagueFormSet
+from ..forms import creations
 from ..models import League, ChampionshipManager, ChampionshipPlayer, Championship, Weekend
 
 @login_required
@@ -24,8 +24,8 @@ def user_dashboard(request):
 @login_required
 def create_championship(request):
     if request.method == 'POST':
-        form = ChampionshipForm(request.POST)
-        formset = LeagueFormSet(request.POST)
+        form = creations.ChampionshipForm(request.POST)
+        formset = creations.LeagueFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
             championship = form.save(commit=False)
             championship.created_by = request.user
@@ -50,8 +50,8 @@ def create_championship(request):
 
             return redirect('user_dashboard')
     else:
-        form = ChampionshipForm()
-        formset = LeagueFormSet()
+        form = creations.ChampionshipForm()
+        formset = creations.LeagueFormSet()
 
     return render(request, 'fantaApp/create_championship.html', {
         'form': form,

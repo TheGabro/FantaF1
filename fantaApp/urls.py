@@ -1,8 +1,7 @@
 from django.urls import path
 
 from .services import player_choices
-from . import views
-from .views import auth, dashboard, general, weekend
+from fantaApp.views import auth, dashboard, general, weekend
 
 urlpatterns = [
     path("", general.home, name = "home"),
