@@ -262,7 +262,7 @@ class Championship(models.Model):
         if not self.managers.exists():
             raise ValidationError("The championship must have at least one manager")
         
-        if self.leagues.exists():
+        if not self.leagues.exists():
             raise ValidationError("The championship must have at least one league")
 
     class Meta:

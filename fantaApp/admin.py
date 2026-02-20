@@ -44,11 +44,35 @@ class CustomUserAdmin(UserAdmin):
             obj.user_type = CustomUser.UserType.USER
         obj.save()
 
+class LeagueInline(admin.TabularInline):
+    model = League
+    extra = 1  # Numero di form vuoti da mostrare
+    fields = ['name', 'created_at']
+    readonly_fields = ['created_at']
+
+class ChampionshipManagerInline(admin.TabularInline):
+    model = ChampionshipManager
+    extra = 0
+    fields = ['user', 'appointed_at']
+    readonly_fields = ['appointed_at']
+
+class ChampionshipPlayerInline(admin.TabularInline):
+    model = ChampionshipPlayer
+    extra = 0
+    fields = ['user', 'player_name', 'league', 'available_credit', 'total_score']
+    readonly_fields = ['joined_at']
+
+@admin.register(Championship)
+class ChampionshipAdmin(admin.ModelAdmin):
+    list_display = ['name', 'year', 'active', 'is_private', 'created_at']
+    list_filter = ['year', 'active', 'is_private']
+    search_fields = ['name']
+    inlines = [LeagueInline, ChampionshipManagerInline, ChampionshipPlayerInline]
+
 admin.site.register(Driver)
 admin.site.register(Team)
 admin.site.register(Circuit)
 admin.site.register(Weekend)
-admin.site.register(Championship)
 admin.site.register(ChampionshipManager)
 admin.site.register(League)
 admin.site.register(ChampionshipPlayer)
