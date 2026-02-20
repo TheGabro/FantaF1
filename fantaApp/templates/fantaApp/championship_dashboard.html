@@ -1,36 +1,69 @@
 {% extends "fantaApp/base.html" %} {% block content %}
 <h2>{{ championship.name }} {{ championship.year }}</h2>
-<h3>Classifica</h3>
 
-{% regroup championship_participants by league as leagues_list %}
-{% for league in leagues_list %}
-<h4>{{ league.grouper.name }}</h4>
-<table>
-  <tr>
-    <th>#</th>
-    <th>Player</th>
-    <th>Punti</th>
-  </tr>
-  {% for p in league.list %}
-  <tr>
-    <td>{{ forloop.counter }}</td>
-    <td>{{ p.player_name }}</td>
-    <td>{{ p.total_score }}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% empty %}
-<p>Nessun partecipante.</p>
-{% endfor %}
-
-<hr />
-
+<h3>Player Performance</h3>
 {% if current_championship_player %}
 <p><strong>Crediti disponibili:</strong> {{ current_championship_player.available_credit }} / 2000</p>
 {% else %}
 <p>Non sei iscritto a questo campionato.</p>
 {% endif %}
 
+<hr />
+
+<h3>Classifica</h3>
+<div style="display: flex; gap: 2rem; align-items: flex-start; min-width: 800px; overflow-x: auto;">
+  <!-- Colonna sinistra: Classifica per Lega -->
+  <div style="flex: 1; min-width: 380px;">
+    <h4>Classifica per Lega</h4>
+    {% regroup standing_per_league by league as leagues_list %}
+    {% for league in leagues_list %}
+    <h5>{{ league.grouper.name }}</h5>
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+      <tr style="background-color: #f0f0f0;">
+        <th style="padding: 8px; text-align: center; width: 40px;">Posizione</th>
+        <th style="padding: 8px; text-align: left;">Player</th>
+        <th style="padding: 8px; text-align: right; width: 80px;">Punti</th>
+      </tr>
+      {% for p in league.list %}
+      <tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 6px; text-align: center;">{{ forloop.counter }}</td>
+        <td style="padding: 6px;">{{ p.player_name }}</td>
+        <td style="padding: 6px; text-align: right;"><strong>{{ p.total_score }}</strong></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% empty %}
+    <p>Nessun partecipante.</p>
+    {% endfor %}
+  </div>
+
+  <!-- Colonna destra: Classifica Generale -->
+  <div style="flex: 1; min-width: 380px;">
+    <h4>Classifica Generale</h4>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="background-color: #f0f0f0;">
+        <th style="padding: 8px; text-align: center; width: 40px;">Posizione</th>
+        <th style="padding: 8px; text-align: left;">Player</th>
+        <th style="padding: 8px; text-align: left; width: 100px;">Lega</th>
+        <th style="padding: 8px; text-align: right; width: 80px;">Punti</th>
+      </tr>
+      {% for p in general_standings %}
+      <tr style="border-bottom: 1px solid #ddd;">
+        <td style="padding: 6px; text-align: center;">{{ forloop.counter }}</td>
+        <td style="padding: 6px;">{{ p.player_name }}</td>
+        <td style="padding: 6px;">{{ p.league.name }}</td>
+        <td style="padding: 6px; text-align: right;"><strong>{{ p.total_score }}</strong></td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" style="padding: 6px; text-align: center;">Nessun partecipante.</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<hr />
 
 <h3>Calendario</h3>
 <ul>
