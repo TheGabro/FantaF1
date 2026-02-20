@@ -2,22 +2,44 @@ import requests
 import time
 
 # ── Simple module‑level rate‑limiter ────────────────────────────────────
-_RATE_LIMIT_SEC = 0.35                # max ~3 requests per second
+_RATE_LIMIT_SEC = 1.0                 # 1 request per second (safe for API limits)
 _last_call_ts = 0.0                   # perf_counter timestamp of last call
 
-def rate_limited_get(url: str, **kwargs):
+def rate_limited_get(url: str, max_retries: int = 3, **kwargs):
     """
-    Wrapper attorno a requests.get che assicura di non superare
-    ~3 req/sec (Jolpica ne permette 4).  Usa perf_counter per
-    gestire anche chiamate molto ravvicinate.
+    Wrapper attorno a requests.get che assicura di non superare il rate limit.
+    Include retry automatico con backoff esponenziale per errori 429.
     """
     global _last_call_ts
-    now = time.perf_counter()
-    elapsed = now - _last_call_ts
-    if elapsed < _RATE_LIMIT_SEC:
-        time.sleep(_RATE_LIMIT_SEC - elapsed)
-    response = requests.get(url, **kwargs)
-    _last_call_ts = time.perf_counter()
+    
+    for attempt in range(max_retries):
+        now = time.perf_counter()
+        elapsed = now - _last_call_ts
+        if elapsed < _RATE_LIMIT_SEC:
+            time.sleep(_RATE_LIMIT_SEC - elapsed)
+        
+        try:
+            response = requests.get(url, **kwargs)
+            _last_call_ts = time.perf_counter()
+            
+            # Se riceviamo 429, aspetta e riprova
+            if response.status_code == 429:
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # Backoff esponenziale: 2s, 4s, 8s
+                    print(f"⚠️  429 Too Many Requests. Attendo {wait_time}s prima di riprovare...")
+                    time.sleep(wait_time)
+                    continue
+            
+            return response
+            
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                wait_time = (2 ** attempt) * 2
+                print(f"⚠️  Errore: {e}. Riprovo tra {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            raise
+    
     return response
 
 BASE_URL = 'https://api.jolpi.ca/ergast/f1/'
@@ -38,8 +60,8 @@ def get_drivers(season:int) -> list[dict]:
             "drivers_api_id": d["driverId"],
             "first_name": d["givenName"],
             "last_name":  d["familyName"],
-            "number":     d["permanentNumber"],
-            "short_name": d["code"],
+            "number":     d["permanentNumber"] if "permanentNumber" in d else 000000,
+            "short_name": d["code"] if "code" in d else None,
             "team": costructor["constructorId"]
         })
     return drivers 
@@ -139,7 +161,7 @@ def get_race_result(season: int, round: int, is_sprint : bool = False) -> list[d
         endpoint = 'Results'
 
     race_url = f"{BASE_URL}{season}/{round}/{event}"
-    race_r = requests.get(race_url, timeout=10)
+    race_r = rate_limited_get(race_url, timeout=10)
     race_r.raise_for_status()
     race_results: list[dict] = []
     for r in race_r.json()['MRData']['RaceTable']['Races'][0][endpoint]:
