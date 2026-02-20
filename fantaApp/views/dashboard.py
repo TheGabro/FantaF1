@@ -68,7 +68,7 @@ def championship_dashboard(request, championship_id):
     
     championship_participants = ChampionshipPlayer.objects.filter(
         championship=championship
-    ).select_related('league') #carica in memoria anche la tabella per il quale league è chiave esterna
+    ).select_related('league').order_by('league__name', '-total_score') #ordina per lega e poi per punteggio
 
     user_managers = ChampionshipManager.objects.filter(
         championship=championship

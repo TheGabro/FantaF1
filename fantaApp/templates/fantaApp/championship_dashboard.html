@@ -1,28 +1,36 @@
 {% extends "fantaApp/base.html" %} {% block content %}
 <h2>{{ championship.name }} {{ championship.year }}</h2>
 <h3>Classifica</h3>
+
+{% regroup championship_participants by league as leagues_list %}
+{% for league in leagues_list %}
+<h4>{{ league.grouper.name }}</h4>
 <table>
   <tr>
     <th>#</th>
     <th>Player</th>
-    <th>Lega</th>
     <th>Punti</th>
   </tr>
-  {% for p in championship_participants %}
+  {% for p in league.list %}
   <tr>
     <td>{{ forloop.counter }}</td>
     <td>{{ p.player_name }}</td>
-    <td>{{ p.league.name }}</td>
     <td>{{ p.total_score }}</td>
-  </tr>
-  {% empty %}
-  <tr>
-    <td colspan="4">Nessun partecipante.</td>
   </tr>
   {% endfor %}
 </table>
+{% empty %}
+<p>Nessun partecipante.</p>
+{% endfor %}
 
 <hr />
+
+{% if current_championship_player %}
+<p><strong>Crediti disponibili:</strong> {{ current_championship_player.available_credit }} / 2000</p>
+{% else %}
+<p>Non sei iscritto a questo campionato.</p>
+{% endif %}
+
 
 <h3>Calendario</h3>
 <ul>
