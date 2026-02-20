@@ -1,7 +1,7 @@
 
 
 """
-Management command: `python manage.py import_f1 <year> [--dry-run]`
+Management command: `python manage.py import_start_season [--season <year>] [--dry-run]`
 
 Scarica piloti, circuiti e calendario per la stagione indicata tramite
 le funzioni del layer `services` e li salva/aggiorna nel database Django.
