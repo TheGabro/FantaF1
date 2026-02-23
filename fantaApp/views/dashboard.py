@@ -66,9 +66,12 @@ def championship_dashboard(request, championship_id):
     current_championship_player = ChampionshipPlayer.objects.filter(
         user=request.user, championship=championship).select_related('league').first()
     
-    standing_per_league = ChampionshipPlayer.objects.filter(
-        championship=championship
-    ).select_related('league').order_by('league__name', '-total_score') #ordina per lega e poi per punteggio
+    standing_per_league = ChampionshipPlayer.objects.none()
+    if current_championship_player:
+        standing_per_league = ChampionshipPlayer.objects.filter(
+            championship=championship,
+            league=current_championship_player.league,
+        ).select_related('league').order_by('-total_score')
     
     # Classifica generale (tutte le leghe insieme)
     general_standings = ChampionshipPlayer.objects.filter(
