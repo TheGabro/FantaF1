@@ -1,5 +1,8 @@
-{% extends 'fantaApp/base.html' %} {% load dict_extras %} {% block content %}
+{% extends 'fantaApp/championship_flow_base.html' %} {% load dict_extras %} {% block championship_content %}
 <h2>{{ weekend.event_name }} – Sprint Qualifying</h2>
+<p>
+  <a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
+</p>
 
 {% if messages %} {% for message in messages %}
 <p style="color:{% if message.tags == 'error' %}red{% else %}green{% endif %};">
@@ -7,9 +10,12 @@
 </p>
 {% endfor %} {% endif %} {% if event_started %}
 <p><strong>Le scelte per questa Sprint-Qualifying sono chiuse.</strong></p>
-{% else %}
+{% endif %}
+
+{% if not event_started %}
 <form method="post">
   {% csrf_token %}
+  {% endif %}
   <table>
     <thead>
       <tr>
@@ -22,22 +28,30 @@
       <tr>
         <td>{{ label }}</td>
         <td>
-          {% if code in existing %} {% with choice=existing|get_item:code %} ✔
-          {{ choice.driver.short_name }} {% endwith %} {% else %}
-          <select name="driver_{{ code }}" id="driver_{{ code }}" required>
-            <option value="" disabled selected>-- scegli pilota --</option>
+          {% if event_started %}
+            {% if code in existing %}
+              {% with choice=existing|get_item:code %}✔ {{ choice.driver.short_name }}{% endwith %}
+            {% else %}
+              —
+            {% endif %}
+          {% else %}
+          {% with choice=existing|get_item:code %}
+          <select name="driver_{{ code }}" id="driver_{{ code }}">
+            <option value="">-- scegli pilota --</option>
             {% for d in drivers %}
-            <option value="{{ d.id }}">
+            <option value="{{ d.id }}" {% if choice and choice.driver_id == d.id %}selected{% endif %}>
               {{ d.team.short_name }} - {{ d.first_name }} {{d.last_name}}
             </option>
             {% endfor %}
           </select>
+          {% endwith %}
           {% endif %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% if not event_started %}
   <button type="submit">Salva tutte le scelte</button>
 </form>
 <script>
@@ -76,4 +90,5 @@
     refreshDriverOptions();
   })();
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+{% endblock %}

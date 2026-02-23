@@ -4,45 +4,75 @@ from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
-from ..models import Championship, Weekend, Race, Qualifying, Driver
+from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice
 from ..services import player_choices as pc
 from ..services import helper
 
 
 
+@login_required
 def weekend_detail(request, championship_id, weekend_id):
     championship = get_object_or_404(Championship, pk=championship_id)
     weekend = get_object_or_404(Weekend, pk=weekend_id)
+    player = request.user.championshipplayer_set.filter(championship=championship).first()
 
     events = []
     # Sprint-Qualifying
     sq = weekend.qualifyings.filter(type="sprint").first()
     if sq:
+        has_choice = False
+        if player:
+            has_choice = PlayerSprintQualifyingChoice.objects.filter(
+                player=player,
+                qualifying=sq,
+            ).exists()
         events.append({"label": "Sprint Qualifying",
                        "entity": "qualifying",
                        "subtype": "sprint",
-                       "event_id": sq.id})
+                       "event_id": sq.id,
+                       "has_choice": has_choice})
     # Sprint Race
     sr = weekend.races.filter(type="sprint").first()
     if sr:
+        has_choice = False
+        if player:
+            has_choice = PlayerRaceChoice.objects.filter(
+                player=player,
+                race=sr,
+            ).exists()
         events.append({"label": "Sprint Race",
                        "entity": "race",
                        "subtype": "sprint",
-                       "event_id": sr.id})
+                       "event_id": sr.id,
+                       "has_choice": has_choice})
     # Qualifying (gara regolare)
     q = weekend.qualifyings.filter(type="regular").first()
     if q:
+        has_choice = False
+        if player:
+            has_choice = (
+                PlayerQualifyingChoice.objects.filter(player=player, qualifying=q).exists()
+                or PlayerQualifyingMultiChoice.objects.filter(player=player, qualifying=q).exists()
+            )
         events.append({"label": "Qualifying",
                        "entity": "qualifying",
                        "subtype": "regular",
-                       "event_id": q.id})
+                       "event_id": q.id,
+                       "has_choice": has_choice})
     # Race
     r = weekend.races.filter(type="regular").first()
     if r:
+        has_choice = False
+        if player:
+            has_choice = PlayerRaceChoice.objects.filter(
+                player=player,
+                race=r,
+            ).exists()
         events.append({"label": "Grand Prix",
                        "entity": "race",
                        "subtype": "regular",
-                       "event_id": r.id})
+                       "event_id": r.id,
+                       "has_choice": has_choice})
 
     return render(
         request,
@@ -96,13 +126,12 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                      .filter(player=player)
                      .select_related("driver")
     }
-    taken_ids = [c.driver_id for c in existing.values()]
-    
-
     if request.method == "POST" and not event_started:
-        selections = [
-            request.POST.get(f"driver_{code}") for code, _ in slots
-        ]
+        submitted_by_slot = {
+            code: request.POST.get(f"driver_{code}")
+            for code, _ in slots
+        }
+        selections = list(submitted_by_slot.values())
         
         # Filtra via valori vuoti e controlla la lunghezza
         selected_clean = [s for s in selections if s]
@@ -126,8 +155,8 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
             return redirect(request.path)
 
-        for code in ("sq1", "sq2", "sq3"):
-            drv = request.POST.get(f"driver_{code}")
+        for code, _ in slots:
+            drv = submitted_by_slot.get(code)
             if drv:
                 pc.choose_sprint_quali_driver(
                     player=player,
@@ -135,18 +164,15 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                     driver=drivers_by_id[int(drv)],
                     slot=code,
                 )
-        messages.success(request, "Scelte registrate con successo.")
-        return redirect("championship_dashboard", championship_id=champ.id)
-            
-    if event_started:
-        drivers_avail = []
-    else:
-        drivers_avail = (
-            Driver.objects
-            .filter(season=weekend.season)
-            .exclude(id__in=taken_ids)
-            .select_related("team")
-        )
+        messages.success(request, "Scelte salvate con successo.")
+        return redirect(request.path)
+
+    drivers_avail = (
+        Driver.objects
+        .filter(season=weekend.season)
+        .select_related("team")
+        .order_by("team__name", "first_name", "last_name")
+    )
 
     context = {
         "championship": champ,
