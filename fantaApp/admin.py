@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
-from .models import CustomUser, Driver, Team, Circuit, Weekend, Championship,ChampionshipManager, League, ChampionshipPlayer,QualifyingResult,RaceResult, Race, Qualifying
+from .models import CustomUser, Driver, Team, Circuit, Weekend, Championship,ChampionshipManager, League, ChampionshipPlayer,QualifyingResult,RaceResult, Race, Qualifying, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, PlayerSprintQualifyingChoice, PlayerRaceChoice
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -62,6 +62,30 @@ class ChampionshipPlayerInline(admin.TabularInline):
     fields = ['user', 'player_name', 'league', 'available_credit', 'total_score']
     readonly_fields = ['joined_at']
 
+class PlayerQualifyingChoiceInline(admin.TabularInline):
+    model = PlayerQualifyingChoice
+    extra = 0
+    fields = ['qualifying', 'driver', 'created_at']
+    readonly_fields = ['created_at']
+
+class PlayerQualifyingMultiChoiceInline(admin.TabularInline):
+    model = PlayerQualifyingMultiChoice
+    extra = 0
+    fields = ['qualifying', 'selection_slot', 'driver', 'created_at']
+    readonly_fields = ['created_at']
+
+class PlayerSprintQualifyingChoiceInline(admin.TabularInline):
+    model = PlayerSprintQualifyingChoice
+    extra = 0
+    fields = ['qualifying', 'selection_slot', 'driver', 'created_at']
+    readonly_fields = ['created_at']
+
+class PlayerRaceChoiceInline(admin.TabularInline):
+    model = PlayerRaceChoice
+    extra = 0
+    fields = ['race', 'driver', 'spent_amount', 'is_pupillo', 'created_at']
+    readonly_fields = ['created_at']
+
 @admin.register(Championship)
 class ChampionshipAdmin(admin.ModelAdmin):
     list_display = ['name', 'year', 'active', 'is_private', 'created_at']
@@ -69,13 +93,48 @@ class ChampionshipAdmin(admin.ModelAdmin):
     search_fields = ['name']
     inlines = [LeagueInline, ChampionshipManagerInline, ChampionshipPlayerInline]
 
+@admin.register(ChampionshipPlayer)
+class ChampionshipPlayerAdmin(admin.ModelAdmin):
+    list_display = ['player_name', 'user', 'championship', 'league', 'available_credit', 'total_score', 'joined_at']
+    list_filter = ['championship', 'league']
+    search_fields = ['player_name', 'user__username', 'championship__name', 'league__name']
+    inlines = [
+        PlayerQualifyingChoiceInline,
+        PlayerQualifyingMultiChoiceInline,
+        PlayerSprintQualifyingChoiceInline,
+        PlayerRaceChoiceInline,
+    ]
+
+@admin.register(PlayerQualifyingChoice)
+class PlayerQualifyingChoiceAdmin(admin.ModelAdmin):
+    list_display = ['player', 'qualifying', 'driver', 'created_at']
+    list_filter = ['qualifying__weekend__season', 'qualifying__weekend', 'qualifying']
+    search_fields = ['player__player_name', 'driver__first_name', 'driver__last_name']
+
+@admin.register(PlayerQualifyingMultiChoice)
+class PlayerQualifyingMultiChoiceAdmin(admin.ModelAdmin):
+    list_display = ['player', 'qualifying', 'selection_slot', 'driver', 'created_at']
+    list_filter = ['selection_slot', 'qualifying__weekend__season', 'qualifying__weekend', 'qualifying']
+    search_fields = ['player__player_name', 'driver__first_name', 'driver__last_name']
+
+@admin.register(PlayerSprintQualifyingChoice)
+class PlayerSprintQualifyingChoiceAdmin(admin.ModelAdmin):
+    list_display = ['player', 'qualifying', 'selection_slot', 'driver', 'created_at']
+    list_filter = ['selection_slot', 'qualifying__weekend__season', 'qualifying__weekend', 'qualifying']
+    search_fields = ['player__player_name', 'driver__first_name', 'driver__last_name']
+
+@admin.register(PlayerRaceChoice)
+class PlayerRaceChoiceAdmin(admin.ModelAdmin):
+    list_display = ['player', 'race', 'driver', 'spent_amount', 'is_pupillo', 'created_at']
+    list_filter = ['is_pupillo', 'race__weekend__season', 'race__weekend', 'race']
+    search_fields = ['player__player_name', 'driver__first_name', 'driver__last_name']
+
 admin.site.register(Driver)
 admin.site.register(Team)
 admin.site.register(Circuit)
 admin.site.register(Weekend)
 admin.site.register(ChampionshipManager)
 admin.site.register(League)
-admin.site.register(ChampionshipPlayer)
 admin.site.register(QualifyingResult)
 admin.site.register(RaceResult)
 admin.site.register(Race)
