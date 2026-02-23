@@ -318,10 +318,9 @@ class ChampionshipManager(models.Model):
         return f"{self.user.username} manager of {self.championship.name}"
     
 class AbstractPlayerChoice(models.Model):
-    """Base comune: tiene traccia di chi sceglie cosa e quanto spende."""
+    """Base comune: tiene traccia di chi sceglie cosa."""
     player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
     driver = models.ForeignKey(Driver, on_delete=models.PROTECT)
-    cost = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -365,6 +364,7 @@ class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
 
 class PlayerRaceChoice(AbstractPlayerChoice):
     race = models.ForeignKey(Race, on_delete=models.CASCADE)
+    spent_amount = models.PositiveIntegerField()
     is_pupillo = models.BooleanField(default=False)
 
     class Meta(AbstractPlayerChoice.Meta):

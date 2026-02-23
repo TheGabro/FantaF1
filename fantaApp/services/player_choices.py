@@ -22,5 +22,4 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
         qualifying=qualifying,
         driver=driver,
         selection_slot=slot,
-        cost=None,
     )

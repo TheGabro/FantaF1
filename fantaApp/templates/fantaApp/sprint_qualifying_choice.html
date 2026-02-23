@@ -40,4 +40,40 @@
   </table>
   <button type="submit">Salva tutte le scelte</button>
 </form>
+<script>
+  (function () {
+    const selects = Array.from(document.querySelectorAll('select[name^="driver_"]'));
+    if (!selects.length) return;
+
+    function refreshDriverOptions() {
+      const selectedValues = new Set(
+        selects
+          .map((select) => select.value)
+          .filter((value) => value !== "")
+      );
+
+      selects.forEach((select) => {
+        Array.from(select.options).forEach((option) => {
+          if (!option.value) {
+            option.hidden = false;
+            option.disabled = false;
+            return;
+          }
+
+          const selectedInAnotherSelect =
+            selectedValues.has(option.value) && select.value !== option.value;
+
+          option.hidden = selectedInAnotherSelect;
+          option.disabled = selectedInAnotherSelect;
+        });
+      });
+    }
+
+    selects.forEach((select) => {
+      select.addEventListener("change", refreshDriverOptions);
+    });
+
+    refreshDriverOptions();
+  })();
+</script>
 {% endif %} {% endblock %}

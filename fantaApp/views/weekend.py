@@ -100,9 +100,8 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     
 
     if request.method == "POST" and not event_started:
-        
         selections = [
-        request.POST.get(f"driver_{code}") for code, _ in slots
+            request.POST.get(f"driver_{code}") for code, _ in slots
         ]
         
         # Filtra via valori vuoti e controlla la lunghezza
@@ -111,16 +110,29 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
             # c’è un duplicato
             messages.error(request, "Non puoi selezionare lo stesso pilota più di una volta.")
             # tornare subito al form senza salvare
-            return render(request, "fantaApp/sprint_qualifying_choice.html", context)
-        
-        
+            return redirect(request.path)
+
+        try:
+            selected_ids = [int(s) for s in selected_clean]
+        except (TypeError, ValueError):
+            messages.error(request, "Formato pilota non valido.")
+            return redirect(request.path)
+        drivers_by_id = Driver.objects.filter(
+            season=weekend.season,
+            id__in=selected_ids,
+        ).in_bulk()
+
+        if len(drivers_by_id) != len(set(selected_ids)):
+            messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
+            return redirect(request.path)
+
         for code in ("sq1", "sq2", "sq3"):
             drv = request.POST.get(f"driver_{code}")
             if drv:
                 pc.choose_sprint_quali_driver(
                     player=player,
                     qualifying=qualifying,
-                    driver_id=int(drv),
+                    driver=drivers_by_id[int(drv)],
                     slot=code,
                 )
         messages.success(request, "Scelte registrate con successo.")
