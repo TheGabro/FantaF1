@@ -15,16 +15,15 @@
   <!-- Colonna sinistra: Classifica per Lega -->
   <div style="flex: 1; min-width: 380px;">
     <h4>Classifica per Lega</h4>
-    {% regroup standing_per_league by league as leagues_list %}
-    {% for league in leagues_list %}
-    <h5>{{ league.grouper.name }}</h5>
+    {% if current_championship_player %}
+    <h5>{{ current_championship_player.league.name }}</h5>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
       <tr style="background-color: #f0f0f0;">
         <th style="padding: 8px; text-align: center; width: 40px;">Posizione</th>
         <th style="padding: 8px; text-align: left;">Player</th>
         <th style="padding: 8px; text-align: right; width: 80px;">Punti</th>
       </tr>
-      {% for p in league.list %}
+      {% for p in standing_per_league %}
       <tr style="border-bottom: 1px solid #ddd;">
         <td style="padding: 6px; text-align: center;">{{ forloop.counter }}</td>
         <td style="padding: 6px;">{{ p.player_name }}</td>
@@ -32,9 +31,9 @@
       </tr>
       {% endfor %}
     </table>
-    {% empty %}
-    <p>Nessun partecipante.</p>
-    {% endfor %}
+    {% else %}
+    <p>Non partecipi a nessuna lega di questo campionato.</p>
+    {% endif %}
   </div>
 
   <!-- Colonna destra: Classifica Generale -->
