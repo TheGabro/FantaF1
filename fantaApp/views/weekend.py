@@ -98,8 +98,6 @@ def _base_context(request, championship_id: int, weekend_id: int):
 # ───────────────────────────────────────────────────────────────────────────────
 #  1) Sprint‑Qualifying
 # ───────────────────────────────────────────────────────────────────────────────
-
-
 @login_required
 @transaction.atomic
 def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
@@ -128,8 +126,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     }
     if request.method == "POST" and not event_started:
         submitted_by_slot = {
-            code: request.POST.get(f"driver_{code}")
-            for code, _ in slots
+            code: request.POST.get(f"driver_{code}") for code, _ in slots #DictCompenhension per estrarre i valori dei driver inviati, con chiavi come "sq1", "sq2", "sq3"
         }
         selections = list(submitted_by_slot.values())
         
@@ -189,27 +186,86 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
 # # ───────────────────────────────────────────────────────────────────────────────
 # # 2) Regular Qualifying  (1 pilota)
 # # ───────────────────────────────────────────────────────────────────────────────
-# @login_required
-# def regular_qual_choice(request, championship_id, weekend_id, event_id):
-#     champ, weekend, player = _base_context(request, championship_id, weekend_id)
-#     qual = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
+@login_required
+def regular_qualifying_choice(request, championship_id, weekend_id, event_id):
+    """
+    Pagina che mostra il pilota scelto per la Qualifying regolare.
+    L'utente può salvare una scelta in un solo submit.
+    """
+    champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
 
-#     if request.method == "POST":
-#         try:
-#             choose_driver_for_event(player=player, event=qual,
-#                                     driver_id=int(request.POST["driver_id"]))
-#             messages.success(request, "Scelta salvata.")
-#             return redirect(request.path)
-#         except ValidationError as e:
-#             messages.error(request, e.message)
+    # blocco modifiche se l'evento è già iniziato (solo UI)
+    event_started = helper._event_has_started(qualifying)
 
-#     taken = qual.playerqualifyingchoice_set.filter(player=player).values_list("driver_id", flat=True)
-#     drivers = Driver.objects.filter(season=weekend.season).exclude(id__in=taken)
+    drivers_taken = (
+        PlayerQualifyingChoice.objects
+        .filter(
+            player=player,
+            qualifying__weekend__season=weekend.season,
+            qualifying__type="regular",
+        )
+        .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
+        .values_list("driver_id", flat=True)
+    )
 
-#     return render(request, "event_choice_regular_quali.html", {
-#         "championship": champ, "weekend": weekend, "event": qual,
-#         "drivers": drivers,
-#     })
+    if request.method == "POST" and not event_started:
+        driver_id = request.POST.get("driver")
+        if not driver_id:
+            messages.error(request, "Devi selezionare un pilota.")
+            return redirect(request.path)
+        try:
+            driver_id = int(driver_id)
+        except (TypeError, ValueError):
+            messages.error(request, "Pilota non valido.")
+            return redirect(request.path)
+
+        driver = Driver.objects.filter(
+            id=driver_id,
+            season=weekend.season,
+        ).exclude(id__in=drivers_taken).first()
+
+        if not driver:
+            messages.error(request, "Pilota non valido o già utilizzato.")
+            return redirect(request.path)
+
+        try:
+            pc.choose_regular_quali_driver(
+                player=player,
+                qualifying=qualifying,
+                driver=driver,
+            )
+            messages.success(request, "Scelte salvate con successo.")
+        except ValidationError as e:
+            messages.error(request, e.message)
+        return redirect(request.path)
+    
+    drivers_available = (
+        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
+        .order_by("team__name", "first_name", "last_name")
+    )
+
+    existing = PlayerQualifyingChoice.objects.filter(
+        player=player,
+        qualifying=qualifying,
+    ).first()
+
+    # existing = {
+    #     c.selection_slot: c
+    #     for c in qualifying.playersprintqualifyingchoice_set
+    #                  .filter(player=player)
+    #                  .select_related("driver")
+    # }
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": qualifying,
+        "existing": existing,
+        "drivers": drivers_available,    # per i select ancora vuoti
+        "event_started": event_started,
+    }
+    return render(request, "fantaApp/regular_qualifying_choice.html", context)
 
 
 # # ───────────────────────────────────────────────────────────────────────────────

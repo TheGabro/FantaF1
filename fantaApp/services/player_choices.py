@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from ..models import PlayerSprintQualifyingChoice
+from ..models import PlayerQualifyingChoice, PlayerSprintQualifyingChoice
 
 
 @transaction.atomic
@@ -19,5 +19,31 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
         player=player,
         qualifying=qualifying,
         selection_slot=slot,
+        defaults={"driver": driver},
+    )
+
+
+@transaction.atomic
+def choose_regular_quali_driver(*, player, qualifying, driver): 
+    
+    already_used = (
+        PlayerQualifyingChoice.objects
+        .filter(
+            player=player,                                # già limita al campionato del player
+            driver=driver,
+            qualifying__type="regular",
+            qualifying__weekend__season=qualifying.weekend.season,
+        )
+        .exclude(qualifying=qualifying)                  # permette eventuale modifica della stessa gara
+        .exists()
+    )
+
+    if already_used:
+        raise ValidationError("Driver already used in this season's Regular Qualifying")
+
+    # Crea la nuova scelta
+    PlayerQualifyingChoice.objects.update_or_create(
+        player=player,
+        qualifying=qualifying,
         defaults={"driver": driver},
     )

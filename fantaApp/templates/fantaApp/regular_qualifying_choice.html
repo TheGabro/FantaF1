@@ -1,0 +1,39 @@
+{% extends 'fantaApp/championship_flow_base.html' %} {% block championship_content %}
+<h2>{{ weekend.event_name }} – Regular Qualifying</h2>
+<p>
+  <a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
+</p>
+
+{% if messages %} {% for message in messages %}
+<p style="color:{% if message.tags == 'error' %}red{% else %}green{% endif %};">
+  {{ message }}
+</p>
+{% endfor %} {% endif %} {% if event_started %}
+<p><strong>Le scelte per questa qualifica sono chiuse.</strong></p>
+{% endif %}
+
+
+{% if event_started %}
+  {% if existing %}
+    <p>{{ existing.driver.team.name }} - {{ existing.driver.first_name }} {{ existing.driver.last_name }} ✔</p>
+  {% else %}
+    <p>—</p>
+  {% endif %}
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label for="driver" class="form-label">Scegli un pilota:</label>
+    <select class="form-select" id="driver" name="driver">
+      <option value="">-- Seleziona un pilota --</option>
+      {% for driver in drivers %}
+      <option value="{{ driver.id }}" {% if existing and existing.driver_id == driver.id %}selected{% endif %}>
+        {{ driver.team.name }} - {{ driver.first_name }} {{ driver.last_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">Salva</button>
+</form>
+{% endif %}
+{% endblock %}

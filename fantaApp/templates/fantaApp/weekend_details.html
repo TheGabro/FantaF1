@@ -1,7 +1,7 @@
 {% extends "fantaApp/championship_flow_base.html" %} {% block championship_content %}
 <h2>
   <!-- prettier-ignore -->
-  {{ championship.name }} {{ championship.year }} — Round {{ weekend.round_number }} · {{ weekend.event_name }}
+  Round {{ weekend.round_number }} · {{ weekend.event_name }}
 </h2>
 
 <p>
@@ -24,13 +24,13 @@
       >{{ ev.label }}</a
     >
     {% if ev.has_choice %} ✔{% endif %}
-    {% comment %} {% elif ev.entity == "qualifying" and ev.subtype == "regular"
-    %}
+    {% elif ev.entity == "qualifying" and ev.subtype == "regular" %}
     <a
       href="{% url 'regular_qualifying_choice' championship.id weekend.id ev.event_id %}"
       >{{ ev.label }}</a
     >
-    {% elif ev.entity == "race" and ev.subtype == "sprint" %}
+    {% if ev.has_choice %} ✔{% endif %}
+    {% comment %}{% elif ev.entity == "race" and ev.subtype == "sprint" %}
     <a
       href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}"
       >{{ ev.label }}</a

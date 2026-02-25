@@ -42,3 +42,16 @@ class SprintQualifyingForm(forms.Form):
                 "Non puoi selezionare lo stesso pilota in più slot."
             )
         return cleaned
+    
+class RegularQualifyingForm(forms.Form):
+    driver_rq = forms.ModelChoiceField(
+        queryset=Driver.objects.none(),
+        label="Pilota scelto",
+        empty_label="-- scegli pilota che terminerà in P1-P5 in Qualifying --",
+        required=False,
+    )
+
+    def __init__(self, *args, drivers_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if drivers_queryset is not None:
+            self.fields["driver_rq"].queryset = drivers_queryset

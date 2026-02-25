@@ -23,15 +23,16 @@ urlpatterns = [
         name="sprint_qualifying_choice",
     ),
 
-    #TODO
-    # 2. Qualifying regolare (1 pilota)
-    # path(
-    #     "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
-    #     "qualifying/regular/<int:event_id>/choice/",
-    #     weekend.regular_qualifying_choice,
-    #     name="regular_qualifying_choice",
-    # ),
+    
+    #2. Qualifying regolare (1 pilota)
+    path(
+        "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+        "qualifying/regular/<int:event_id>/choice/",
+        weekend.regular_qualifying_choice,
+        name="regular_qualifying_choice",
+    ),
 
+    #TODO
     # # 3. Sprint-Race (2 piloti, no pupillo)
     # path(
     #     "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
