@@ -187,85 +187,19 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
 # # 2) Regular Qualifying  (1 pilota)
 # # ───────────────────────────────────────────────────────────────────────────────
 @login_required
-def regular_qualifying_choice(request, championship_id, weekend_id, event_id):
+def qualifying_choice(request, championship_id, weekend_id, event_id):
     """
     Pagina che mostra il pilota scelto per la Qualifying regolare.
     L'utente può salvare una scelta in un solo submit.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
-    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
 
-    # blocco modifiche se l'evento è già iniziato (solo UI)
-    event_started = helper._event_has_started(qualifying)
+    if weekend.weekend_type == 'regular':
+        return regular_weekend_qualifying_choice(request, player, champ, weekend, event_id)
+    elif weekend.weekend_type == 'sprint':
+        raise Http404("Qualifying choice flow not implemented for sprint weekend")
 
-    drivers_taken = (
-        PlayerQualifyingChoice.objects
-        .filter(
-            player=player,
-            qualifying__weekend__season=weekend.season,
-            qualifying__type="regular",
-        )
-        .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
-        .values_list("driver_id", flat=True)
-    )
-
-    if request.method == "POST" and not event_started:
-        driver_id = request.POST.get("driver")
-        if not driver_id:
-            messages.error(request, "Devi selezionare un pilota.")
-            return redirect(request.path)
-        try:
-            driver_id = int(driver_id)
-        except (TypeError, ValueError):
-            messages.error(request, "Pilota non valido.")
-            return redirect(request.path)
-
-        driver = Driver.objects.filter(
-            id=driver_id,
-            season=weekend.season,
-        ).exclude(id__in=drivers_taken).first()
-
-        if not driver:
-            messages.error(request, "Pilota non valido o già utilizzato.")
-            return redirect(request.path)
-
-        try:
-            pc.choose_regular_quali_driver(
-                player=player,
-                qualifying=qualifying,
-                driver=driver,
-            )
-            messages.success(request, "Scelte salvate con successo.")
-        except ValidationError as e:
-            messages.error(request, e.message)
-        return redirect(request.path)
     
-    drivers_available = (
-        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
-        .order_by("team__name", "first_name", "last_name")
-    )
-
-    existing = PlayerQualifyingChoice.objects.filter(
-        player=player,
-        qualifying=qualifying,
-    ).first()
-
-    # existing = {
-    #     c.selection_slot: c
-    #     for c in qualifying.playersprintqualifyingchoice_set
-    #                  .filter(player=player)
-    #                  .select_related("driver")
-    # }
-
-    context = {
-        "championship": champ,
-        "weekend": weekend,
-        "event": qualifying,
-        "existing": existing,
-        "drivers": drivers_available,    # per i select ancora vuoti
-        "event_started": event_started,
-    }
-    return render(request, "fantaApp/regular_qualifying_choice.html", context)
 
 
 # # ───────────────────────────────────────────────────────────────────────────────
@@ -321,3 +255,76 @@ def regular_qualifying_choice(request, championship_id, weekend_id, event_id):
 #         "championship": champ, "weekend": weekend, "event": race,
 #         "drivers": drivers,
 #     })
+
+def old_format_qualifying_choice(request, championship_id, weekend_id, event_id):
+    pass
+
+def regular_weekend_qualifying_choice(request, player, champ, weekend, event_id):
+
+    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
+
+        # blocco modifiche se l'evento è già iniziato (solo UI)
+    event_started = helper._event_has_started(qualifying)
+
+    drivers_taken = (
+        PlayerQualifyingChoice.objects
+        .filter(
+            player=player,
+            qualifying__weekend__season=weekend.season,
+            qualifying__type="regular",
+        )
+        .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
+        .values_list("driver_id", flat=True)
+    )
+
+    if request.method == "POST" and not event_started:
+        driver_id = request.POST.get("driver")
+        if not driver_id:
+            messages.error(request, "Devi selezionare un pilota.")
+            return redirect(request.path)
+        try:
+            driver_id = int(driver_id)
+        except (TypeError, ValueError):
+            messages.error(request, "Pilota non valido.")
+            return redirect(request.path)
+
+        driver = Driver.objects.filter(
+            id=driver_id,
+            season=weekend.season,
+        ).exclude(id__in=drivers_taken).first()
+
+        if not driver:
+            messages.error(request, "Pilota non valido o già utilizzato.")
+            return redirect(request.path)
+
+        try:
+            pc.choose_regular_quali_driver(
+                player=player,
+                qualifying=qualifying,
+                driver=driver,
+            )
+            messages.success(request, "Scelte salvate con successo.")
+        except ValidationError as e:
+            messages.error(request, e.message)
+        return redirect(request.path)
+    
+    drivers_available = (
+        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
+        .order_by("team__name", "first_name", "last_name")
+    )
+
+    existing = PlayerQualifyingChoice.objects.filter(
+        player=player,
+        qualifying=qualifying,
+    ).first()
+
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": qualifying,
+        "existing": existing,
+        "drivers": drivers_available,    # per i select ancora vuoti
+        "event_started": event_started,
+    }
+    return render(request, "fantaApp/regular_qualifying_choice.html", context)
