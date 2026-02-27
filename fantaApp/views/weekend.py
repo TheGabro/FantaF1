@@ -184,10 +184,10 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
 
 
 # # ───────────────────────────────────────────────────────────────────────────────
-# # 2) Regular Qualifying  (1 pilota)
+# # 2) Regular Race Qualifying  (1 pilota)
 # # ───────────────────────────────────────────────────────────────────────────────
 @login_required
-def qualifying_choice(request, championship_id, weekend_id, event_id):
+def race_qualifying_choice(request, championship_id, weekend_id, event_id):
     """
     Pagina che mostra il pilota scelto per la Qualifying regolare.
     L'utente può salvare una scelta in un solo submit.
@@ -197,7 +197,9 @@ def qualifying_choice(request, championship_id, weekend_id, event_id):
     if weekend.weekend_type == 'regular':
         return regular_weekend_qualifying_choice(request, player, champ, weekend, event_id)
     elif weekend.weekend_type == 'sprint':
-        raise Http404("Qualifying choice flow not implemented for sprint weekend")
+        #TODO
+        return sprint_weekend_qualifying_choice(request, player, champ, weekend, event_id) 
+        
 
     
 
@@ -256,8 +258,8 @@ def qualifying_choice(request, championship_id, weekend_id, event_id):
 #         "drivers": drivers,
 #     })
 
-def old_format_qualifying_choice(request, championship_id, weekend_id, event_id):
-    pass
+def sprint_weekend_qualifying_choice(request, player, champ, weekend, event_id):
+    raise Http404("Qualifying choice flow not implemented for sprint weekend")
 
 def regular_weekend_qualifying_choice(request, player, champ, weekend, event_id):
 
@@ -293,9 +295,6 @@ def regular_weekend_qualifying_choice(request, player, champ, weekend, event_id)
             season=weekend.season,
         ).exclude(id__in=drivers_taken).first()
 
-        if not driver:
-            messages.error(request, "Pilota non valido o già utilizzato.")
-            return redirect(request.path)
 
         try:
             pc.choose_regular_quali_driver(
@@ -327,4 +326,4 @@ def regular_weekend_qualifying_choice(request, player, champ, weekend, event_id)
         "drivers": drivers_available,    # per i select ancora vuoti
         "event_started": event_started,
     }
-    return render(request, "fantaApp/regular_qualifying_choice.html", context)
+    return render(request, "fantaApp/regular_race_qualifying_choice.html", context)

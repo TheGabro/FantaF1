@@ -28,9 +28,9 @@ urlpatterns = [
     #2. Qualifying weekend regular (1 pilota)
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
-        "qualifying/regular/<int:event_id>/choice/",
-        weekend.qualifying_choice,
-        name="regular_qualifying_choice",
+        "qualifying/race/<int:event_id>/choice/",
+        weekend.race_qualifying_choice,
+        name="race_qualifying_choice",
     ),
 
     #2. Qualifying weekend sprint (slot driver / old format)
