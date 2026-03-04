@@ -1,0 +1,121 @@
+{% extends 'fantaApp/championship_flow_base.html' %}
+{% load dict_extras %}
+
+{% block championship_content %}
+<h2>{{ weekend.event_name }} – Regular Qualifying</h2>
+<p>
+	<a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
+</p>
+
+{% if messages %}
+	{% for message in messages %}
+	{% if message.tags == 'error' %}
+	<p style="color:red;">{{ message }}</p>
+	{% else %}
+	<p style="color:green;">{{ message }}</p>
+	{% endif %}
+	{% endfor %}
+{% endif %}
+
+{% if event_started %}
+<p><strong>Le scelte per questa qualifica sono chiuse.</strong></p>
+{% endif %}
+
+{% if not event_started %}
+<p><strong>Regole:</strong> seleziona 6 piloti per Q1, 5 per Q2 e 3 per Q3. Nessun pilota può essere scelto più di una volta.</p>
+<form method="post">
+	{% csrf_token %}
+{% endif %}
+
+<table>
+	<thead>
+		<tr>
+			<th>Slot</th>
+			<th>Pilota</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for code, label in slots %}
+		<tr>
+			<td>{{ label }}</td>
+			<td>
+				{% if event_started %}
+					{% with choices=existing|get_item:code %}
+						{% if choices %}
+							<ul>
+							{% for choice in choices %}
+								<li>✔ {{ choice.driver.team.short_name }} - {{ choice.driver.first_name }} {{ choice.driver.last_name }}</li>
+							{% endfor %}
+							</ul>
+						{% else %}
+							—
+						{% endif %}
+					{% endwith %}
+				{% else %}
+					{% with choices=existing|get_item:code %}
+					{% for i in slot_limits|get_item:code|to_range %}
+						{% with selected_choice=choices|get_item:i %}
+						<select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}">
+							<option value="">-- scegli pilota --</option>
+							{% for d in drivers %}
+							<option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
+								{{ d.team.short_name }} - {{ d.first_name }} {{ d.last_name }}
+							</option>
+							{% endfor %}
+						</select>
+						{% endwith %}
+						<br>
+					{% endfor %}
+					<div>Massimo: {{ slot_limits|get_item:code }}</div>
+					{% endwith %}
+				{% endif %}
+			</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+
+{% if not event_started %}
+<button type="submit">Salva tutte le scelte</button>
+</form>
+
+<script>
+	(function () {
+		const selects = Array.from(document.querySelectorAll('select[name^="drivers_"]'));
+		if (!selects.length) return;
+
+		function refreshDriverOptions() {
+			const globallySelected = new Set();
+			selects.forEach((select) => {
+				if (select.value) {
+					globallySelected.add(select.value);
+				}
+			});
+
+			selects.forEach((select) => {
+				Array.from(select.options).forEach((option) => {
+					if (!option.value) {
+						option.hidden = false;
+						option.disabled = false;
+						return;
+					}
+
+					const selectedInAnotherSelect =
+						globallySelected.has(option.value) && select.value !== option.value;
+
+					option.hidden = selectedInAnotherSelect;
+					option.disabled = selectedInAnotherSelect;
+				});
+			});
+		}
+
+		selects.forEach((select) => {
+			select.addEventListener("change", refreshDriverOptions);
+		});
+
+		refreshDriverOptions();
+	})();
+</script>
+{% endif %}
+{% endblock %}
+

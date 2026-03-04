@@ -256,33 +256,48 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
 #     })
 
 def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
-    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="sprint")
+    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
     
     event_started = helper._event_has_started(qualifying)
     
-    slots = [("q1", "Passa il Q1"),
-             ("q2", "Passa il Q2"),
-             ("q3", "Posizione 1-5 in Q3")]
+    slots = [
+        ("q1_pass", "Passano il Q1 (max 6)"),
+        ("q2_pass", "Passano il Q2 (max 5)"),
+        ("q3_top3", "Top 3 in Q3 (max 3)"),
+    ]
+    slot_limits = {
+        "q1_pass": 6,
+        "q2_pass": 5,
+        "q3_top3": 3,
+    }
 
     # Scelte già presenti (dict slot -> choice istanza)
-    existing = {
-        c.selection_slot: c
-        for c in qualifying.playerqualifyingmultichoice_set
-                     .filter(player=player)
-                     .select_related("driver")
-    }
+    existing = {code: [] for code, _ in slots}
+    for choice in (
+        qualifying.playerqualifyingmultichoice_set
+        .filter(player=player)
+        .select_related("driver")
+        .order_by("selection_slot", "driver__team__name", "driver__first_name", "driver__last_name")
+    ):
+        existing.setdefault(choice.selection_slot, []).append(choice)
+
     if request.method == "POST" and not event_started:
         submitted_by_slot = {
-            code: request.POST.get(f"driver_{code}") for code, _ in slots #DictCompenhension per estrarre i valori dei driver inviati, con chiavi come "sq1", "sq2", "sq3"
+            code: [value for value in request.POST.getlist(f"drivers_{code}") if value]
+            for code, _ in slots
         }
-        selections = list(submitted_by_slot.values())
-        
-        # Filtra via valori vuoti e controlla la lunghezza
-        selected_clean = [s for s in selections if s]
+
+        for code, _ in slots:
+            if len(submitted_by_slot[code]) > slot_limits[code]:
+                messages.error(
+                    request,
+                    f"Hai superato il limite per {code}: massimo {slot_limits[code]} piloti.",
+                )
+                return redirect(request.path)
+
+        selected_clean = [driver_id for values in submitted_by_slot.values() for driver_id in values]
         if len(selected_clean) != len(set(selected_clean)):
-            # c’è un duplicato
             messages.error(request, "Non puoi selezionare lo stesso pilota più di una volta.")
-            # tornare subito al form senza salvare
             return redirect(request.path)
 
         try:
@@ -299,15 +314,26 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
             return redirect(request.path)
 
-        for code, _ in slots:
-            drv = submitted_by_slot.get(code)
-            if drv:
-                pc.choose_sprint_quali_driver(
-                    player=player,
-                    qualifying=qualifying,
-                    driver=drivers_by_id[int(drv)],
-                    slot=code,
-                )
+        with transaction.atomic():
+            PlayerQualifyingMultiChoice.objects.filter(
+                player=player,
+                qualifying=qualifying,
+            ).delete()
+
+            to_create = []
+            for code, _ in slots:
+                for driver_id in submitted_by_slot[code]:
+                    to_create.append(
+                        PlayerQualifyingMultiChoice(
+                            player=player,
+                            qualifying=qualifying,
+                            selection_slot=code,
+                            driver=drivers_by_id[int(driver_id)],
+                        )
+                    )
+            if to_create:
+                PlayerQualifyingMultiChoice.objects.bulk_create(to_create)
+
         messages.success(request, "Scelte salvate con successo.")
         return redirect(request.path)
 
@@ -323,18 +349,13 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
         "weekend": weekend,
         "event": qualifying,
         "slots": slots,
+        "slot_limits": slot_limits,
         "existing": existing,        # dict slot -> choice
         "drivers": drivers_avail,    # per i select ancora vuoti
         "event_started": event_started,
     }
     return render(request, "fantaApp/regular_race_qualifying_multi_choice.html", context)
     
-    
-    
-    
-    
-    
-    raise Http404("Qualifying choice flow not implemented for sprint weekend")
 
 def regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
 

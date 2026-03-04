@@ -38,7 +38,7 @@ urlpatterns = [
          "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
          "qualifying/old_format/<int:event_id>/choice/",
          weekend.race_qualifying_choice,
-         name="race_qualifying_choice",
+         name="race_qualifying_multi_choice",
     ),
 
     #TODO

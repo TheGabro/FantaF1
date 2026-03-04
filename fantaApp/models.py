@@ -339,12 +339,12 @@ class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
     SELECTION_SLOTS = [
         ('q1_pass',  'Pass Q1'),
         ('q2_pass',  'Pass Q2'),
-        ('q3_top5',  'Q3 - Top-5'),
+        ('q3_top3',  'Q3 - Top-3'),
     ]
     selection_slot = models.CharField(max_length=8, choices=SELECTION_SLOTS)
 
     class Meta(AbstractPlayerChoice.Meta):
-        unique_together = [("player", "qualifying","selection_slot")]
+        unique_together = [("player", "qualifying", "driver")]
         
 class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)

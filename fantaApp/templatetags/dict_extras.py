@@ -10,5 +10,17 @@ def get_item(dictionary, key):
     """
     try:
         return dictionary[key]
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, IndexError):
         return None
+
+
+@register.filter
+def to_range(value):
+    """
+    Serve a creare un range da 0 a value-1 nel template, utile per i loop.
+    Se value non è un intero, torna un range vuoto.
+    """
+    try:
+        return range(int(value))
+    except (TypeError, ValueError):
+        return range(0)
