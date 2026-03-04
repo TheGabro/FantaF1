@@ -261,9 +261,9 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     event_started = helper._event_has_started(qualifying)
     
     slots = [
-        ("q1_pass", "Passano il Q1 (max 6)"),
-        ("q2_pass", "Passano il Q2 (max 5)"),
-        ("q3_top3", "Top 3 in Q3 (max 3)"),
+        ("q1_pass", "Passano il Q1"),
+        ("q2_pass", "Passano il Q2"),
+        ("q3_top3", "Top 3 in Q3"),
     ]
     slot_limits = {
         "q1_pass": 6,

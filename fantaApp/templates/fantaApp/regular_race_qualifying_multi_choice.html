@@ -37,8 +37,8 @@
 	<tbody>
 		{% for code, label in slots %}
 		<tr>
-			<td>{{ label }}</td>
-			<td>
+			<td style="vertical-align: top; padding: 8px 0;">{{ label }}</td>
+			<td style="padding: 8px 0;">
 				{% if event_started %}
 					{% with choices=existing|get_item:code %}
 						{% if choices %}
@@ -55,18 +55,18 @@
 					{% with choices=existing|get_item:code %}
 					{% for i in slot_limits|get_item:code|to_range %}
 						{% with selected_choice=choices|get_item:i %}
-						<select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}">
-							<option value="">-- scegli pilota --</option>
-							{% for d in drivers %}
-							<option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
-								{{ d.team.short_name }} - {{ d.first_name }} {{ d.last_name }}
-							</option>
-							{% endfor %}
-						</select>
+						<div style="margin-bottom: 8px;">
+							<select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}">
+								<option value="">-- scegli pilota --</option>
+								{% for d in drivers %}
+								<option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
+									{{ d.team.short_name }} - {{ d.first_name }} {{ d.last_name }}
+								</option>
+								{% endfor %}
+							</select>
+						</div>
 						{% endwith %}
-						<br>
 					{% endfor %}
-					<div>Massimo: {{ slot_limits|get_item:code }}</div>
 					{% endwith %}
 				{% endif %}
 			</td>
