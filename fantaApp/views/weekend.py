@@ -180,7 +180,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
         "drivers": drivers_avail,    # per i select ancora vuoti
         "event_started": event_started,
     }
-    return render(request, "fantaApp/sprint_qualifying_choice.html", context)
+    return render(request, "fantaApp/sprint_race_qualifying_choice.html", context)
 
 
 # # ───────────────────────────────────────────────────────────────────────────────
@@ -195,13 +195,10 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
 
     if weekend.weekend_type == 'regular':
-        return regular_weekend_qualifying_choice(request, player, champ, weekend, event_id)
+        return regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id)
     elif weekend.weekend_type == 'sprint':
-        #TODO
-        return sprint_weekend_qualifying_choice(request, player, champ, weekend, event_id) 
+        return sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id) 
         
-
-    
 
 
 # # ───────────────────────────────────────────────────────────────────────────────
@@ -258,10 +255,88 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
 #         "drivers": drivers,
 #     })
 
-def sprint_weekend_qualifying_choice(request, player, champ, weekend, event_id):
+def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
+    qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="sprint")
+    
+    event_started = helper._event_has_started(qualifying)
+    
+    slots = [("q1", "Passa il Q1"),
+             ("q2", "Passa il Q2"),
+             ("q3", "Posizione 1-5 in Q3")]
+
+    # Scelte già presenti (dict slot -> choice istanza)
+    existing = {
+        c.selection_slot: c
+        for c in qualifying.playerqualifyingmultichoice_set
+                     .filter(player=player)
+                     .select_related("driver")
+    }
+    if request.method == "POST" and not event_started:
+        submitted_by_slot = {
+            code: request.POST.get(f"driver_{code}") for code, _ in slots #DictCompenhension per estrarre i valori dei driver inviati, con chiavi come "sq1", "sq2", "sq3"
+        }
+        selections = list(submitted_by_slot.values())
+        
+        # Filtra via valori vuoti e controlla la lunghezza
+        selected_clean = [s for s in selections if s]
+        if len(selected_clean) != len(set(selected_clean)):
+            # c’è un duplicato
+            messages.error(request, "Non puoi selezionare lo stesso pilota più di una volta.")
+            # tornare subito al form senza salvare
+            return redirect(request.path)
+
+        try:
+            selected_ids = [int(s) for s in selected_clean]
+        except (TypeError, ValueError):
+            messages.error(request, "Formato pilota non valido.")
+            return redirect(request.path)
+        drivers_by_id = Driver.objects.filter(
+            season=weekend.season,
+            id__in=selected_ids,
+        ).in_bulk()
+
+        if len(drivers_by_id) != len(set(selected_ids)):
+            messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
+            return redirect(request.path)
+
+        for code, _ in slots:
+            drv = submitted_by_slot.get(code)
+            if drv:
+                pc.choose_sprint_quali_driver(
+                    player=player,
+                    qualifying=qualifying,
+                    driver=drivers_by_id[int(drv)],
+                    slot=code,
+                )
+        messages.success(request, "Scelte salvate con successo.")
+        return redirect(request.path)
+
+    drivers_avail = (
+        Driver.objects
+        .filter(season=weekend.season)
+        .select_related("team")
+        .order_by("team__name", "first_name", "last_name")
+    )
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": qualifying,
+        "slots": slots,
+        "existing": existing,        # dict slot -> choice
+        "drivers": drivers_avail,    # per i select ancora vuoti
+        "event_started": event_started,
+    }
+    return render(request, "fantaApp/regular_race_qualifying_multi_choice.html", context)
+    
+    
+    
+    
+    
+    
     raise Http404("Qualifying choice flow not implemented for sprint weekend")
 
-def regular_weekend_qualifying_choice(request, player, champ, weekend, event_id):
+def regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
 
     qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
 

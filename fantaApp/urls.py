@@ -21,11 +21,11 @@ urlpatterns = [
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/qualifying/sprint/<int:event_id>/choice/",
         weekend.sprint_qualifying_choice,
-        name="sprint_qualifying_choice",
+        name="sprint_race_qualifying_choice",
     ),
 
     
-    #2. Qualifying weekend regular (1 pilota)
+    #2.a. Qualifying weekend regular (1 pilota)
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
         "qualifying/race/<int:event_id>/choice/",
@@ -33,13 +33,13 @@ urlpatterns = [
         name="race_qualifying_choice",
     ),
 
-    #2. Qualifying weekend sprint (slot driver / old format)
-    # path(
-    #     "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
-    #     "qualifying/old_format/<int:event_id>/choice/",
-    #     weekend.old_format_qualifying_choice,
-    #     name="old_format_qualifying_choice",
-    # ),
+    #2.b. Qualifying weekend sprint (slot driver / old format)
+     path(
+         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+         "qualifying/old_format/<int:event_id>/choice/",
+         weekend.race_qualifying_choice,
+         name="race_qualifying_choice",
+    ),
 
     #TODO
     # # 4. Sprint-Race (2 piloti, no pupillo)
