@@ -32,23 +32,12 @@
 <p><strong>Regole:</strong> scegli 2 piloti. Il costo e' determinato dalla posizione in griglia e i crediti vengono scalati solo quando la Sprint Race inizia.</p>
 {% endif %}
 
-{% if existing_choices %}
-<h3>Scelte salvate</h3>
-<ul>
-	{% for choice in existing_choices %}
-	<li>
-		{{ choice.driver.team.short_name }} - {{ choice.driver.first_name }} {{ choice.driver.last_name }}
-		(costo: {{ choice.spent_amount }})
-		{% if choice.credit_applied %}✔ crediti scalati{% else %}· in attesa di addebito{% endif %}
-	</li>
-	{% endfor %}
-</ul>
-{% endif %}
-
-{% if not event_started and grid_available %}
+{% if grid_available %}
+{% if not event_started %}
 <form method="post">
 	{% csrf_token %}
-	<div style="display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(280px, 1fr); gap:20px; align-items:start;">
+	{% endif %}
+	<div id="sprint-race-layout" data-event-started="{{ event_started|yesno:'true,false' }}" style="display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(280px, 1fr); gap:20px; align-items:start;">
 		<div style="overflow:auto; border:1px solid #ddd; border-radius:10px;">
 			<table style="width:100%; border-collapse:collapse; min-width:640px;">
 				<thead>
@@ -57,7 +46,7 @@
 						<th style="padding:10px; text-align:left;">Pilota</th>
 						<th style="padding:10px; text-align:left; width:120px;">Team</th>
 						<th style="padding:10px; text-align:right; width:110px;">Costo</th>
-						<th style="padding:10px; text-align:center; width:140px;">Azione</th>
+						<th style="padding:10px; text-align:center; width:140px;">{% if event_started %}Stato{% else %}Azione{% endif %}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -76,9 +65,13 @@
 						<td style="padding:10px;">{{ option.driver.team.short_name }}</td>
 						<td style="padding:10px; text-align:right; font-weight:600;">{{ option.cost }}</td>
 						<td style="padding:10px; text-align:center;">
+							{% if event_started %}
+							<span data-selected-label style="display:inline-block; min-width:88px; padding:6px 10px; border:1px solid #ddd; border-radius:999px; color:#666; background:#fafafa;">Non scelto</span>
+							{% else %}
 							<button type="button" data-select-driver style="padding:6px 10px; border:1px solid #bbb; background:white; border-radius:6px; cursor:pointer;">
 								Seleziona
 							</button>
+							{% endif %}
 						</td>
 					</tr>
 					{% endfor %}
@@ -88,7 +81,11 @@
 
 		<div style="border:1px solid #ddd; border-radius:10px; padding:16px; background:#fafafa;">
 			<h3 style="margin-top:0;">Le tue scelte</h3>
+			{% if event_started %}
+			<p style="margin-top:0; color:#555;">La gara sprint e' iniziata. La selezione resta visibile in sola lettura.</p>
+			{% else %}
 			<p style="margin-top:0; color:#555;">Devi selezionare esattamente 2 piloti dalla griglia prima di poter salvare.</p>
+			{% endif %}
 
 			<div id="selected-drivers-list" style="display:grid; gap:10px; margin-bottom:14px;"></div>
 
@@ -101,23 +98,35 @@
 				{% endfor %}
 			</div>
 
+			{% if existing_choices %}
+			<p style="margin:0 0 14px 0; color:#555;">
+				{% if existing_choices.0.credit_applied %}Crediti gia' scalati.{% else %}Crediti non ancora scalati.{% endif %}
+			</p>
+			{% endif %}
+
+			{% if not event_started %}
 			<button id="save-selection-button" type="submit" style="width:100%; padding:10px 12px; border:0; border-radius:8px; background:#1f6feb; color:white; cursor:pointer; font-weight:600;">
 				Salva scelte
 			</button>
+			{% endif %}
 		</div>
 	</div>
+{% if not event_started %}
 </form>
+{% endif %}
 
 <script>
 	(function () {
+		const layout = document.getElementById('sprint-race-layout');
 		const rows = Array.from(document.querySelectorAll('[data-driver-row]'));
 		const selectedDriversContainer = document.getElementById('selected-drivers-inputs');
 		const selectedDriversList = document.getElementById('selected-drivers-list');
 		const selectedTotalCost = document.getElementById('selected-total-cost');
 		const selectedCount = document.getElementById('selected-count');
 		const saveButton = document.getElementById('save-selection-button');
+		const eventStarted = layout && layout.dataset.eventStarted === 'true';
 
-		if (!rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost || !selectedCount || !saveButton) {
+		if (!layout || !rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost || !selectedCount) {
 			return;
 		}
 
@@ -140,9 +149,11 @@
 				selectedDriversList.innerHTML = '<div style="padding:12px; border:1px dashed #bbb; border-radius:8px; color:#666;">Nessun pilota selezionato.</div>';
 				selectedTotalCost.textContent = '0';
 				selectedCount.textContent = '0';
-				saveButton.disabled = true;
-				saveButton.style.opacity = '0.6';
-				saveButton.style.cursor = 'not-allowed';
+				if (saveButton) {
+					saveButton.disabled = true;
+					saveButton.style.opacity = '0.6';
+					saveButton.style.cursor = 'not-allowed';
+				}
 				return;
 			}
 
@@ -165,28 +176,44 @@
 
 			selectedTotalCost.textContent = String(total);
 			selectedCount.textContent = String(selectedDriverIds.length);
-			const canSave = selectedDriverIds.length === 2;
-			saveButton.disabled = !canSave;
-			saveButton.style.opacity = canSave ? '1' : '0.6';
-			saveButton.style.cursor = canSave ? 'pointer' : 'not-allowed';
+			if (saveButton) {
+				const canSave = selectedDriverIds.length === 2;
+				saveButton.disabled = !canSave;
+				saveButton.style.opacity = canSave ? '1' : '0.6';
+				saveButton.style.cursor = canSave ? 'pointer' : 'not-allowed';
+			}
 		}
 
 		function refreshRows() {
 			rows.forEach((row) => {
 				const driverId = row.dataset.driverId;
 				const button = row.querySelector('[data-select-driver]');
+				const label = row.querySelector('[data-selected-label]');
 				const selected = isSelected(driverId);
 
 				row.style.background = selected ? '#eef6ff' : 'transparent';
-				button.textContent = selected ? 'Rimuovi' : 'Seleziona';
-				button.style.background = selected ? '#dbeafe' : 'white';
-				button.style.borderColor = selected ? '#93c5fd' : '#bbb';
+				if (button) {
+					button.textContent = selected ? 'Rimuovi' : 'Seleziona';
+					button.style.background = selected ? '#dbeafe' : 'white';
+					button.style.borderColor = selected ? '#93c5fd' : '#bbb';
+				}
+				if (label) {
+					label.textContent = selected ? 'Scelto' : 'Non scelto';
+					label.style.background = selected ? '#dbeafe' : '#fafafa';
+					label.style.borderColor = selected ? '#93c5fd' : '#ddd';
+					label.style.color = selected ? '#1d4ed8' : '#666';
+				}
 			});
 		}
 
-		rows.forEach((row) => {
-			const button = row.querySelector('[data-select-driver]');
-			button.addEventListener('click', function () {
+		if (!eventStarted) {
+			rows.forEach((row) => {
+				const button = row.querySelector('[data-select-driver]');
+				if (!button) {
+					return;
+				}
+
+				button.addEventListener('click', function () {
 				const driverId = String(row.dataset.driverId);
 
 				if (isSelected(driverId)) {
@@ -203,8 +230,9 @@
 				renderHiddenInputs();
 				renderSelectedDrivers();
 				refreshRows();
+				});
 			});
-		});
+		}
 
 		renderHiddenInputs();
 		renderSelectedDrivers();
