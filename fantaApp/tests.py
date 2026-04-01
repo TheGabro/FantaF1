@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -173,5 +174,142 @@ class SprintRaceChoiceTests(TestCase):
 		)
 
 		su.apply_started_sprint_race_credits(player=self.player)
+		self.player.refresh_from_db()
+		self.assertEqual(self.player.available_credit, expected_credit)
+
+
+class GrandPrixChoiceTests(TestCase):
+	def setUp(self):
+		self.client = Client()
+		self.user = get_user_model().objects.create_user(
+			username="player2",
+			email="player2@example.com",
+			password="password123",
+		)
+		self.client.force_login(self.user)
+
+		self.championship = Championship.objects.create(name="Grand Prix Cup", year=2026)
+		self.league = League.objects.create(championship=self.championship, name="League GP")
+		ChampionshipManager.objects.create(user=self.user, championship=self.championship)
+		self.player = ChampionshipPlayer.objects.create(
+			user=self.user,
+			championship=self.championship,
+			league=self.league,
+			player_name="Player GP",
+			available_credit=200,
+		)
+
+		self.circuit = Circuit.objects.create(
+			name="Monza",
+			country="Italy",
+			location="Monza",
+			api_id="circuit-monza",
+		)
+
+		self.team = Team.objects.create(
+			name="Grand Team",
+			short_name="GRT",
+			api_id="team-grand",
+			nationality="Italian",
+		)
+
+		self.driver_1 = self._create_driver(api_id="gp-drv-1", number=21, short_name="DDD")
+		self.driver_2 = self._create_driver(api_id="gp-drv-2", number=22, short_name="EEE")
+		self.driver_3 = self._create_driver(api_id="gp-drv-3", number=23, short_name="FFF")
+
+		self.weekend_bundles = [self._create_regular_weekend_bundle(round_number) for round_number in range(1, 6)]
+
+	def _create_driver(self, *, api_id, number, short_name):
+		return Driver.objects.create(
+			first_name=f"Driver{number}",
+			last_name="Test",
+			number=number,
+			short_name=short_name,
+			team=self.team,
+			season=2026,
+			api_id=api_id,
+		)
+
+	def _create_regular_weekend_bundle(self, round_number):
+		weekend = Weekend.objects.create(
+			circuit=self.circuit,
+			event_name=f"Weekend {round_number}",
+			round_number=round_number,
+			season=2026,
+			weekend_type="regular",
+			qualifying_start=timezone.now() - timedelta(days=2),
+			race_start=timezone.now() + timedelta(days=round_number),
+		)
+		qualifying = Qualifying.objects.create(weekend=weekend, type="regular")
+		race = Race.objects.create(weekend=weekend, type="regular")
+
+		QualifyingResult.objects.create(qualifying=qualifying, driver=self.driver_1, position=1)
+		QualifyingResult.objects.create(qualifying=qualifying, driver=self.driver_2, position=2)
+		QualifyingResult.objects.create(qualifying=qualifying, driver=self.driver_3, position=10)
+
+		return {"weekend": weekend, "qualifying": qualifying, "race": race}
+
+	def test_regular_race_choice_requires_pupillo_among_selected_drivers(self):
+		race = self.weekend_bundles[0]["race"]
+
+		with self.assertRaisesMessage(ValidationError, "Il pupillo deve essere uno dei 2 piloti selezionati."):
+			pc.choose_regular_race_drivers(
+				player=self.player,
+				race=race,
+				drivers=[self.driver_1, self.driver_2],
+				pupillo_driver=self.driver_3,
+			)
+
+	def test_regular_race_pupillo_discount_grows_on_consecutive_weekends_and_caps(self):
+		for bundle in self.weekend_bundles[:4]:
+			pc.choose_regular_race_drivers(
+				player=self.player,
+				race=bundle["race"],
+				drivers=[self.driver_1, self.driver_2],
+				pupillo_driver=self.driver_1,
+			)
+
+		fifth_race = self.weekend_bundles[4]["race"]
+		result = pc.choose_regular_race_drivers(
+			player=self.player,
+			race=fifth_race,
+			drivers=[self.driver_1, self.driver_2],
+			pupillo_driver=self.driver_1,
+		)
+
+		self.assertEqual(pc.get_regular_race_pupillo_discount(player=self.player, race=fifth_race, driver=self.driver_1), 20)
+		self.assertEqual(result["pupillo_discount"], 20)
+		self.assertEqual(result["total_spent_amount"], pc.get_race_driver_cost(2))
+
+		pupillo_choice = PlayerRaceChoice.objects.get(player=self.player, race=fifth_race, driver=self.driver_1)
+		non_pupillo_choice = PlayerRaceChoice.objects.get(player=self.player, race=fifth_race, driver=self.driver_2)
+		self.assertTrue(pupillo_choice.is_pupillo)
+		self.assertEqual(pupillo_choice.spent_amount, 0)
+		self.assertFalse(non_pupillo_choice.is_pupillo)
+		self.assertEqual(non_pupillo_choice.spent_amount, pc.get_race_driver_cost(2))
+
+	def test_started_regular_race_applies_credit_only_once(self):
+		first_race = self.weekend_bundles[0]["race"]
+		result = pc.choose_regular_race_drivers(
+			player=self.player,
+			race=first_race,
+			drivers=[self.driver_1, self.driver_2],
+			pupillo_driver=self.driver_1,
+		)
+
+		first_race.weekend.race_start = timezone.now() - timedelta(minutes=5)
+		first_race.weekend.save(update_fields=["race_start"])
+
+		su.apply_started_regular_race_credits(player=self.player)
+		self.player.refresh_from_db()
+
+		expected_credit = 200 - result["total_spent_amount"]
+		self.assertEqual(self.player.available_credit, expected_credit)
+		self.assertEqual(
+			PlayerRaceChoice.objects.filter(player=self.player, race=first_race, credit_applied=True).count(),
+			2,
+		)
+
+		su.apply_started_regular_race_credits(player=self.player)
 		self.player.refresh_from_db()
 		self.assertEqual(self.player.available_credit, expected_credit)

@@ -287,30 +287,97 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 # # ───────────────────────────────────────────────────────────────────────────────
 # # 4) Grand Prix  (2 piloti + pupillo)
 # # ───────────────────────────────────────────────────────────────────────────────
-# @login_required
-# def race_choice(request, championship_id, weekend_id, event_id):
-#     champ, weekend, player = _base_context(request, championship_id, weekend_id)
-#     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
+@login_required
+@transaction.atomic
+def grand_prix_choice(request, championship_id, weekend_id, event_id):
+    champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
 
-#     if request.method == "POST":
-#         try:
-#             choose_driver_for_event(
-#                 player=player, event=race,
-#                 driver_id=int(request.POST["driver_id"]),
-#                 is_pupillo=request.POST.get("is_pupillo") == "on",
-#             )
-#             messages.success(request, "Scelta salvata.")
-#             return redirect(request.path)
-#         except ValidationError as e:
-#             messages.error(request, e.message)
+    event_started = helper._event_has_started(race)
+    driver_options = pc.get_race_driver_options(race=race, player=player)
+    existing_choices = list(
+        race.playerracechoice_set
+        .filter(player=player)
+        .select_related("driver", "driver__team")
+        .order_by("driver__team__name", "driver__first_name", "driver__last_name")
+    )
+    current_pupillo = next((choice for choice in existing_choices if choice.is_pupillo), None)
 
-#     taken = race.playerracechoice_set.filter(player=player).values_list("driver_id", flat=True)
-#     drivers = Driver.objects.filter(season=weekend.season).exclude(id__in=taken)
+    if request.method == "POST" and not event_started:
+        submitted_driver_ids = [value for value in request.POST.getlist("drivers") if value]
+        pupillo_driver_id = request.POST.get("pupillo_driver_id")
 
-#     return render(request, "event_choice_race.html", {
-#         "championship": champ, "weekend": weekend, "event": race,
-#         "drivers": drivers,
-#     })
+        if len(submitted_driver_ids) != 2:
+            messages.error(request, "Devi selezionare esattamente 2 piloti per il Grand Prix.")
+            return redirect(request.path)
+
+        if len(submitted_driver_ids) != len(set(submitted_driver_ids)):
+            messages.error(request, "Non puoi selezionare lo stesso pilota piu' di una volta.")
+            return redirect(request.path)
+
+        if not pupillo_driver_id:
+            messages.error(request, "Devi indicare quale dei 2 piloti e' il pupillo.")
+            return redirect(request.path)
+
+        try:
+            selected_ids = [int(value) for value in submitted_driver_ids]
+            pupillo_driver_id = int(pupillo_driver_id)
+        except (TypeError, ValueError):
+            messages.error(request, "Pilota non valido.")
+            return redirect(request.path)
+
+        if pupillo_driver_id not in selected_ids:
+            messages.error(request, "Il pupillo deve essere uno dei 2 piloti selezionati.")
+            return redirect(request.path)
+
+        options_by_driver_id = {
+            option["driver"].id: option
+            for option in driver_options
+        }
+        if any(driver_id not in options_by_driver_id for driver_id in selected_ids):
+            messages.error(request, "La griglia del Grand Prix non e' ancora disponibile per i piloti selezionati.")
+            return redirect(request.path)
+
+        try:
+            result = pc.choose_regular_race_drivers(
+                player=player,
+                race=race,
+                drivers=[options_by_driver_id[driver_id]["driver"] for driver_id in selected_ids],
+                pupillo_driver=options_by_driver_id[pupillo_driver_id]["driver"],
+            )
+            if result["pupillo_discount"]:
+                messages.success(
+                    request,
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Scelte salvate con successo. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                )
+        except ValidationError as e:
+            messages.error(request, e.message)
+
+        return redirect(request.path)
+
+    reserved_credit = pc.get_player_reserved_credit(player=player, exclude_race=race)
+    spendable_credit = pc.get_player_spendable_credit(player=player, exclude_race=race)
+    current_choice_total = sum(choice.spent_amount for choice in existing_choices)
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": race,
+        "driver_options": driver_options,
+        "existing_choices": existing_choices,
+        "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
+        "reserved_credit": reserved_credit,
+        "spendable_credit": spendable_credit,
+        "current_choice_total": current_choice_total,
+        "event_started": event_started,
+        "grid_available": bool(driver_options),
+    }
+    return render(request, "fantaApp/grand_prix_choice.html", context)
 
 def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
     qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")

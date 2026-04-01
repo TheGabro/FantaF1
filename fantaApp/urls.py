@@ -48,11 +48,11 @@ urlpatterns = [
         name="sprint_race_choice",
     ),
 
-    # # 5. Grand Prix domenica (2 piloti + pupillo)
-    # path(
-    #     "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
-    #     "race/regular/<int:event_id>/choice/",
-    #     weekend.grand_prix_choice,
-    #     name="grand_prix_choice",
-    # ),
+    # 5. Grand Prix domenica (2 piloti + pupillo)
+    path(
+        "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+        "race/regular/<int:event_id>/choice/",
+        weekend.grand_prix_choice,
+        name="grand_prix_choice",
+    ),
 ]

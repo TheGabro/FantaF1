@@ -4,15 +4,13 @@ from ..models import ChampionshipPlayer, PlayerRaceChoice
 from . import helper
 
 
-@transaction.atomic
-# TODO Airflow: chiamare questa funzione da un job schedulato quando vorrai riattivare l'addebito automatico dei crediti Sprint Race.
-def apply_started_sprint_race_credits(*, player=None):
+def _apply_started_race_credits(*, race_type, player=None):
     pending_choices = list(
         PlayerRaceChoice.objects
         .select_for_update()
         .select_related("player", "race", "race__weekend")
         .filter(
-            race__type="sprint",
+            race__type=race_type,
             credit_applied=False,
         )
     )
@@ -40,3 +38,15 @@ def apply_started_sprint_race_credits(*, player=None):
 
     PlayerRaceChoice.objects.filter(id__in=[choice.id for choice in started_choices]).update(credit_applied=True)
     return len(started_choices)
+
+
+@transaction.atomic
+# TODO Airflow: chiamare questa funzione da un job schedulato quando vorrai riattivare l'addebito automatico dei crediti Sprint Race.
+def apply_started_sprint_race_credits(*, player=None):
+    return _apply_started_race_credits(race_type="sprint", player=player)
+
+
+@transaction.atomic
+# TODO Airflow: chiamare questa funzione da un job schedulato quando vorrai riattivare l'addebito automatico dei crediti Grand Prix.
+def apply_started_regular_race_credits(*, player=None):
+    return _apply_started_race_credits(race_type="regular", player=player)
