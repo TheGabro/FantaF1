@@ -83,7 +83,7 @@ class PlayerSprintQualifyingChoiceInline(admin.TabularInline):
 class PlayerRaceChoiceInline(admin.TabularInline):
     model = PlayerRaceChoice
     extra = 0
-    fields = ['race', 'driver', 'spent_amount', 'is_pupillo', 'created_at']
+    fields = ['race', 'driver', 'spent_amount', 'credit_applied', 'is_pupillo', 'created_at']
     readonly_fields = ['created_at']
 
 @admin.register(Championship)
@@ -125,18 +125,45 @@ class PlayerSprintQualifyingChoiceAdmin(admin.ModelAdmin):
 
 @admin.register(PlayerRaceChoice)
 class PlayerRaceChoiceAdmin(admin.ModelAdmin):
-    list_display = ['player', 'race', 'driver', 'spent_amount', 'is_pupillo', 'created_at']
-    list_filter = ['is_pupillo', 'race__weekend__season', 'race__weekend', 'race']
+    list_display = ['player', 'race', 'driver', 'spent_amount', 'credit_applied', 'is_pupillo', 'created_at']
+    list_filter = ['credit_applied', 'is_pupillo', 'race__weekend__season', 'race__weekend', 'race']
     search_fields = ['player__player_name', 'driver__first_name', 'driver__last_name']
 
 admin.site.register(Driver)
 admin.site.register(Team)
 admin.site.register(Circuit)
-admin.site.register(Weekend)
+
+@admin.register(Weekend)
+class WeekendAdmin(admin.ModelAdmin):
+    list_display = ['event_name', 'season', 'round_number', 'weekend_type']
+    list_filter = ['season']
+    search_fields = ['event_name', 'circuit__name']
+
+@admin.register(QualifyingResult)
+class QualifyingResultAdmin(admin.ModelAdmin):
+    list_display = ['qualifying', 'driver', 'position', 'best_lap']
+    list_filter = ['qualifying__weekend__season', 'qualifying__weekend', 'qualifying']
+    search_fields = ['driver__first_name', 'driver__last_name', 'driver__short_name']
+
+@admin.register(RaceResult)
+class RaceResultAdmin(admin.ModelAdmin):
+    list_display = ['race', 'driver', 'position', 'status', 'points']
+    list_filter = ['race__weekend__season', 'race__weekend', 'race']
+    search_fields = ['driver__first_name', 'driver__last_name', 'driver__short_name']
+
+@admin.register(Race)
+class RaceAdmin(admin.ModelAdmin):
+    list_display = ['weekend', 'type']
+    list_filter = ['weekend__season', 'weekend', 'type']
+    search_fields = ['weekend__event_name', 'weekend__circuit__name']
+
+@admin.register(Qualifying)
+class QualifyingAdmin(admin.ModelAdmin):
+    list_display = ['weekend', 'type']
+    list_filter = ['weekend__season', 'weekend', 'type']
+    search_fields = ['weekend__event_name', 'weekend__circuit__name']
+
+
 admin.site.register(ChampionshipManager)
 admin.site.register(League)
-admin.site.register(QualifyingResult)
-admin.site.register(RaceResult)
-admin.site.register(Race)
-admin.site.register(Qualifying)
 
