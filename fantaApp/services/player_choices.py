@@ -88,7 +88,7 @@ def choose_sprint_race_drivers(*, player, race, drivers):
     spendable_credit = get_player_spendable_credit(player=player, exclude_race=race)
     if total_spent_amount > spendable_credit:
         raise ValidationError(
-            f"Crediti insufficienti: te ne servono {total_spent_amount}, ma ne puoi usare ancora {spendable_credit}."
+            f"Crediti insufficienti: te ne servono {total_spent_amount}, ma ne hai disponibili {spendable_credit}."
         )
 
     PlayerRaceChoice.objects.filter(player=player, race=race).exclude(driver_id__in=driver_ids).delete()
@@ -118,7 +118,7 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
             player=player,
             qualifying=qualifying,
             driver=driver).exclude(selection_slot=slot).exists():
-        raise ValidationError("Driver is already in taken in another slot")
+        raise ValidationError("Driver is already taken in another slot")
 
     PlayerSprintQualifyingChoice.objects.update_or_create(
         player=player,
