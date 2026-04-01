@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
 from ..models import League, ChampionshipManager, ChampionshipPlayer, Championship, Weekend
+from ..services import player_choices as pc
 
 @login_required
 def user_dashboard(request):
@@ -65,6 +66,12 @@ def championship_dashboard(request, championship_id):
 
     current_championship_player = ChampionshipPlayer.objects.filter(
         user=request.user, championship=championship).select_related('league').first()
+
+    reserved_credit = 0
+    spendable_credit = 0
+    if current_championship_player:
+        reserved_credit = pc.get_player_reserved_credit(player=current_championship_player)
+        spendable_credit = pc.get_player_spendable_credit(player=current_championship_player)
     
     standing_per_league = ChampionshipPlayer.objects.none()
     if current_championship_player:
@@ -94,6 +101,8 @@ def championship_dashboard(request, championship_id):
     context = {
         "championship": championship,
         "current_championship_player": current_championship_player,
+        "reserved_credit": reserved_credit,
+        "spendable_credit": spendable_credit,
         "standing_per_league": standing_per_league,
         "general_standings": general_standings,
         "managers": managers,

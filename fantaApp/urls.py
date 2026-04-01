@@ -1,6 +1,5 @@
 from django.urls import path
 
-from .services import player_choices
 from fantaApp.views import auth, dashboard, general, weekend
 
 urlpatterns = [
@@ -41,14 +40,13 @@ urlpatterns = [
          name="race_qualifying_multi_choice",
     ),
 
-    #TODO
-    # # 4. Sprint-Race (2 piloti, no pupillo)
-    # path(
-    #     "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
-    #     "race/sprint/<int:event_id>/choice/",
-    #     weekend.sprint_race_choice,
-    #     name="sprint_race_choice",
-    # ),
+    # 4. Sprint-Race (2 piloti, no pupillo)
+    path(
+        "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+        "race/sprint/<int:event_id>/choice/",
+        weekend.sprint_race_choice,
+        name="sprint_race_choice",
+    ),
 
     # # 5. Grand Prix domenica (2 piloti + pupillo)
     # path(

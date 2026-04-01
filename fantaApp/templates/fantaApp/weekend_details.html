@@ -30,17 +30,13 @@
       >{{ ev.label }}</a
     >
     {% if ev.has_choice %} ✔{% endif %}
-    {% comment %}{% elif ev.entity == "race" and ev.subtype == "sprint" %}
+    {% elif ev.entity == "race" and ev.subtype == "sprint" %}
     <a
       href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}"
       >{{ ev.label }}</a
     >
-    {% elif ev.entity == "race" and ev.subtype == "regular" %}
-    <a
-      href="{% url 'grand_prix_choice' championship.id weekend.id ev.event_id %}"
-      >{{ ev.label }}</a
-    >
-    {% endcomment %} {% else %} {{ ev.label }} {% endif %}
+    {% if ev.has_choice %} ✔{% endif %}
+    {% else %} {{ ev.label }} {% if ev.has_choice %} ✔{% endif %} {% endif %}
   </li>
   {% empty %}
   <li>Nessun evento trovato.</li>

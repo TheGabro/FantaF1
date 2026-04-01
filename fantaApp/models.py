@@ -365,6 +365,7 @@ class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
 class PlayerRaceChoice(AbstractPlayerChoice):
     race = models.ForeignKey(Race, on_delete=models.CASCADE)
     spent_amount = models.PositiveIntegerField()
+    credit_applied = models.BooleanField(default=False)
     is_pupillo = models.BooleanField(default=False)
 
     class Meta(AbstractPlayerChoice.Meta):

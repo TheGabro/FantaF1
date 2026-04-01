@@ -9,6 +9,9 @@
 <h3>Player Performance</h3>
 {% if current_championship_player %}
 <p><strong>Crediti disponibili:</strong> {{ current_championship_player.available_credit }} / 2000</p>
+{% if reserved_credit %}
+<p><strong>Crediti prenotati su Sprint Race future:</strong> {{ reserved_credit }} · <strong>Spendibili ora:</strong> {{ spendable_credit }}</p>
+{% endif %}
 {% else %}
 <p>Non sei iscritto a questo campionato.</p>
 {% endif %}

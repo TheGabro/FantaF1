@@ -204,27 +204,84 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
 # # ───────────────────────────────────────────────────────────────────────────────
 # # 3) Sprint‑Race  (2 piloti, no pupillo)
 # # ───────────────────────────────────────────────────────────────────────────────
-# @login_required
-# def sprint_race_choice(request, championship_id, weekend_id, event_id):
-#     champ, weekend, player = _base_context(request, championship_id, weekend_id)
-#     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
+@login_required
+@transaction.atomic
+def sprint_race_choice(request, championship_id, weekend_id, event_id):
+    """
+    Pagina che mostra 2 scelte per la Sprint Race, con relativi costi in crediti.
+    L'utente deve salvare entrambe le scelte in un solo submit.
+    """
+    champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
 
-#     if request.method == "POST":
-#         try:
-#             choose_driver_for_event(player=player, event=race,
-#                                     driver_id=int(request.POST["driver_id"]))
-#             messages.success(request, "Pilota registrato.")
-#             return redirect(request.path)
-#         except ValidationError as e:
-#             messages.error(request, e.message)
+    # blocco modifiche se l'evento è già iniziato (solo UI)
+    event_started = helper._event_has_started(race)
+    
+    driver_options = pc.get_sprint_race_driver_options(race=race)
+    existing_choices = list(
+        race.playerracechoice_set
+        .filter(player=player)
+        .select_related("driver", "driver__team")
+        .order_by("driver__team__name", "driver__first_name", "driver__last_name")
+    )
 
-#     taken = race.playerracechoice_set.filter(player=player).values_list("driver_id", flat=True)
-#     drivers = Driver.objects.filter(season=weekend.season).exclude(id__in=taken)
+    if request.method == "POST" and not event_started:
+        submitted_driver_ids = [value for value in request.POST.getlist("drivers") if value]
 
-#     return render(request, "event_choice_sprint_race.html", {
-#         "championship": champ, "weekend": weekend, "event": race,
-#         "drivers": drivers,
-#     })
+        if len(submitted_driver_ids) != 2:
+            messages.error(request, "Devi selezionare esattamente 2 piloti per la Sprint Race.")
+            return redirect(request.path)
+
+        if len(submitted_driver_ids) != len(set(submitted_driver_ids)):
+            messages.error(request, "Non puoi selezionare lo stesso pilota piu' di una volta.")
+            return redirect(request.path)
+
+        try:
+            selected_ids = [int(value) for value in submitted_driver_ids]
+        except (TypeError, ValueError):
+            messages.error(request, "Pilota non valido.")
+            return redirect(request.path)
+
+        options_by_driver_id = {
+            option["driver"].id: option
+            for option in driver_options
+        }
+        if any(driver_id not in options_by_driver_id for driver_id in selected_ids):
+            messages.error(request, "La griglia sprint non e' ancora disponibile per i piloti selezionati.")
+            return redirect(request.path)
+
+        try:
+            total_spent_amount = pc.choose_sprint_race_drivers(
+                player=player,
+                race=race,
+                drivers=[options_by_driver_id[driver_id]["driver"] for driver_id in selected_ids],
+            )
+            messages.success(
+                request,
+                f"Scelte salvate con successo. Costo totale prenotato: {total_spent_amount} crediti.",
+            )
+        except ValidationError as e:
+            messages.error(request, e.message)
+
+        return redirect(request.path)
+
+    reserved_credit = pc.get_player_reserved_credit(player=player, exclude_race=race)
+    spendable_credit = pc.get_player_spendable_credit(player=player, exclude_race=race)
+    current_choice_total = sum(choice.spent_amount for choice in existing_choices)
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": race,
+        "driver_options": driver_options,
+        "existing_choices": existing_choices,
+        "reserved_credit": reserved_credit,
+        "spendable_credit": spendable_credit,
+        "current_choice_total": current_choice_total,
+        "event_started": event_started,
+        "grid_available": bool(driver_options),
+    }
+    return render(request, "fantaApp/sprint_race_choice.html", context)
 
 
 # # ───────────────────────────────────────────────────────────────────────────────
