@@ -314,25 +314,35 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
             return redirect(request.path)
 
-        with transaction.atomic():
-            PlayerQualifyingMultiChoice.objects.filter(
-                player=player,
-                qualifying=qualifying,
-            ).delete()
+        # with transaction.atomic():
+        #     PlayerQualifyingMultiChoice.objects.filter(
+        #         player=player,
+        #         qualifying=qualifying,
+        #     ).delete()
 
-            to_create = []
-            for code, _ in slots:
-                for driver_id in submitted_by_slot[code]:
-                    to_create.append(
-                        PlayerQualifyingMultiChoice(
-                            player=player,
-                            qualifying=qualifying,
-                            selection_slot=code,
-                            driver=drivers_by_id[int(driver_id)],
-                        )
-                    )
-            if to_create:
-                PlayerQualifyingMultiChoice.objects.bulk_create(to_create)
+        #     to_create = []
+        #     for code, _ in slots:
+        #         for driver_id in submitted_by_slot[code]:
+        #             to_create.append(
+        #                 PlayerQualifyingMultiChoice(
+        #                     player=player,
+        #                     qualifying=qualifying,
+        #                     selection_slot=code,
+        #                     driver=drivers_by_id[int(driver_id)],
+        #                 )
+        #             )
+        #     if to_create:
+        #         PlayerQualifyingMultiChoice.objects.bulk_create(to_create)
+
+        for code, _ in slots:
+            drv = submitted_by_slot.get(code)
+            if drv:
+                pc.choose_regular_quali_multi_driver(
+                    player=player,
+                    qualifying=qualifying,
+                    driver=drivers_by_id[int(drv)],
+                    slot=code,
+                )
 
         messages.success(request, "Scelte salvate con successo.")
         return redirect(request.path)

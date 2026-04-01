@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from ..models import PlayerQualifyingChoice, PlayerSprintQualifyingChoice
+from ..models import PlayerQualifyingChoice, PlayerSprintQualifyingChoice, PlayerQualifyingMultiChoice
 
 
 @transaction.atomic
@@ -45,5 +45,24 @@ def choose_regular_quali_driver(*, player, qualifying, driver):
     PlayerQualifyingChoice.objects.update_or_create(
         player=player,
         qualifying=qualifying,
+        defaults={"driver": driver},
+    )
+
+@transaction.atomic
+def choose_regular_quali_multi_driver(*, player, qualifying, driver, slot):
+
+    if slot not in {"sq1_pass", "sq2_pass", "q3_top3"}:
+        raise ValidationError("Slot not valid")
+
+    if PlayerQualifyingMultiChoice.objects.filter(
+            player=player,
+            qualifying=qualifying,
+            driver=driver).exclude(selection_slot=slot).exists():
+        raise ValidationError("Driver is already in taken in another slot")
+
+    PlayerQualifyingMultiChoice.objects.update_or_create(
+        player=player,
+        qualifying=qualifying,
+        selection_slot=slot,
         defaults={"driver": driver},
     )
