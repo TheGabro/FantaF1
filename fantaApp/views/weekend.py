@@ -4,7 +4,7 @@ from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
-from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice
+from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice,RaceResult
 from ..services import player_choices as pc
 from ..services import helper
 
@@ -31,6 +31,8 @@ def weekend_detail(request, championship_id, weekend_id):
                        "subtype": "sprint",
                        "event_id": sq.id,
                        "has_choice": has_choice})
+        
+
     # Sprint Race
     sr = weekend.races.filter(type="sprint").first()
     if sr:
@@ -44,7 +46,8 @@ def weekend_detail(request, championship_id, weekend_id):
                        "entity": "race",
                        "subtype": "sprint",
                        "event_id": sr.id,
-                       "has_choice": has_choice})
+                       "has_choice": has_choice})    
+    
     # Qualifying (gara regolare)
     q = weekend.qualifyings.filter(type="regular").first()
     if q:
@@ -74,6 +77,25 @@ def weekend_detail(request, championship_id, weekend_id):
                        "event_id": r.id,
                        "has_choice": has_choice})
 
+    results = [] 
+    #Sprint Race Results
+    if sr and sr.entries.exists():
+        results.append({
+            "label": "Risultati Sprint Race",
+            "subtype": "sprint",
+            "event_id": sr.id,
+            "url_name": "sprint_race_results",
+        })
+
+    #Grand Prix Results
+    if r and r.entries.exists():
+        results.append({
+            "label": "Risultati Grand Prix ",
+            "subtype": "regular",
+            "event_id": r.id,
+            "url_name": "regular_race_results",
+        })
+
     return render(
         request,
         "fantaApp/weekend_details.html",
@@ -81,6 +103,7 @@ def weekend_detail(request, championship_id, weekend_id):
             "championship": championship,
             "weekend": weekend,
             "events": events,
+            "results" : results,
         },
     )
     
@@ -182,7 +205,6 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     }
     return render(request, "fantaApp/sprint_race_qualifying_choice.html", context)
 
-
 # # ───────────────────────────────────────────────────────────────────────────────
 # # 2) Regular Race Qualifying  (1 pilota)
 # # ───────────────────────────────────────────────────────────────────────────────
@@ -199,8 +221,6 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
     elif weekend.weekend_type == 'sprint':
         return sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id) 
         
-
-
 # # ───────────────────────────────────────────────────────────────────────────────
 # # 3) Sprint‑Race  (2 piloti, no pupillo)
 # # ───────────────────────────────────────────────────────────────────────────────
@@ -379,6 +399,7 @@ def grand_prix_choice(request, championship_id, weekend_id, event_id):
     }
     return render(request, "fantaApp/grand_prix_choice.html", context)
 
+
 def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
     qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
     
@@ -438,26 +459,6 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
             return redirect(request.path)
 
-        # with transaction.atomic():
-        #     PlayerQualifyingMultiChoice.objects.filter(
-        #         player=player,
-        #         qualifying=qualifying,
-        #     ).delete()
-
-        #     to_create = []
-        #     for code, _ in slots:
-        #         for driver_id in submitted_by_slot[code]:
-        #             to_create.append(
-        #                 PlayerQualifyingMultiChoice(
-        #                     player=player,
-        #                     qualifying=qualifying,
-        #                     selection_slot=code,
-        #                     driver=drivers_by_id[int(driver_id)],
-        #                 )
-        #             )
-        #     if to_create:
-        #         PlayerQualifyingMultiChoice.objects.bulk_create(to_create)
-
         for code, _ in slots:
             drv = submitted_by_slot.get(code)
             if drv:
@@ -490,7 +491,6 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     }
     return render(request, "fantaApp/regular_race_qualifying_multi_choice.html", context)
     
-
 def regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
 
     qualifying = get_object_or_404(Qualifying, pk=event_id, weekend=weekend, type="regular")
@@ -557,3 +557,31 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         "event_started": event_started,
     }
     return render(request, "fantaApp/regular_race_qualifying_choice.html", context)
+
+def sprint_race_results(request, championship_id, weekend_id, event_id):
+    champ, weekend, player = _base_context(request, championship_id, weekend_id)
+
+    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
+    results = race.entries.select_related("driver", "driver__team").order_by("position")
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": race,
+        "results": results,
+    }
+    return render(request, "fantaApp/sprint_race_results.html", context)
+
+def regular_race_results(request, championship_id, weekend_id, event_id):
+    champ, weekend, player = _base_context(request, championship_id, weekend_id)
+
+    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
+    results = race.entries.select_related("driver", "driver__team").order_by("position")
+
+    context = {
+        "championship": champ,
+        "weekend": weekend,
+        "event": race,
+        "results": results,
+    }
+    return render(request, "fantaApp/regular_race_results.html", context)

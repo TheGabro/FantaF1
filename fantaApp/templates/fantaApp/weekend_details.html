@@ -11,9 +11,9 @@
 
 <hr />
 
-<h3>Eventi disponibili</h3>
+<h3>Eventi del weekend</h3>
 
-<p class="text-muted">Scegli un evento per selezionare i piloti.</p>
+<p class="text-muted">Scegli un evento per effettuare le tue scelte.</p>
 
 <ul>
   {% for ev in events %}
@@ -48,6 +48,32 @@
   <li>Nessun evento trovato.</li>
   {% endfor %}
 </ul>
+
+<h3>Risultati del weekend</h3>
+
+<ul>
+  {% for r in results %}
+  <li>
+    {% if r.subtype == "sprint" %}
+    <a
+      href="{% url 'sprint_race_results' championship.id weekend.id r.event_id %}"
+      >{{ r.label }}</a
+    >
+    {% elif r.subtype == "regular" %}
+    <a
+      href="{% url 'regular_race_results' championship.id weekend.id r.event_id %}"
+      >{{ r.label }}</a
+    >
+    {% endif %}
+    </li>
+  {% empty %}
+  <p class="text-muted">I risultati ufficiali saranno disponibili qui una volta conclusi gli eventi.</p>
+  
+  {% endfor %}
+
+</ul>
+
+
 
 
 

@@ -55,4 +55,20 @@ urlpatterns = [
         weekend.grand_prix_choice,
         name="grand_prix_choice",
     ),
+
+    #6a. Weekend sprint results
+    path(
+        "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+        "race/sprint/<int:event_id>/results/",
+        weekend.sprint_race_results,
+        name="sprint_race_results",
+    ),
+
+    #6b. Weekend regular results
+    path(
+        "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
+        "race/regular/<int:event_id>/results/",
+        weekend.regular_race_results,
+        name="regular_race_results",
+    ),
 ]
