@@ -23,6 +23,51 @@ from fantaApp.services.jolpicaSource import (
 class Command(BaseCommand):
     help = "Import Season beginning"
 
+    def _save_driver(self, *, season: int, data: dict, team: Team) -> Driver:
+        short_name = data["short_name"] or data["drivers_api_id"][:3].upper()
+        defaults = {
+            "first_name": data["first_name"],
+            "last_name": data["last_name"],
+            "number": data["number"],
+            "short_name": short_name,
+            "season": season,
+            "team": team,
+        }
+
+        driver = Driver.objects.filter(api_id=data["drivers_api_id"]).first()
+        if driver:
+            for field, value in defaults.items():
+                setattr(driver, field, value)
+            driver.save(update_fields=[*defaults.keys()])
+            return driver
+
+        fallback_driver = None
+        if data["number"] is not None:
+            fallback_driver = Driver.objects.filter(season=season, number=data["number"]).first()
+
+        if fallback_driver is None:
+            fallback_driver = Driver.objects.filter(
+                season=season,
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+            ).first()
+
+        if fallback_driver:
+            old_api_id = fallback_driver.api_id
+            for field, value in defaults.items():
+                setattr(fallback_driver, field, value)
+            fallback_driver.api_id = data["drivers_api_id"]
+            fallback_driver.save(update_fields=["api_id", *defaults.keys()])
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Updated existing driver match for {fallback_driver.first_name} {fallback_driver.last_name}: "
+                    f"api_id {old_api_id} -> {fallback_driver.api_id}"
+                )
+            )
+            return fallback_driver
+
+        return Driver.objects.create(api_id=data["drivers_api_id"], **defaults)
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--season",
@@ -50,8 +95,6 @@ class Command(BaseCommand):
             circuit, _ = Circuit.objects.update_or_create(
                 api_id=data["circuit_api_id"],
                 defaults={
-                    "name": data["name"],
-                    "country": data["country"],
                     "name": data["name"],
                     "country": data["country"],
                     "location": data["location"],
@@ -85,16 +128,10 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         drivers_payload = get_drivers(season)
         for data in drivers_payload:
-            Driver.objects.update_or_create(
-                api_id=data["drivers_api_id"],
-                defaults={
-                    "first_name": data["first_name"],
-                    "last_name":  data["last_name"],
-                    "number":     data["number"],
-                    "short_name": data["short_name"],
-                    "season": season,
-                    "team": teams_cache[data["team"]],
-                },
+            self._save_driver(
+                season=season,
+                data=data,
+                team=teams_cache[data["team"]],
             )
         self.stdout.write(self.style.SUCCESS(f"• Drivers imported: {len(drivers_payload)}"))
         
@@ -103,53 +140,51 @@ class Command(BaseCommand):
         # 4) Weekends
         # ------------------------------------------------------------------
         weekends_payload = get_weekends(season)
-        weekend_objs: list[Weekend] = []
+        weekend_cache: dict[tuple[int, int], Weekend] = {}
         for data in weekends_payload:
-            weekend_objs.append(
-                Weekend(
-                    circuit=circuits_cache[data["circuit_api_id"]],
-                    season=season,
-                    round_number=data["round_number"],
-                    event_name=data["event_name"],
-                    weekend_type = data['weekend_type'],
-                    fp1_start=datetime.strptime(data["fp1_start"], '%Y-%m-%d %H:%M:00Z'),
-                    fp2_start = datetime.strptime(data["fp2_start"], '%Y-%m-%d %H:%M:00Z') if 'fp2_start' in data else None,
-                    fp3_start = datetime.strptime(data["fp3_start"], '%Y-%m-%d %H:%M:00Z') if 'fp3_start' in data else None,
-                    sprint_qualifying_start = datetime.strptime(data["sprint_qualifying_start"], '%Y-%m-%d %H:%M:00Z') if 'sprint_qualifying_start' in data else None,
-                    sprint_start = datetime.strptime(data["sprint_start"], '%Y-%m-%d %H:%M:00Z') if 'sprint_start' in data else None,
-                    qualifying_start=datetime.strptime(data["qualifying_start"], '%Y-%m-%d %H:%M:00Z'),
-                    race_start=datetime.strptime(data["race_start"], '%Y-%m-%d %H:%M:00Z')
-                )
+            weekend, _ = Weekend.objects.update_or_create(
+                season=season,
+                round_number=data["round_number"],
+                defaults={
+                    "circuit": circuits_cache[data["circuit_api_id"]],
+                    "event_name": data["event_name"],
+                    "weekend_type": data['weekend_type'],
+                    "fp1_start": datetime.strptime(data["fp1_start"], '%Y-%m-%d %H:%M:00Z'),
+                    "fp2_start": datetime.strptime(data["fp2_start"], '%Y-%m-%d %H:%M:00Z') if 'fp2_start' in data else None,
+                    "fp3_start": datetime.strptime(data["fp3_start"], '%Y-%m-%d %H:%M:00Z') if 'fp3_start' in data else None,
+                    "sprint_qualifying_start": datetime.strptime(data["sprint_qualifying_start"], '%Y-%m-%d %H:%M:00Z') if 'sprint_qualifying_start' in data else None,
+                    "sprint_start": datetime.strptime(data["sprint_start"], '%Y-%m-%d %H:%M:00Z') if 'sprint_start' in data else None,
+                    "qualifying_start": datetime.strptime(data["qualifying_start"], '%Y-%m-%d %H:%M:00Z'),
+                    "race_start": datetime.strptime(data["race_start"], '%Y-%m-%d %H:%M:00Z'),
+                },
             )
+            weekend_cache[(season, data["round_number"])] = weekend
 
-        # Inserimento veloce: una singola INSERT
-        Weekend.objects.bulk_create(weekend_objs, ignore_conflicts=True)
         self.stdout.write(self.style.SUCCESS(f"• Races imported: {len(weekends_payload)}"))
         
         
         # ------------------------------------------------------------------
         # 4b) Races & Qualifying sessions
         # ------------------------------------------------------------------
-        race_objs: list[Race] = []
-        qual_objs: list[Qualifying] = []
+        race_count = 0
+        qualifying_count = 0
 
-        # we need the PKs – refetch the weekends we just inserted/updated
         for w in Weekend.objects.filter(season=season):
             # Regular race and qualifying
-            race_objs.append(Race(weekend=w, type="regular"))
-            qual_objs.append(Qualifying(weekend=w, type="regular"))
+            _, race_created = Race.objects.get_or_create(weekend=w, type="regular")
+            _, qualifying_created = Qualifying.objects.get_or_create(weekend=w, type="regular")
+            race_count += 1 if race_created else 0
+            qualifying_count += 1 if qualifying_created else 0
 
             # Sprint race/qualifying only if weekend is sprint‑type
             if w.weekend_type == "sprint":
-                race_objs.append(Race(weekend=w, type="sprint"))
-                qual_objs.append(Qualifying(weekend=w, type="sprint"))
+                _, sprint_race_created = Race.objects.get_or_create(weekend=w, type="sprint")
+                _, sprint_qualifying_created = Qualifying.objects.get_or_create(weekend=w, type="sprint")
+                race_count += 1 if sprint_race_created else 0
+                qualifying_count += 1 if sprint_qualifying_created else 0
 
-        # create, skipping duplicates if command rerun
-        Race.objects.bulk_create(race_objs, ignore_conflicts=True)
-        Qualifying.objects.bulk_create(qual_objs, ignore_conflicts=True)
-
-        self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {len(race_objs)}"))
-        self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {len(qual_objs)}"))
+        self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {race_count} created"))
+        self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {qualifying_count} created"))
 
         
 

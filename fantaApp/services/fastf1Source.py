@@ -17,17 +17,41 @@ def get_sprint_qualifying_result(season: int, round: int):
     #      dtype='object')
 
     df = (
-    ss.results[["DriverNumber","Position", "Q1", "Q2", "Q3"]]
-      .rename(columns={
-          "DriverNumber": "number",
-          "Position":     "position",
-          "Q1":           "q1_time",
-          "Q2":           "q2_time",
-          "Q3":           "q3_time",
-      })
+        ss.results[
+            [
+                "DriverNumber",
+                "Abbreviation",
+                "FirstName",
+                "LastName",
+                "DriverId",
+                "Position",
+                "Q1",
+                "Q2",
+                "Q3",
+            ]
+        ]
+        .rename(
+            columns={
+                "DriverNumber": "number",
+                "Abbreviation": "short_name",
+                "FirstName": "first_name",
+                "LastName": "last_name",
+                "DriverId": "fastf1_driver_id",
+                "Position": "position",
+                "Q1": "q1_time",
+                "Q2": "q2_time",
+                "Q3": "q3_time",
+            }
+        )
     )
+
     df["position"] = pd.to_numeric(df["position"], errors="coerce").astype("Int64")
     df["number"] = pd.to_numeric(df["number"], errors="coerce").astype("Int64")
+    df["short_name"] = df["short_name"].astype("string")
+    df["first_name"] = df["first_name"].astype("string")
+    df["last_name"] = df["last_name"].astype("string")
+    df["fastf1_driver_id"] = df["fastf1_driver_id"].astype("string")
+    
     df["q1_time"] = df["q1_time"].apply(lambda td: str(td) if pd.notna(td) else None)
     df["q2_time"] = df["q2_time"].apply(lambda td: str(td) if pd.notna(td) else None)
     df["q3_time"] = df["q3_time"].apply(lambda td: str(td) if pd.notna(td) else None)

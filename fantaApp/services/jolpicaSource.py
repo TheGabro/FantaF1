@@ -2,10 +2,10 @@ import requests
 import time
 
 # ── Simple module‑level rate‑limiter ────────────────────────────────────
-_RATE_LIMIT_SEC = 1.0                 # 1 request per second (safe for API limits)
+_RATE_LIMIT_SEC = 2.0                 # stay conservative with Jolpica rate limits
 _last_call_ts = 0.0                   # perf_counter timestamp of last call
 
-def rate_limited_get(url: str, max_retries: int = 3, **kwargs):
+def rate_limited_get(url: str, max_retries: int = 5, **kwargs):
     """
     Wrapper attorno a requests.get che assicura di non superare il rate limit.
     Include retry automatico con backoff esponenziale per errori 429.
@@ -25,8 +25,9 @@ def rate_limited_get(url: str, max_retries: int = 3, **kwargs):
             # Se riceviamo 429, aspetta e riprova
             if response.status_code == 429:
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # Backoff esponenziale: 2s, 4s, 8s
-                    print(f"⚠️  429 Too Many Requests. Attendo {wait_time}s prima di riprovare...")
+                    retry_after = response.headers.get("Retry-After")
+                    wait_time = int(retry_after) if retry_after else (2 ** attempt) * 4
+                    print(f"429 Too Many Requests. Attendo {wait_time}s prima di riprovare...")
                     time.sleep(wait_time)
                     continue
             
@@ -35,7 +36,7 @@ def rate_limited_get(url: str, max_retries: int = 3, **kwargs):
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
                 wait_time = (2 ** attempt) * 2
-                print(f"⚠️  Errore: {e}. Riprovo tra {wait_time}s...")
+                print(f"Errore: {e}. Riprovo tra {wait_time}s...")
                 time.sleep(wait_time)
                 continue
             raise
@@ -56,12 +57,14 @@ def get_drivers(season:int) -> list[dict]:
         constructor_r = rate_limited_get(constructor_url, timeout = 10)
         constructor_r.raise_for_status()
         costructor = constructor_r.json()["MRData"]["ConstructorTable"]["Constructors"][0]
+        short_name = d["code"] if "code" in d and d["code"] else diver_id[:3].upper()
+        permanent_number = d.get("permanentNumber")
         drivers.append({
             "drivers_api_id": d["driverId"],
             "first_name": d["givenName"],
             "last_name":  d["familyName"],
-            "number":     d["permanentNumber"] if "permanentNumber" in d else 000000,
-            "short_name": d["code"] if "code" in d else None,
+            "number":     int(permanent_number) if permanent_number else None,
+            "short_name": short_name,
             "team": costructor["constructorId"]
         })
     return drivers 

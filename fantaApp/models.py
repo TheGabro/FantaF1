@@ -85,7 +85,7 @@ class CustomUser(AbstractUser):
 class Driver(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    number = models.PositiveSmallIntegerField()
+    number = models.PositiveSmallIntegerField(null=True, blank=True)
     short_name = models.CharField(max_length=3)
     team = models.ForeignKey('Team', on_delete=models.CASCADE)
     season = models.PositiveSmallIntegerField()
@@ -97,7 +97,8 @@ class Driver(models.Model):
     is_valid = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.number}) - {self.short_name}"
+        driver_number = self.number if self.number is not None else "?"
+        return f"{self.first_name} {self.last_name} ({driver_number}) - {self.short_name}"
     
     class Meta:
         ordering = ['team__name', 'first_name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
@@ -153,7 +154,7 @@ class Weekend(models.Model):
     qualifying_start = models.DateTimeField(null=True, blank=True)
     race_start = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    modified_at = models.DateTimeField(null = True)
+    modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -161,7 +162,7 @@ class Weekend(models.Model):
 
     class Meta:
         ordering = ['season', 'round_number']
-        unique_together = ('circuit', 'season', 'round_number')
+        unique_together = ('season', 'round_number')
 
 class Event(models.Model):
     weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE,related_name='%(class)ss' )
@@ -183,6 +184,7 @@ class Race(Event):
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
+        unique_together = ('weekend', 'type')
     
 class Qualifying(Event):
     TYPES = [
@@ -198,6 +200,7 @@ class Qualifying(Event):
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
+        unique_together = ('weekend', 'type')
 
 class RaceResult(models.Model):
     STATUS_CHOICES = [
