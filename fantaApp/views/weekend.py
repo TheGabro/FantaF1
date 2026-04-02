@@ -558,30 +558,62 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     }
     return render(request, "fantaApp/regular_race_qualifying_choice.html", context)
 
-def sprint_race_results(request, championship_id, weekend_id, event_id):
+def _render_race_results_page(request, championship_id, weekend_id, event_id, *, race_type, race_label):
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
 
-    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
-    results = race.entries.select_related("driver", "driver__team").order_by("position")
+    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type=race_type)
+    results = list(
+        race.entries
+        .select_related("driver", "driver__team")
+        .order_by("position", "driver__team__name", "driver__first_name", "driver__last_name")
+    )
+    for entry in results:
+        if entry.starting_grid is not None and entry.position is not None:
+            entry.position_delta = entry.starting_grid - entry.position
+        else:
+            entry.position_delta = None
+    classified_results = [entry for entry in results if entry.position is not None]
+    player_choices = list(
+        race.playerracechoice_set
+        .filter(player=player)
+        .select_related("driver", "driver__team")
+        .order_by("driver__team__name", "driver__first_name", "driver__last_name")
+    )
+    player_credit_used = sum(choice.spent_amount for choice in player_choices)
+    player_pupillo = next((choice for choice in player_choices if choice.is_pupillo), None)
 
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": race,
+        "race_label": race_label,
         "results": results,
+        "classified_count": len(classified_results),
+        "results_count": len(results),
+        "total_points_awarded": sum(entry.points for entry in classified_results),
+        "player_choices": player_choices,
+        "player_pupillo": player_pupillo,
+        "player_weekend_points": None,
+        "player_credit_used": player_credit_used,
     }
-    return render(request, "fantaApp/sprint_race_results.html", context)
+    return render(request, "fantaApp/race_results.html", context)
+
+def sprint_race_results(request, championship_id, weekend_id, event_id):
+    return _render_race_results_page(
+        request,
+        championship_id,
+        weekend_id,
+        event_id,
+        race_type="sprint",
+        race_label="Sprint Race",
+    )
 
 def regular_race_results(request, championship_id, weekend_id, event_id):
-    champ, weekend, player = _base_context(request, championship_id, weekend_id)
-
-    race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
-    results = race.entries.select_related("driver", "driver__team").order_by("position")
-
-    context = {
-        "championship": champ,
-        "weekend": weekend,
-        "event": race,
-        "results": results,
-    }
-    return render(request, "fantaApp/regular_race_results.html", context)
+    return _render_race_results_page(
+        request,
+        championship_id,
+        weekend_id,
+        event_id,
+        race_type="regular",
+        race_label="Grand Prix",
+    )

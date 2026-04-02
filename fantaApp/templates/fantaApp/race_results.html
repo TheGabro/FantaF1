@@ -1,0 +1,88 @@
+{% extends 'fantaApp/championship_flow_base.html' %}
+
+{% block championship_content %}
+<h2>{{ weekend.event_name }} – Risultati {{ race_label }}</h2>
+<p>
+  <a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
+</p>
+
+{% if results %}
+<p><strong>Classifica ufficiale della {{ race_label }}.</strong></p>
+
+<div style="display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(280px, 1fr); gap:20px; align-items:start;">
+  <div style="overflow:auto; border:1px solid #ddd; border-radius:10px;">
+    <table style="width:100%; border-collapse:collapse; min-width:680px;">
+      <thead>
+        <tr style="background:#f7f7f7;">
+          <th style="padding:10px; text-align:center; width:90px;">Partenza</th>
+          <th style="padding:10px; text-align:center; width:110px;">Delta</th>
+          <th style="padding:10px; text-align:center; width:90px;">Finale</th>
+          <th style="padding:10px; text-align:left;">Pilota</th>
+          <th style="padding:10px; text-align:left; width:120px;">Team</th>
+          <th style="padding:10px; text-align:right; width:90px;">Punti</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+        <tr{% if result.position == 1 %} style="border-top:1px solid #eee; background:#eef6ff;"{% else %} style="border-top:1px solid #eee;"{% endif %}>
+          <td style="padding:10px; text-align:center;">{% if result.starting_grid %}P{{ result.starting_grid }}{% else %}-{% endif %}</td>
+          <td style="padding:10px; text-align:center; font-weight:600;">
+            {% if result.position_delta is not None %}
+              {% if result.position_delta > 0 %}
+                <span style="color:#15803d;">↑ {{ result.position_delta }}</span>
+              {% elif result.position_delta < 0 %}
+                <span style="color:#b91c1c;">↓ {{ result.position_delta|add:'0'|cut:'-' }}</span>
+              {% else %}
+                <span style="color:#666;">= </span>
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td style="padding:10px; text-align:center; font-weight:600;">{% if result.position %}P{{ result.position }}{% else %}-{% endif %}</td>
+          <td style="padding:10px;">{{ result.driver.first_name }} {{ result.driver.last_name }}</td>
+          <td style="padding:10px;">{{ result.driver.team.short_name }}</td>
+          <td style="padding:10px; text-align:right; font-weight:600;">{{ result.points }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="border:1px solid #ddd; border-radius:10px; padding:16px; background:#fafafa;">
+    <h3 style="margin-top:0;">Riepilogo gara</h3>
+    <p style="margin-top:0; color:#555;">Questa pagina e' in sola lettura e mostra la classifica finale importata per la {{ race_label }} e la tua scelta per questo weekend.</p>
+
+    <div style="display:grid; gap:10px; margin-bottom:14px;">
+      {% if player_choices %}
+        {% for choice in player_choices %}
+        <div{% if choice.is_pupillo %} style="padding:12px; border:1px solid #93c5fd; border-radius:8px; background:white;"{% else %} style="padding:12px; border:1px solid #d7d7d7; border-radius:8px; background:white;"{% endif %}>
+          <div style="font-size:12px; color:#666; margin-bottom:4px;">{% if event.type == 'regular' and choice.is_pupillo %} Pupillo{% endif %}</div>
+          <div{% if choice.is_pupillo %} style="font-weight:600; color:#1d4ed8;"{% else %} style="font-weight:600;"{% endif %}>{{ choice.driver.first_name }} {{ choice.driver.last_name }}</div>
+          <div style="color:#555; margin-top:4px;">{{ choice.driver.team.short_name }}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div style="padding:12px; border:1px dashed #bbb; border-radius:8px; color:#666; background:white;">Non hai effettuato nessuna scelta per questa gara.</div>
+      {% endif %}
+    </div>
+
+    <div style="padding:12px; border:1px solid #d7d7d7; border-radius:8px; background:white;">
+      <div style="font-size:12px; color:#666; margin-bottom:4px;">Crediti Usati</div>
+      {% if player_credit_used is not None %}
+      <div style="font-weight:600;">{{ player_credit_used }}</div>
+      {% else %}
+      <div style="color:#666;">0</div>
+      {% endif %}
+      <div style="font-size:12px; color:#666; margin-bottom:4px;">Punti Guadagnati</div>
+      {% if player_weekend_points is not None %}
+      <div style="font-weight:600;">{{ player_weekend_points }}</div>
+      {% else %}
+      <div style="color:#666;">0</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
