@@ -579,6 +579,7 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
         .select_related("driver", "driver__team")
         .order_by("driver__team__name", "driver__first_name", "driver__last_name")
     )
+    selected_driver_ids = [choice.driver_id for choice in player_choices]
     player_credit_used = sum(choice.spent_amount for choice in player_choices)
     player_pupillo = next((choice for choice in player_choices if choice.is_pupillo), None)
 
@@ -592,6 +593,7 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
         "results_count": len(results),
         "total_points_awarded": sum(entry.points for entry in classified_results),
         "player_choices": player_choices,
+        "selected_driver_ids": selected_driver_ids,
         "player_pupillo": player_pupillo,
         "player_weekend_points": None,
         "player_credit_used": player_credit_used,
