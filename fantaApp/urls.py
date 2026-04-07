@@ -52,8 +52,8 @@ urlpatterns = [
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/"
         "race/regular/<int:event_id>/choice/",
-        weekend.grand_prix_choice,
-        name="grand_prix_choice",
+        weekend.regular_race_choice,
+        name="regular_race_choice",
     ),
 
     #6a. Weekend sprint results

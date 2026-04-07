@@ -38,7 +38,7 @@
     {% if ev.has_choice %} ✔{% endif %}
     {% elif ev.entity == "race" and ev.subtype == "regular" %}
     <a
-      href="{% url 'grand_prix_choice' championship.id weekend.id ev.event_id %}"
+      href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}"
       >{{ ev.label }}</a
     >
     {% if ev.has_choice %} ✔{% endif %}

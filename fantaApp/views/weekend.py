@@ -309,7 +309,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 # # ───────────────────────────────────────────────────────────────────────────────
 @login_required
 @transaction.atomic
-def grand_prix_choice(request, championship_id, weekend_id, event_id):
+def regular_race_choice(request, championship_id, weekend_id, event_id):
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
 
@@ -397,7 +397,7 @@ def grand_prix_choice(request, championship_id, weekend_id, event_id):
         "event_started": event_started,
         "grid_available": bool(driver_options),
     }
-    return render(request, "fantaApp/grand_prix_choice.html", context)
+    return render(request, "fantaApp/regular_race_choice.html", context)
 
 
 def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
