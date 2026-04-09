@@ -113,12 +113,10 @@ def choose_sprint_race_drivers(*, player, race, drivers):
         raise ValidationError("La scelta crediti e griglia e' disponibile solo per la Sprint Race.")
 
     selected_drivers = list(drivers)
-    if len(selected_drivers) != 2:
-        raise ValidationError("Devi selezionare esattamente 2 piloti per la Sprint Race.")
+    if len(selected_drivers) != 1:
+        raise ValidationError("Devi selezionare esattamente 1 pilota per la Sprint Race.")
 
     driver_ids = [driver.id for driver in selected_drivers]
-    if len(driver_ids) != len(set(driver_ids)):
-        raise ValidationError("Non puoi selezionare lo stesso pilota piu' di una volta.")
 
     options_by_driver_id = {
         option["driver"].id: option

@@ -109,7 +109,7 @@ class SprintRaceChoiceTests(TestCase):
 			args=[self.championship.id, self.weekend.id, self.sprint_race.id],
 		)
 
-		response = self.client.post(url, {"drivers": [self.driver_1.id, self.driver_2.id]})
+		response = self.client.post(url, {"drivers": [self.driver_1.id]})
 
 		self.assertRedirects(response, url)
 		self.assertFalse(PlayerRaceChoice.objects.filter(player=self.player, race=self.sprint_race).exists())
@@ -121,7 +121,7 @@ class SprintRaceChoiceTests(TestCase):
 		pc.choose_sprint_race_drivers(
 			player=self.player,
 			race=self.sprint_race,
-			drivers=[self.driver_2, self.driver_3],
+			drivers=[self.driver_3],
 		)
 
 		self.player.refresh_from_db()
@@ -130,13 +130,13 @@ class SprintRaceChoiceTests(TestCase):
 		reserved_before_change = pc.get_player_reserved_credit(player=self.player)
 		self.assertEqual(
 			reserved_before_change,
-			pc.get_sprint_race_driver_cost(2) + pc.get_sprint_race_driver_cost(20),
+			pc.get_sprint_race_driver_cost(20),
 		)
 
 		pc.choose_sprint_race_drivers(
 			player=self.player,
 			race=self.sprint_race,
-			drivers=[self.driver_1, self.driver_3],
+			drivers=[self.driver_3],
 		)
 
 		selected_driver_ids = set(
@@ -155,7 +155,7 @@ class SprintRaceChoiceTests(TestCase):
 		pc.choose_sprint_race_drivers(
 			player=self.player,
 			race=self.sprint_race,
-			drivers=[self.driver_1, self.driver_3],
+			drivers=[self.driver_3],
 		)
 
 		self.weekend.sprint_start = timezone.now() - timedelta(minutes=5)

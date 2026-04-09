@@ -248,8 +248,8 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     if request.method == "POST" and not event_started:
         submitted_driver_ids = [value for value in request.POST.getlist("drivers") if value]
 
-        if len(submitted_driver_ids) != 2:
-            messages.error(request, "Devi selezionare esattamente 2 piloti per la Sprint Race.")
+        if len(submitted_driver_ids) != 1:
+            messages.error(request, "Devi selezionare esattamente 1 pilota per la Sprint Race.")
             return redirect(request.path)
 
         if len(submitted_driver_ids) != len(set(submitted_driver_ids)):

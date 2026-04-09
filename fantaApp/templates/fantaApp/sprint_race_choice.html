@@ -29,7 +29,7 @@
 {% elif not grid_available %}
 <p><strong>La griglia sprint non e' ancora disponibile.</strong> Importa prima il risultato della Sprint Qualifying per poter calcolare i costi.</p>
 {% else %}
-<p><strong>Regole:</strong> scegli 2 piloti. Il costo e' determinato dalla posizione in griglia e i crediti vengono scalati solo quando la Sprint Race inizia.</p>
+<p><strong>Regole:</strong> scegli 1 pilota. Il costo e' determinato dalla posizione in griglia e i crediti vengono scalati solo quando la Sprint Race inizia.</p>
 {% endif %}
 
 {% if grid_available %}
@@ -84,14 +84,12 @@
 			{% if event_started %}
 			<p style="margin-top:0; color:#555;">La gara sprint e' iniziata. La selezione resta visibile in sola lettura.</p>
 			{% else %}
-			<p style="margin-top:0; color:#555;">Devi selezionare esattamente 2 piloti dalla griglia prima di poter salvare.</p>
+			<p style="margin-top:0; color:#555;">Devi selezionare esattamente 1 pilota dalla griglia prima di poter salvare.</p>
 			{% endif %}
 
 			<div id="selected-drivers-list" style="display:grid; gap:10px; margin-bottom:14px;"></div>
 
 			<p style="margin:0 0 8px 0;"><strong>Costo totale:</strong> <span id="selected-total-cost">0</span></p>
-			<p style="margin:0 0 14px 0;"><strong>Piloti selezionati:</strong> <span id="selected-count">0</span> / 2</p>
-
 			<div id="selected-drivers-inputs">
 				{% for choice in existing_choices %}
 				<input type="hidden" name="drivers" value="{{ choice.driver_id }}">
@@ -177,7 +175,7 @@
 			selectedTotalCost.textContent = String(total);
 			selectedCount.textContent = String(selectedDriverIds.length);
 			if (saveButton) {
-				const canSave = selectedDriverIds.length === 2;
+				const canSave = selectedDriverIds.length === 1;
 				saveButton.disabled = !canSave;
 				saveButton.style.opacity = canSave ? '1' : '0.6';
 				saveButton.style.cursor = canSave ? 'pointer' : 'not-allowed';
@@ -220,8 +218,8 @@
 					const index = selectedDriverIds.indexOf(driverId);
 					selectedDriverIds.splice(index, 1);
 				} else {
-					if (selectedDriverIds.length >= 2) {
-						window.alert('Puoi selezionare massimo 2 piloti. Rimuovine uno prima di aggiungerne un altro.');
+					if (selectedDriverIds.length >= 1) {
+						window.alert('Puoi selezionare massimo 1 pilota. Rimuovine uno prima di aggiungerne un altro.');
 						return;
 					}
 					selectedDriverIds.push(driverId);
