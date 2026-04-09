@@ -439,6 +439,12 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
                     f"Hai superato il limite per {code}: massimo {slot_limits[code]} piloti.",
                 )
                 return redirect(request.path)
+            elif len(submitted_by_slot[code]) < slot_limits[code]:
+                messages.error(
+                    request,
+                    f"Il numero di piloti non è sufficiente. Effeattua tutte le scelte",
+                )
+                return redirect(request.path)
 
         selected_clean = [driver_id for values in submitted_by_slot.values() for driver_id in values]
         if len(selected_clean) != len(set(selected_clean)):
@@ -459,15 +465,16 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
             return redirect(request.path)
 
-        for code, _ in slots:
-            drv = submitted_by_slot.get(code)
-            if drv:
-                pc.choose_regular_quali_multi_driver(
-                    player=player,
-                    qualifying=qualifying,
-                    driver=drivers_by_id[int(drv)],
-                    slot=code,
-                )
+        drivers_by_slot = {
+            code: [drivers_by_id[int(driver_id)] for driver_id in submitted_by_slot.get(code, [])]
+            for code, _ in slots
+        }
+
+        pc.choose_regular_quali_multi_choices(
+            player=player,
+            qualifying=qualifying,
+            selections_by_slot=drivers_by_slot,
+)
 
         messages.success(request, "Scelte salvate con successo.")
         return redirect(request.path)

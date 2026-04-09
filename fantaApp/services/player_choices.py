@@ -261,20 +261,34 @@ def choose_regular_quali_driver(*, player, qualifying, driver):
     )
 
 @transaction.atomic
-def choose_regular_quali_multi_driver(*, player, qualifying, driver, slot):
+def choose_regular_quali_multi_choices(*, player, qualifying, selections_by_slot):
+    valid_slots = {"q1_pass", "q2_pass", "q3_top3"}
 
-    if slot not in {"sq1_pass", "sq2_pass", "q3_top3"}:
-        raise ValidationError("Slot not valid")
+    invalid_slots = set(selections_by_slot.keys()) - valid_slots
+    if invalid_slots:
+        raise ValidationError("Invalid Slot")
 
-    if PlayerQualifyingMultiChoice.objects.filter(
-            player=player,
-            qualifying=qualifying,
-            driver=driver).exclude(selection_slot=slot).exists():
-        raise ValidationError("Driver is already in taken in another slot")
+    seen_driver_ids = set()
+    rows_to_create = []
 
-    PlayerQualifyingMultiChoice.objects.update_or_create(
+    for slot, drivers in selections_by_slot.items():
+        for driver in drivers:
+            if driver.id in seen_driver_ids:
+                raise ValidationError("Driver already in another slot.")
+            seen_driver_ids.add(driver.id)
+
+            rows_to_create.append(
+                PlayerQualifyingMultiChoice(
+                    player=player,
+                    qualifying=qualifying,
+                    selection_slot=slot,
+                    driver=driver,
+                )
+            )
+
+    PlayerQualifyingMultiChoice.objects.filter(
         player=player,
         qualifying=qualifying,
-        selection_slot=slot,
-        defaults={"driver": driver},
-    )
+    ).delete()
+
+    PlayerQualifyingMultiChoice.objects.bulk_create(rows_to_create)
