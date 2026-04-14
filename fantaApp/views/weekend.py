@@ -315,6 +315,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
 
     event_started = helper._event_has_started(race)
     driver_options = pc.get_race_driver_options(race=race, player=player)
+    regular_race_bonus = pc.get_regular_race_bonus(player=player, race=race)
     existing_choices = list(
         race.playerracechoice_set
         .filter(player=player)
@@ -381,7 +382,12 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
             if result["pupillo_discount"]:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Bonus qualifica: -{result['qualifying_bonus_credit_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                )
+            elif result["qualifying_bonus_credit_discount"]:
+                messages.success(
+                    request,
+                    f"Scelte salvate con successo. Bonus qualifica: -{result['qualifying_bonus_credit_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
                 )
             else:
                 messages.success(
@@ -402,6 +408,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         "weekend": weekend,
         "event": race,
         "driver_options": driver_options,
+        "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
         "previous_pupillo_choice": previous_pupillo_choice,

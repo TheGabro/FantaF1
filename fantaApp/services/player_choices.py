@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
-from . import rules
+from . import qualifying_bonuses, rules
 
 from ..models import (
     PlayerQualifyingChoice,
@@ -22,6 +22,31 @@ def get_regular_race_driver_cost_breakdown(grid_position: int, driver: Driver, w
 
 def get_sprint_race_driver_cost(grid_position: int) -> int:
     return rules.get_sprint_race_cost(grid_position)
+
+
+def get_regular_race_bonus(*, player, race) -> dict:
+    return qualifying_bonuses.get_qualifying_multichoice_bonus(
+        player=player,
+        race=race,
+    )
+
+
+def _apply_race_credit_discount(*, costs_by_driver_id: dict, credit_discount: int) -> dict:
+    discounted_costs = dict(costs_by_driver_id)
+    remaining_discount = min(max(credit_discount, 0), sum(discounted_costs.values()))
+
+    for driver_id, current_cost in sorted(
+        discounted_costs.items(),
+        key=lambda item: (-item[1], item[0]),
+    ):
+        if remaining_discount <= 0:
+            break
+
+        applied_discount = min(current_cost, remaining_discount)
+        discounted_costs[driver_id] = current_cost - applied_discount
+        remaining_discount -= applied_discount
+
+    return discounted_costs
 
 
 def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
@@ -193,13 +218,20 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
         raise ValidationError("La griglia del Grand Prix non e' disponibile per uno o piu' piloti selezionati.")
 
     pupillo_discount = options_by_driver_id[pupillo_driver.id].get("pupillo_discount", 0)
-    total_spent_amount = 0
+    selected_costs_by_driver_id = {}
     for driver in selected_drivers:
         option = options_by_driver_id[driver.id]
         if driver.id == pupillo_driver.id:
-            total_spent_amount += option.get("pupillo_cost", option["cost"])
+            selected_costs_by_driver_id[driver.id] = option.get("pupillo_cost", option["cost"])
         else:
-            total_spent_amount += option["cost"]
+            selected_costs_by_driver_id[driver.id] = option["cost"]
+
+    qualifying_bonus = get_regular_race_bonus(player=player, race=race)
+    discounted_costs_by_driver_id = _apply_race_credit_discount(
+        costs_by_driver_id=selected_costs_by_driver_id,
+        credit_discount=qualifying_bonus["credit_discount"],
+    )
+    total_spent_amount = sum(discounted_costs_by_driver_id.values())
 
     spendable_credit = get_player_spendable_credit(player=player, exclude_race=race)
     if total_spent_amount > spendable_credit:
@@ -212,7 +244,7 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     for driver in selected_drivers:
         option = options_by_driver_id[driver.id]
         is_pupillo = driver.id == pupillo_driver.id
-        spent_amount = option.get("pupillo_cost", option["cost"]) if is_pupillo else option["cost"]
+        spent_amount = discounted_costs_by_driver_id[driver.id]
 
         PlayerRaceChoice.objects.update_or_create(
             player=player,
@@ -228,6 +260,9 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     return {
         "total_spent_amount": total_spent_amount,
         "pupillo_discount": pupillo_discount,
+        "qualifying_bonus_credit_discount": qualifying_bonus["credit_discount"],
+        "qualifying_bonus_points_multiplier": qualifying_bonus["points_multiplier"],
+        "qualifying_bonus_level": qualifying_bonus["level"],
     }
 
 

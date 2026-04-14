@@ -24,6 +24,10 @@
 <p><strong>Costo della selezione attuale:</strong> {{ current_choice_total }}</p>
 {% endif %}
 
+{% if regular_race_bonus.credit_discount %}
+<p><strong>Bonus qualifica sprint:</strong> -{{ regular_race_bonus.credit_discount }} crediti · <strong>Moltiplicatore punti:</strong> {{ regular_race_bonus.points_multiplier }}</p>
+{% endif %}
+
 {% if event_started %}
 <p><strong>Le scelte per questo Grand Prix sono chiuse.</strong></p>
 {% elif not grid_available %}
@@ -37,7 +41,7 @@
 <form method="post">
 	{% csrf_token %}
 {% endif %}
-	<div id="grand-prix-layout" data-event-started="{{ event_started|yesno:'true,false' }}" style="display:grid; grid-template-columns:minmax(0, 1.9fr) minmax(300px, 1fr); gap:20px; align-items:start;">
+	<div id="grand-prix-layout" data-event-started="{{ event_started|yesno:'true,false' }}" data-qualifying-bonus-credit-discount="{{ regular_race_bonus.credit_discount|default:0 }}" style="display:grid; grid-template-columns:minmax(0, 1.9fr) minmax(300px, 1fr); gap:20px; align-items:start;">
 		<div style="overflow:auto; border:1px solid #ddd; border-radius:10px;">
 			<table style="width:100%; border-collapse:collapse; min-width:860px;">
 				<thead>
@@ -145,6 +149,7 @@
 		const pupilloInput = document.getElementById('pupillo-driver-input');
 		const saveButton = document.getElementById('save-selection-button');
 		const eventStarted = layout && layout.dataset.eventStarted === 'true';
+		const qualifyingBonusCreditDiscount = layout ? Number(layout.dataset.qualifyingBonusCreditDiscount || 0) : 0;
 
 		if (!layout || !rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost || !selectedCount || !selectedPupilloName || !pupilloInput) {
 			return;
@@ -225,7 +230,10 @@
 				`;
 			}).join('');
 
-			selectedTotalCost.textContent = String(total);
+			const totalWithQualifyingBonus = selectedDriverIds.length === 2
+				? Math.max(total - qualifyingBonusCreditDiscount, 0)
+				: total;
+			selectedTotalCost.textContent = String(totalWithQualifyingBonus);
 			selectedCount.textContent = String(selectedDriverIds.length);
 			selectedPupilloName.textContent = pupilloName;
 

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
@@ -14,6 +15,7 @@ from .models import (
 	Driver,
 	League,
 	Qualifying,
+	PlayerQualifyingMultiChoice,
 	QualifyingResult,
 	Race,
 	Team,
@@ -115,7 +117,7 @@ class SprintRaceChoiceTests(TestCase):
 		self.assertFalse(PlayerRaceChoice.objects.filter(player=self.player, race=self.sprint_race).exists())
 
 	def test_sprint_race_choice_can_be_changed_before_event_start_without_scaling_credit(self):
-		self.player.available_credit = 40
+		self.player.available_credit = 100
 		self.player.save(update_fields=["available_credit"])
 
 		pc.choose_sprint_race_drivers(
@@ -125,7 +127,7 @@ class SprintRaceChoiceTests(TestCase):
 		)
 
 		self.player.refresh_from_db()
-		self.assertEqual(self.player.available_credit, 40)
+		self.assertEqual(self.player.available_credit, 100)
 
 		reserved_before_change = pc.get_player_reserved_credit(player=self.player)
 		self.assertEqual(
@@ -136,17 +138,17 @@ class SprintRaceChoiceTests(TestCase):
 		pc.choose_sprint_race_drivers(
 			player=self.player,
 			race=self.sprint_race,
-			drivers=[self.driver_3],
+			drivers=[self.driver_1],
 		)
 
 		selected_driver_ids = set(
 			PlayerRaceChoice.objects.filter(player=self.player, race=self.sprint_race).values_list("driver_id", flat=True)
 		)
-		self.assertSetEqual(selected_driver_ids, {self.driver_1.id, self.driver_3.id})
-		self.assertEqual(self.player.available_credit, 40)
+		self.assertSetEqual(selected_driver_ids, {self.driver_1.id})
+		self.assertEqual(self.player.available_credit, 100)
 		self.assertEqual(
 			pc.get_player_reserved_credit(player=self.player),
-			pc.get_sprint_race_driver_cost(1) + pc.get_sprint_race_driver_cost(20),
+			pc.get_sprint_race_driver_cost(1),
 		)
 
 	def test_started_sprint_race_applies_credit_only_once(self):
@@ -164,13 +166,11 @@ class SprintRaceChoiceTests(TestCase):
 		su.apply_started_sprint_race_credits(player=self.player)
 		self.player.refresh_from_db()
 
-		expected_credit = 40 - (
-			pc.get_sprint_race_driver_cost(1) + pc.get_sprint_race_driver_cost(20)
-		)
+		expected_credit = 40 - pc.get_sprint_race_driver_cost(20)
 		self.assertEqual(self.player.available_credit, expected_credit)
 		self.assertEqual(
 			PlayerRaceChoice.objects.filter(player=self.player, race=self.sprint_race, credit_applied=True).count(),
-			2,
+			1,
 		)
 
 		su.apply_started_sprint_race_credits(player=self.player)
@@ -196,7 +196,7 @@ class GrandPrixChoiceTests(TestCase):
 			championship=self.championship,
 			league=self.league,
 			player_name="Player GP",
-			available_credit=200,
+			available_credit=1300,
 		)
 
 		self.circuit = Circuit.objects.create(
@@ -279,14 +279,42 @@ class GrandPrixChoiceTests(TestCase):
 
 		self.assertEqual(pc.get_regular_race_pupillo_discount(player=self.player, race=fifth_race, driver=self.driver_1), 20)
 		self.assertEqual(result["pupillo_discount"], 20)
-		self.assertEqual(result["total_spent_amount"], pc.get_race_driver_cost(2))
+		self.assertEqual(
+			result["total_spent_amount"],
+			pc.get_regular_race_driver_cost_breakdown(
+				grid_position=1,
+				driver=self.driver_1,
+				weekend=fifth_race.weekend,
+			)["total_cost"]
+			- 20
+			+
+			pc.get_regular_race_driver_cost_breakdown(
+				grid_position=2,
+				driver=self.driver_2,
+				weekend=fifth_race.weekend,
+			)["total_cost"],
+		)
 
 		pupillo_choice = PlayerRaceChoice.objects.get(player=self.player, race=fifth_race, driver=self.driver_1)
 		non_pupillo_choice = PlayerRaceChoice.objects.get(player=self.player, race=fifth_race, driver=self.driver_2)
 		self.assertTrue(pupillo_choice.is_pupillo)
-		self.assertEqual(pupillo_choice.spent_amount, 0)
+		self.assertEqual(
+			pupillo_choice.spent_amount,
+			pc.get_regular_race_driver_cost_breakdown(
+				grid_position=1,
+				driver=self.driver_1,
+				weekend=fifth_race.weekend,
+			)["total_cost"] - 20,
+		)
 		self.assertFalse(non_pupillo_choice.is_pupillo)
-		self.assertEqual(non_pupillo_choice.spent_amount, pc.get_race_driver_cost(2))
+		self.assertEqual(
+			non_pupillo_choice.spent_amount,
+			pc.get_regular_race_driver_cost_breakdown(
+				grid_position=2,
+				driver=self.driver_2,
+				weekend=fifth_race.weekend,
+			)["total_cost"],
+		)
 
 	def test_started_regular_race_applies_credit_only_once(self):
 		first_race = self.weekend_bundles[0]["race"]
@@ -303,7 +331,7 @@ class GrandPrixChoiceTests(TestCase):
 		su.apply_started_regular_race_credits(player=self.player)
 		self.player.refresh_from_db()
 
-		expected_credit = 200 - result["total_spent_amount"]
+		expected_credit = 1300 - result["total_spent_amount"]
 		self.assertEqual(self.player.available_credit, expected_credit)
 		self.assertEqual(
 			PlayerRaceChoice.objects.filter(player=self.player, race=first_race, credit_applied=True).count(),
@@ -313,3 +341,130 @@ class GrandPrixChoiceTests(TestCase):
 		su.apply_started_regular_race_credits(player=self.player)
 		self.player.refresh_from_db()
 		self.assertEqual(self.player.available_credit, expected_credit)
+
+
+class SprintWeekendRegularQualifyingBonusTests(TestCase):
+	def setUp(self):
+		self.user = get_user_model().objects.create_user(
+			username="player-bonus",
+			email="bonus@example.com",
+			password="password123",
+		)
+
+		self.championship = Championship.objects.create(name="Bonus Cup", year=2026)
+		self.league = League.objects.create(championship=self.championship, name="Bonus League")
+		ChampionshipManager.objects.create(user=self.user, championship=self.championship)
+		self.player = ChampionshipPlayer.objects.create(
+			user=self.user,
+			championship=self.championship,
+			league=self.league,
+			player_name="Bonus Player",
+			available_credit=500,
+		)
+
+		self.circuit = Circuit.objects.create(
+			name="Spa",
+			country="Belgium",
+			location="Spa",
+			api_id="circuit-spa",
+		)
+		self.team = Team.objects.create(
+			name="Bonus Team",
+			short_name="BON",
+			api_id="team-bonus",
+			nationality="Belgian",
+		)
+
+		self.drivers = [
+			Driver.objects.create(
+				first_name=f"Driver{index}",
+				last_name="Bonus",
+				number=30 + index,
+				short_name=f"B{index:02d}"[-3:],
+				team=self.team,
+				season=2026,
+				api_id=f"bonus-drv-{index}",
+			)
+			for index in range(1, 16)
+		]
+
+		self.weekend = Weekend.objects.create(
+			circuit=self.circuit,
+			event_name="Sprint Weekend Bonus",
+			round_number=4,
+			season=2026,
+			weekend_type="sprint",
+			sprint_qualifying_start=timezone.now() - timedelta(days=3),
+			qualifying_start=timezone.now() - timedelta(days=2),
+			race_start=timezone.now() + timedelta(days=1),
+		)
+		self.qualifying = Qualifying.objects.create(weekend=self.weekend, type="regular")
+		self.race = Race.objects.create(weekend=self.weekend, type="regular")
+
+		for index, driver in enumerate(self.drivers, start=1):
+			QualifyingResult.objects.create(
+				qualifying=self.qualifying,
+				driver=driver,
+				q1_time=timedelta(minutes=1, seconds=index),
+				q2_time=timedelta(minutes=1, seconds=10 + index) if index <= 15 else None,
+				q3_time=timedelta(minutes=1, seconds=20 + index) if index <= 8 else None,
+				position=index,
+			)
+
+		for driver in self.drivers[9:15]:
+			PlayerQualifyingMultiChoice.objects.create(
+				player=self.player,
+				qualifying=self.qualifying,
+				selection_slot="q1_pass",
+				driver=driver,
+			)
+
+		for driver in self.drivers[3:8]:
+			PlayerQualifyingMultiChoice.objects.create(
+				player=self.player,
+				qualifying=self.qualifying,
+				selection_slot="q2_pass",
+				driver=driver,
+			)
+
+	def test_regular_race_bonus_reaches_q2_tier_when_top3_is_not_matched(self):
+		for driver in (self.drivers[0], self.drivers[1], self.drivers[8]):
+			PlayerQualifyingMultiChoice.objects.create(
+				player=self.player,
+				qualifying=self.qualifying,
+				selection_slot="q3_top3",
+				driver=driver,
+			)
+
+		bonus = pc.get_regular_race_bonus(player=self.player, race=self.race)
+
+		self.assertEqual(bonus["level"], "q2_pass")
+		self.assertEqual(bonus["credit_discount"], 20)
+		self.assertEqual(bonus["points_multiplier"], Decimal("1.2"))
+
+	def test_regular_race_bonus_discount_is_applied_to_total_spent_amount(self):
+		for driver in self.drivers[:3]:
+			PlayerQualifyingMultiChoice.objects.create(
+				player=self.player,
+				qualifying=self.qualifying,
+				selection_slot="q3_top3",
+				driver=driver,
+			)
+
+		result = pc.choose_regular_race_drivers(
+			player=self.player,
+			race=self.race,
+			drivers=[self.drivers[0], self.drivers[1]],
+			pupillo_driver=self.drivers[0],
+		)
+
+		self.assertEqual(result["qualifying_bonus_level"], "q3_top3")
+		self.assertEqual(result["qualifying_bonus_credit_discount"], 50)
+		self.assertEqual(result["qualifying_bonus_points_multiplier"], Decimal("2"))
+		self.assertEqual(result["total_spent_amount"], 200)
+		self.assertEqual(
+			sum(
+				PlayerRaceChoice.objects.filter(player=self.player, race=self.race).values_list("spent_amount", flat=True)
+			),
+			200,
+		)

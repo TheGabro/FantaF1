@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from ..models import (
     Weekend,
@@ -63,6 +65,32 @@ COST_BY_STANDINGS_POSITION = {
 }
 PUPILLO_DISCOUNT_STEP = 5
 PUPILLO_MAX_DISCOUNT = 20
+
+QUALIFYING_MULTICHOICE_BONUS_RULES = {
+    "none": {
+        "credit_discount": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    "q1_pass": {
+        "credit_discount": 10,
+        "points_multiplier": Decimal("1"),
+    },
+    "q2_pass": {
+        "credit_discount": 20,
+        "points_multiplier": Decimal("1.2"),
+    },
+    "q3_top3": {
+        "credit_discount": 50,
+        "points_multiplier": Decimal("2"),
+    },
+}
+
+
+def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
+    return QUALIFYING_MULTICHOICE_BONUS_RULES.get(
+        level,
+        QUALIFYING_MULTICHOICE_BONUS_RULES["none"],
+    ).copy()
 
 
 def get_cost_from_grid(mapping, grid_position: int) -> int:
