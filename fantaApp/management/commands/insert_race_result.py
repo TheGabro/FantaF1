@@ -8,7 +8,7 @@ from fantaApp.services.jolpicaSource import get_race_result
 
 
 class Command(BaseCommand):
-    help = "Import last race result"
+    help = "Import race result"
 
     def add_arguments(self, parser):
         parser.add_argument(

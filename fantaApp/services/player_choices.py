@@ -9,13 +9,16 @@ from ..models import (
     PlayerRaceChoice,
     PlayerSprintQualifyingChoice,
     QualifyingResult,
+    Driver,
+    Weekend
 )
 
-
-from . import rules
-
-def get_regular_race_driver_cost(grid_position: int) -> int:
-    return rules.get_regular_race_cost(grid_position)
+def get_regular_race_driver_cost_breakdown(grid_position: int, driver: Driver, weekend: Weekend) -> dict:
+    return rules.get_regular_race_cost_breakdown(
+        grid_position=grid_position,
+        driver=driver,
+        weekend=weekend,
+    )
 
 def get_sprint_race_driver_cost(grid_position: int) -> int:
     return rules.get_sprint_race_cost(grid_position)
@@ -67,10 +70,17 @@ def get_race_driver_options(*, race, player=None):
                 "cost": get_sprint_race_driver_cost(result.position),
             }
         else:
+            cost_breakdown = get_regular_race_driver_cost_breakdown(
+                grid_position=result.position,
+                driver=result.driver,
+                weekend=race.weekend,
+            )
             option = {
                 "driver": result.driver,
                 "grid_position": result.position,
-                "cost": get_regular_race_driver_cost(result.position),
+                "grid_cost": cost_breakdown["grid_cost"],
+                "standings_cost": cost_breakdown["standings_cost"],
+                "cost": cost_breakdown["total_cost"],
             }
 
         if race.type == "regular" and player is not None:
@@ -81,6 +91,11 @@ def get_race_driver_options(*, race, player=None):
             )
             option["pupillo_discount"] = pupillo_discount
             option["pupillo_cost"] = max(option["cost"] - pupillo_discount, 0)
+            option["previous_pupillo_streak"] = (
+                pupillo_discount // rules.PUPILLO_DISCOUNT_STEP
+                if pupillo_discount
+                else 0
+            )
 
         options.append(option)
 

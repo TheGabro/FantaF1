@@ -185,6 +185,24 @@ def get_race_result(season: int, round: int, is_sprint : bool = False) -> list[d
         race_results.append(result)
 
     return race_results
+
+def get_driver_standings(season: int, round: int) -> list[dict]:
+    standings_url = f"{BASE_URL}{season}/{round}/driverStandings"
+    standings_r = rate_limited_get(standings_url, timeout=10)
+    standings_r.raise_for_status()
+    standings : list[dict] = []
+    last_position = 0
+    for s in standings_r.json()['MRData']['StandingsTable']['StandingsLists'][0]['DriverStandings']:
+        standing = {
+            "driver_api_id": s["Driver"]["driverId"],
+            "position": int(s["position"]) if "position" in s else last_position + 1,
+            "points": int(s["points"]) if "points" in s else 0,
+            "wins": int(s["wins"]) if "wins" in s else 0
+        }
+        standings.append(standing)
+        last_position += 1
+
+    return standings
         
 
         

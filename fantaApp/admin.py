@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
-from .models import CustomUser, Driver, Team, Circuit, Weekend, Championship,ChampionshipManager, League, ChampionshipPlayer,QualifyingResult,RaceResult, Race, Qualifying, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, PlayerSprintQualifyingChoice, PlayerRaceChoice
+from .models import CustomUser, Driver, Team, Circuit, Weekend, Championship,ChampionshipManager, League, ChampionshipPlayer,QualifyingResult,RaceResult, Race, Qualifying, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, PlayerSprintQualifyingChoice, PlayerRaceChoice, DriverStanding
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -150,6 +150,13 @@ class RaceResultAdmin(admin.ModelAdmin):
     list_display = ['race', 'driver', 'position', 'status', 'points']
     list_filter = ['race__weekend__season', 'race__weekend', 'race']
     search_fields = ['driver__first_name', 'driver__last_name', 'driver__short_name']
+
+@admin.register(DriverStanding)
+class DriverStandingAdmin(admin.ModelAdmin):
+    list_display = ['weekend', 'driver', 'position', 'points', 'wins', 'podiums', 'updated_at']
+    list_filter = ['weekend__season', 'weekend']
+    search_fields = ['driver__first_name', 'driver__last_name', 'driver__short_name', 'weekend__event_name']
+    ordering = ['-weekend__season', '-weekend__round_number', 'position']
 
 @admin.register(Race)
 class RaceAdmin(admin.ModelAdmin):

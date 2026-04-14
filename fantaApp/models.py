@@ -250,6 +250,28 @@ class QualifyingResult(models.Model):
         unique_together = ('qualifying', 'driver')
         ordering = ['qualifying', 'position']
 
+
+class DriverStanding(models.Model):
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='driver_standings')
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='standings')
+    position = models.PositiveSmallIntegerField()
+    points = models.PositiveIntegerField(default=0)
+    wins = models.PositiveSmallIntegerField(default=0)
+    podiums = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.weekend} - {self.driver.short_name} (P{self.position}, {self.points} pts)"
+
+    class Meta:
+        unique_together = ('weekend', 'driver')
+        ordering = ['weekend__season', 'weekend__round_number', 'position']
+        indexes = [
+            models.Index(fields=['weekend', 'position']),
+            models.Index(fields=['driver', 'weekend']),
+        ]
+
 class Championship(models.Model):
     name = models.CharField(max_length=100)
     year = models.IntegerField()
