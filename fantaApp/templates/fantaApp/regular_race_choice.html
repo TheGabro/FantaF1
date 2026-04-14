@@ -80,7 +80,7 @@
 						<td style="padding:10px; text-align:right; font-weight:600;">{{ option.cost }}</td>
 						<td style="padding:10px; text-align:center;">
 							{% if event_started %}
-							<span data-selected-label style="display:inline-block; min-width:88px; padding:6px 10px; border:1px solid #ddd; border-radius:999px; color:#666; background:#fafafa;">Non scelto</span>
+							<span data-selected-label style="display:inline-block; min-width:88px; padding:6px 10px; border:1px solid #ddd; border-radius:999px; color:#666; background:#fafafa;"></span>
 							{% else %}
 							<button type="button" data-select-driver style="padding:6px 10px; border:1px solid #bbb; background:white; border-radius:6px; cursor:pointer;">
 								Seleziona
@@ -254,7 +254,7 @@
 					button.style.borderColor = selected ? '#93c5fd' : '#bbb';
 				}
 				if (label) {
-					label.textContent = isPupillo ? 'Pupillo' : (selected ? 'Scelto' : 'Non scelto');
+					label.textContent = isPupillo ? 'Pupillo' : (selected ? 'Scelto' : '');
 					label.style.background = selected ? '#dbeafe' : '#fafafa';
 					label.style.borderColor = selected ? '#93c5fd' : '#ddd';
 					label.style.color = isPupillo ? '#1d4ed8' : (selected ? '#1d4ed8' : '#666');
