@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
+from . import rules
 
 from ..models import (
     PlayerQualifyingChoice,
@@ -11,20 +12,13 @@ from ..models import (
 )
 
 
-SPRINT_RACE_COST_BY_GRID_POSITION_FACTOR = 1
-PUPILLO_DISCOUNT_STEP = 5
-PUPILLO_MAX_DISCOUNT = 20
+from . import rules
 
-
-def get_race_driver_cost(grid_position: int) -> int:
-    if not grid_position or grid_position < 1:
-        raise ValidationError("Posizione di griglia non valida per calcolare il costo del pilota.")
-
-    return max(1, 21 - grid_position) * SPRINT_RACE_COST_BY_GRID_POSITION_FACTOR
-
+def get_regular_race_driver_cost(grid_position: int) -> int:
+    return rules.get_regular_race_cost(grid_position)
 
 def get_sprint_race_driver_cost(grid_position: int) -> int:
-    return get_race_driver_cost(grid_position)
+    return rules.get_sprint_race_cost(grid_position)
 
 
 def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
@@ -34,7 +28,7 @@ def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
     consecutive_weekends = 0
     current_round = race.weekend.round_number - 1
 
-    while current_round >= 1 and consecutive_weekends < (PUPILLO_MAX_DISCOUNT // PUPILLO_DISCOUNT_STEP):
+    while current_round >= 1 and consecutive_weekends < (rules.PUPILLO_MAX_DISCOUNT // rules.PUPILLO_DISCOUNT_STEP):
         previous_pupillo = PlayerRaceChoice.objects.filter(
             player=player,
             race__type="regular",
@@ -49,7 +43,7 @@ def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
         consecutive_weekends += 1
         current_round -= 1
 
-    return min(consecutive_weekends * PUPILLO_DISCOUNT_STEP, PUPILLO_MAX_DISCOUNT)
+    return min(consecutive_weekends * rules.PUPILLO_DISCOUNT_STEP, rules.PUPILLO_MAX_DISCOUNT)
 
 
 def get_race_driver_options(*, race, player=None):
@@ -66,11 +60,18 @@ def get_race_driver_options(*, race, player=None):
         if not result.position:
             continue
 
-        option = {
-            "driver": result.driver,
-            "grid_position": result.position,
-            "cost": get_race_driver_cost(result.position),
-        }
+        if race.type == "sprint":
+            option = {
+                "driver": result.driver,
+                "grid_position": result.position,
+                "cost": get_sprint_race_driver_cost(result.position),
+            }
+        else:
+            option = {
+                "driver": result.driver,
+                "grid_position": result.position,
+                "cost": get_regular_race_driver_cost(result.position),
+            }
 
         if race.type == "regular" and player is not None:
             pupillo_discount = get_regular_race_pupillo_discount(
