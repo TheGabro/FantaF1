@@ -137,4 +137,7 @@
 
   /* Badge posizione griglia */
   .pos-badge { @apply inline-flex h-7 w-9 items-center justify-center rounded-md bg-surface-2 border border-line text-xs font-bold; }
+
+  /* Riga pilota selezionata nelle pagine di scelta */
+  .row-selected { @apply bg-accent-soft/50; }
 }
