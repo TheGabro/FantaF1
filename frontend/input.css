@@ -1,0 +1,140 @@
+/* FantaF1 design system — sorgente Tailwind v4.
+   Build: vedi frontend/README.md (output in fantaApp/static/fantaApp/css/main.css) */
+
+@import "tailwindcss";
+
+@source "../fantaApp/templates/**/*.html";
+@source "../fantaApp/static/fantaApp/js/**/*.js";
+
+/* Il tema scuro è pilotato da data-theme sull'elemento <html>, non dal media query */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Token semantici: light ─────────────────────────────────────────── */
+:root {
+  --bg-base: #f2f3f5;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f7f8fa;
+  --text-ink: #15151e;
+  --text-muted: #64748b;
+  --border-line: #e2e5ea;
+  --accent: #e10600;
+  --accent-strong: #b80500;
+  --accent-soft: #fdecec;
+  --ok: #15803d;
+  --ok-soft: #e8f7ee;
+  --warn: #b45309;
+  --warn-soft: #fdf3e3;
+}
+
+/* ── Token semantici: dark ──────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-base: #101014;
+  --bg-surface: #1a1b21;
+  --bg-surface-2: #22232b;
+  --text-ink: #f4f4f6;
+  --text-muted: #9aa1ae;
+  --border-line: #2d2f3a;
+  --accent: #ff1e00;
+  --accent-strong: #e10600;
+  --accent-soft: #3a1512;
+  --ok: #4ade80;
+  --ok-soft: #10301c;
+  --warn: #fbbf24;
+  --warn-soft: #35270c;
+}
+
+/* ── Mappatura token → utility Tailwind (bg-surface, text-ink, ecc.) ── */
+@theme inline {
+  --font-sans: "Titillium Web", ui-sans-serif, system-ui, sans-serif;
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-surface-2: var(--bg-surface-2);
+  --color-ink: var(--text-ink);
+  --color-muted: var(--text-muted);
+  --color-line: var(--border-line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+}
+
+/* ── Colori scuderia: classi team-<short_name|slugify> ──────────────── */
+.team-fer { --team: #e8002d; }
+.team-mer { --team: #27f4d2; }
+.team-red { --team: #3671c6; }
+.team-mcl { --team: #ff8000; }
+.team-ast { --team: #229971; }
+.team-alp { --team: #0090d0; }
+.team-wil { --team: #64c4ff; }
+.team-rb  { --team: #6692ff; }
+.team-sau { --team: #52e252; }
+.team-haa { --team: #b6babd; }
+.team-aud { --team: #f50537; }
+.team-cad { --team: #bfa048; }
+
+@layer base {
+  html { @apply font-sans; }
+  body { @apply bg-base text-ink antialiased min-h-screen; }
+}
+
+@layer components {
+  /* Bottoni */
+  .btn, .btn-primary, .btn-secondary, .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+      text-sm font-semibold transition-colors cursor-pointer
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply bg-accent text-white hover:bg-accent-strong; }
+  .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-surface-2; }
+  .btn-ghost { @apply text-muted hover:text-ink hover:bg-surface-2; }
+
+  /* Card */
+  .card, .card-pad { @apply rounded-xl border border-line bg-surface shadow-sm; }
+  .card-pad { @apply p-5; }
+
+  /* Badge */
+  .badge, .badge-ok, .badge-warn, .badge-accent, .badge-muted {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .badge-ok { @apply bg-ok-soft text-ok; }
+  .badge-warn { @apply bg-warn-soft text-warn; }
+  .badge-accent { @apply bg-accent-soft text-accent; }
+  .badge-muted { @apply bg-surface-2 text-muted border border-line; }
+
+  /* Barra colore scuderia (da usare con .team-xxx) */
+  .team-bar { background: var(--team, #9ca3af); @apply w-1 self-stretch rounded-full shrink-0; }
+  .team-chip {
+    border-left: 3px solid var(--team, #9ca3af);
+    @apply pl-2 font-semibold;
+  }
+
+  /* Tabelle */
+  .table-clean { @apply w-full border-collapse text-sm; }
+  .table-clean th { @apply px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted bg-surface-2 border-b border-line; }
+  .table-clean td { @apply px-3 py-2.5 border-b border-line; }
+  .table-clean tbody tr:last-child td { @apply border-b-0; }
+
+  /* Campi form (gli input Django non hanno classi: si stilizzano per elemento) */
+  .form-field label { @apply block text-sm font-semibold mb-1; }
+  .form-field input[type="text"],
+  .form-field input[type="email"],
+  .form-field input[type="password"],
+  .form-field input[type="number"],
+  .form-field select {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
+      focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent;
+  }
+  .form-field .errorlist { @apply mt-1 text-xs font-semibold text-accent list-none p-0; }
+  .form-field .helptext { @apply mt-1 block text-xs text-muted; }
+
+  /* Toast dei Django messages */
+  .toast { @apply flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm shadow-lg; }
+  .toast-error { @apply border-accent/40; }
+  .toast-success { @apply border-ok/40; }
+
+  /* Badge posizione griglia */
+  .pos-badge { @apply inline-flex h-7 w-9 items-center justify-center rounded-md bg-surface-2 border border-line text-xs font-bold; }
+}
