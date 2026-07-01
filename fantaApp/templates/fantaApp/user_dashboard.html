@@ -65,4 +65,30 @@
     </div>
   {% endfor %}
 </div>
+
+{# Campionati in cui l'utente è manager: letti dal template perché la view non li passa. #}
+{# Nota: qui compaiono anche se non si è iscritti come giocatori (iscrizione oggi possibile solo da admin). #}
+{% if user.championshipmanager_set.all %}
+  <h2 class="mb-4 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for m in user.championshipmanager_set.all %}
+      <a href="{% url 'championship_dashboard' m.championship.id %}"
+         class="card-pad group transition-shadow hover:shadow-md hover:border-accent/50">
+        <div class="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
+              {{ m.championship.name }}
+            </h3>
+            <p class="text-sm text-muted">Stagione {{ m.championship.year }}</p>
+          </div>
+          <span class="badge-accent shrink-0">Manager</span>
+        </div>
+        <div class="flex gap-6 border-t border-line pt-3 text-sm text-muted">
+          <span><strong class="text-ink">{{ m.championship.leagues.count }}</strong> legh{{ m.championship.leagues.count|pluralize:"a,e" }}</span>
+          <span><strong class="text-ink">{{ m.championship.participants.count }}</strong> giocator{{ m.championship.participants.count|pluralize:"e,i" }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
 {% endblock %}
