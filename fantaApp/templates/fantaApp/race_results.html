@@ -27,7 +27,7 @@
         {% for result in results %}
         <tr {% if result.driver_id in selected_driver_ids %}class="row-selected"{% endif %}>
           <td class="text-center">
-            <span class="pos-badge {% if result.position == 1 %}!bg-accent !text-white !border-accent{% endif %}">
+            <span class="pos-badge {% if result.position == 1 %}!bg-accent-strong !text-white !border-accent-strong{% endif %}">
               {% if result.position %}P{{ result.position }}{% else %}—{% endif %}
             </span>
           </td>

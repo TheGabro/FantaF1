@@ -15,9 +15,9 @@
   --bg-surface: #ffffff;
   --bg-surface-2: #f7f8fa;
   --text-ink: #15151e;
-  --text-muted: #64748b;
+  --text-muted: #576273;
   --border-line: #e2e5ea;
-  --accent: #e10600;
+  --accent: #d90600; /* rosso F1 leggermente scurito: contrasto ≥4.5 anche su --bg-base */
   --accent-strong: #b80500;
   --accent-soft: #fdecec;
   --ok: #15803d;
@@ -34,9 +34,9 @@
   --text-ink: #f4f4f6;
   --text-muted: #9aa1ae;
   --border-line: #2d2f3a;
-  --accent: #ff1e00;
+  --accent: #ff2e14; /* leggermente schiarito: contrasto ≥4.5 anche su righe evidenziate */
   --accent-strong: #e10600;
-  --accent-soft: #3a1512;
+  --accent-soft: #2a0e0a;
   --ok: #4ade80;
   --ok-soft: #10301c;
   --warn: #fbbf24;
@@ -46,7 +46,8 @@
 /* ── Mappatura token → utility Tailwind (bg-surface, text-ink, ecc.) ── */
 @theme inline {
   --font-sans: "Titillium Web", ui-sans-serif, system-ui, sans-serif;
-  --color-base: var(--bg-base);
+  /* NB: mai chiamare un colore "base": text-base è la utility font-size di Tailwind */
+  --color-canvas: var(--bg-base);
   --color-surface: var(--bg-surface);
   --color-surface-2: var(--bg-surface-2);
   --color-ink: var(--text-ink);
@@ -77,7 +78,7 @@
 
 @layer base {
   html { @apply font-sans; }
-  body { @apply bg-base text-ink antialiased min-h-screen; }
+  body { @apply bg-canvas text-ink antialiased min-h-screen; }
 }
 
 @layer components {
@@ -87,7 +88,8 @@
       text-sm font-semibold transition-colors cursor-pointer
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  .btn-primary { @apply bg-accent text-white hover:bg-accent-strong; }
+  /* In dark il fondo resta il rosso profondo: il bianco sul rosso chiaro non regge il contrasto */
+  .btn-primary { @apply bg-accent text-white hover:bg-accent-strong dark:bg-accent-strong dark:hover:brightness-90; }
   .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-surface-2; }
   .btn-ghost { @apply text-muted hover:text-ink hover:bg-surface-2; }
 
@@ -101,7 +103,8 @@
   }
   .badge-ok { @apply bg-ok-soft text-ok; }
   .badge-warn { @apply bg-warn-soft text-warn; }
-  .badge-accent { @apply bg-accent-soft text-accent; }
+  /* Nel tema chiaro il rosso pieno su fondo rosato non regge il contrasto: si usa la variante strong */
+  .badge-accent { @apply bg-accent-soft text-accent-strong dark:text-accent; }
   .badge-muted { @apply bg-surface-2 text-muted border border-line; }
 
   /* Barra colore scuderia (da usare con .team-xxx) */
