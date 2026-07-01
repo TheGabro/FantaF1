@@ -1,85 +1,128 @@
 {% extends "fantaApp/championship_flow_base.html" %}
 
+{% block title %}{{ championship.name }} {{ championship.year }} — Fanta F1{% endblock %}
+
 {% block championship_banner_link %}
-{{ championship.name }} {{ championship.year }}
+  {{ championship.name }} {{ championship.year }}
 {% endblock %}
 
 {% block championship_content %}
-
-<h3>Player Performance</h3>
-{% if current_championship_player %}
-<p><strong>Crediti disponibili:</strong> {{ current_championship_player.available_credit }} / 2000</p>
-{% if reserved_credit %}
-<p><strong>Crediti prenotati su Sprint Race future:</strong> {{ reserved_credit }} · <strong>Spendibili ora:</strong> {{ spendable_credit }}</p>
-{% endif %}
-{% else %}
-<p>Non sei iscritto a questo campionato.</p>
+{% if not current_championship_player %}
+  <div class="card-pad mb-6 border-warn/40">
+    <p class="text-sm font-semibold text-warn">Non sei iscritto a questo campionato: puoi consultare le classifiche ma non fare scelte.</p>
+  </div>
 {% endif %}
 
-<hr />
-
-<div style="display: flex; gap: 2rem; align-items: flex-start; min-width: 800px; overflow-x: auto;">
-  <!-- Colonna sinistra: Classifica per Lega -->
-  <div style="flex: 1; min-width: 380px;">
-    <h4>Classifica per Lega</h4>
+<div class="grid gap-6 lg:grid-cols-3">
+  <!-- Colonna principale: classifiche -->
+  <div class="space-y-6 lg:col-span-2">
     {% if current_championship_player %}
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
-      <tr style="background-color: #f0f0f0;">
-        <th style="padding: 8px; text-align: center; width: 40px;">Posizione</th>
-        <th style="padding: 8px; text-align: left;">Player</th>
-        <th style="padding: 8px; text-align: right; width: 80px;">Punti</th>
-      </tr>
-      {% for p in standing_per_league %}
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 6px; text-align: center;">{{ forloop.counter }}</td>
-        <td style="padding: 6px;">{{ p.player_name }}</td>
-        <td style="padding: 6px; text-align: right;"><strong>{{ p.total_score }}</strong></td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% else %}
-    <p>Non partecipi a nessuna lega di questo campionato.</p>
+      <section class="card">
+        <div class="flex items-center justify-between border-b border-line px-5 py-3">
+          <h2 class="text-sm font-bold uppercase tracking-wide">Classifica — {{ current_championship_player.league.name }}</h2>
+          <span class="badge-muted">{{ standing_per_league|length }} giocatori</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="table-clean">
+            <thead>
+              <tr><th class="w-12 !text-center">#</th><th>Giocatore</th><th class="!text-right">Punti</th></tr>
+            </thead>
+            <tbody>
+              {% for p in standing_per_league %}
+                <tr {% if p.id == current_championship_player.id %}class="bg-accent-soft/60"{% endif %}>
+                  <td class="text-center font-bold {% if forloop.counter == 1 %}text-accent{% endif %}">{{ forloop.counter }}</td>
+                  <td class="font-semibold">
+                    {{ p.player_name }}
+                    {% if p.id == current_championship_player.id %}<span class="badge-accent ml-2">Tu</span>{% endif %}
+                  </td>
+                  <td class="text-right font-black">{{ p.total_score }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
     {% endif %}
+
+    <section class="card">
+      <div class="flex items-center justify-between border-b border-line px-5 py-3">
+        <h2 class="text-sm font-bold uppercase tracking-wide">Classifica generale</h2>
+        <span class="badge-muted">tutte le leghe</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr><th class="w-12 !text-center">#</th><th>Giocatore</th><th>Lega</th><th class="!text-right">Punti</th></tr>
+          </thead>
+          <tbody>
+            {% for p in general_standings %}
+              <tr {% if current_championship_player and p.id == current_championship_player.id %}class="bg-accent-soft/60"{% endif %}>
+                <td class="text-center font-bold {% if forloop.counter == 1 %}text-accent{% endif %}">{{ forloop.counter }}</td>
+                <td class="font-semibold">{{ p.player_name }}</td>
+                <td class="text-muted">{{ p.league.name }}</td>
+                <td class="text-right font-black">{{ p.total_score }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-center text-muted">Nessun partecipante iscritto.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
-  <!-- Colonna destra: Classifica Generale -->
-  <div style="flex: 1; min-width: 380px;">
-    <h4>Classifica Generale</h4>
-    <table style="width: 100%; border-collapse: collapse;">
-      <tr style="background-color: #f0f0f0;">
-        <th style="padding: 8px; text-align: center; width: 40px;">Posizione</th>
-        <th style="padding: 8px; text-align: left;">Player</th>
-        <th style="padding: 8px; text-align: left; width: 100px;">Lega</th>
-        <th style="padding: 8px; text-align: right; width: 80px;">Punti</th>
-      </tr>
-      {% for p in general_standings %}
-      <tr style="border-bottom: 1px solid #ddd;">
-        <td style="padding: 6px; text-align: center;">{{ forloop.counter }}</td>
-        <td style="padding: 6px;">{{ p.player_name }}</td>
-        <td style="padding: 6px;">{{ p.league.name }}</td>
-        <td style="padding: 6px; text-align: right;"><strong>{{ p.total_score }}</strong></td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="4" style="padding: 6px; text-align: center;">Nessun partecipante.</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
+  <!-- Sidebar: crediti e manager -->
+  <aside class="space-y-6">
+    {% if current_championship_player %}
+      <section class="card-pad">
+        <h2 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">I tuoi crediti</h2>
+        <p class="text-4xl font-black">{{ current_championship_player.available_credit }}<span class="ml-1 text-sm font-semibold text-muted">/ 2000</span></p>
+        {% if reserved_credit %}
+          <dl class="mt-4 space-y-2 border-t border-line pt-3 text-sm">
+            <div class="flex justify-between"><dt class="text-muted">Prenotati su gare future</dt><dd class="font-bold">{{ reserved_credit }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">Spendibili ora</dt><dd class="font-bold text-ok">{{ spendable_credit }}</dd></div>
+          </dl>
+        {% endif %}
+        <p class="mt-3 text-xs text-muted">Giochi come <span class="font-semibold text-ink">{{ current_championship_player.player_name }}</span> · punti totali: <span class="font-semibold text-ink">{{ current_championship_player.total_score }}</span></p>
+      </section>
+    {% endif %}
+
+    <section class="card-pad">
+      <h2 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Manager del campionato</h2>
+      <ul class="space-y-2 text-sm">
+        {% for m in managers %}
+          <li class="flex items-center gap-2">
+            <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+            <span class="font-semibold">{{ m.player_name }}</span>
+            <span class="text-muted">· {{ m.league.name }}</span>
+          </li>
+        {% empty %}
+          <li class="text-muted">Nessun manager registrato come giocatore.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </aside>
 </div>
 
-<hr />
-
-<h3>Calendario</h3>
-<ul>
-  {% for w in weekends %}
-  <li>
-    <a href="{% url 'weekend_details' championship.id w.id %}">
-      {{ w.event_name }} – {{ w.season }} (Round: {{ w.round_number }})
-    </a>
-  </li>
-  {% empty %}
-  <li>Nessun weekend disponibile.</li>
-  {% endfor %}
-</ul>
+<!-- Calendario stagione -->
+<section class="mt-8">
+  <h2 class="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Calendario stagione {{ championship.year }}</h2>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for w in weekends %}
+      <a href="{% url 'weekend_details' championship.id w.id %}"
+         class="card group flex items-center gap-4 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
+        <span class="pos-badge shrink-0 !h-10 !w-10 text-sm">R{{ w.round_number }}</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate font-bold leading-tight group-hover:text-accent">{{ w.event_name }}</h3>
+          <p class="truncate text-xs text-muted">
+            {{ w.circuit.name }}{% if w.race_start %} · {{ w.race_start|date:"j M" }}{% endif %}
+          </p>
+        </div>
+        {% if w.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
+      </a>
+    {% empty %}
+      <p class="text-sm text-muted sm:col-span-2 lg:col-span-3">Nessun weekend disponibile per la stagione {{ championship.year }}.</p>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}
