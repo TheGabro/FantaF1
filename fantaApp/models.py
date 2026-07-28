@@ -395,4 +395,25 @@ class PlayerRaceChoice(AbstractPlayerChoice):
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "race", "driver")]
+
+class PlayerRaceResult(models.Model):
+    player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
+    race = models.ForeignKey(Race, on_delete=models.CASCADE)
+    credit_spent = models.PositiveIntegerField()
+    fia_points = models.PositiveIntegerField()
+    point_multiplier = models.FloatField(default=1.0)
+    total_points = models.FloatField()
+    calculated_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("player", "race")]
+        indexes = [
+            models.Index(fields=["player", "-calculated_at"]),
+            models.Index(fields=["race", "total_points"]),
+
+        ]
+
+    def __str__(self):
+        return f"{self.player.player_name} - {self.race.weekend}: {self.total_points} pts"
         
