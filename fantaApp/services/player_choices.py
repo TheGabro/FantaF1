@@ -1,152 +1,22 @@
+"""
+Funzioni per le scelte dei giocatori (choose_*).
+La logica di calcolo bonus è in bonuses.py, la logica costi in costs.py.
+"""
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Sum
-from . import qualifying_bonuses, rules
 
 from ..models import (
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
     PlayerRaceChoice,
     PlayerSprintQualifyingChoice,
-    QualifyingResult,
-    Driver,
-    Weekend
 )
-
-def get_regular_race_driver_cost_breakdown(grid_position: int, driver: Driver, weekend: Weekend) -> dict:
-    return rules.get_regular_race_cost_breakdown(
-        grid_position=grid_position,
-        driver=driver,
-        weekend=weekend,
-    )
-
-def get_sprint_race_driver_cost(grid_position: int) -> int:
-    return rules.get_sprint_race_cost(grid_position)
+from . import bonuses, costs
 
 
-def get_regular_race_bonus(*, player, race) -> dict:
-    return qualifying_bonuses.get_qualifying_multichoice_bonus(
-        player=player,
-        race=race,
-    )
-
-
-def _apply_race_credit_discount(*, costs_by_driver_id: dict, credit_discount: int) -> dict:
-    discounted_costs = dict(costs_by_driver_id)
-    remaining_discount = min(max(credit_discount, 0), sum(discounted_costs.values()))
-
-    for driver_id, current_cost in sorted(
-        discounted_costs.items(),
-        key=lambda item: (-item[1], item[0]),
-    ):
-        if remaining_discount <= 0:
-            break
-
-        applied_discount = min(current_cost, remaining_discount)
-        discounted_costs[driver_id] = current_cost - applied_discount
-        remaining_discount -= applied_discount
-
-    return discounted_costs
-
-
-def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
-    if race.type != "regular":
-        return 0
-
-    consecutive_weekends = 0
-    current_round = race.weekend.round_number - 1
-
-    while current_round >= 1 and consecutive_weekends < (rules.PUPILLO_MAX_DISCOUNT // rules.PUPILLO_DISCOUNT_STEP):
-        previous_pupillo = PlayerRaceChoice.objects.filter(
-            player=player,
-            race__type="regular",
-            race__weekend__season=race.weekend.season,
-            race__weekend__round_number=current_round,
-            is_pupillo=True,
-        ).first()
-
-        if not previous_pupillo or previous_pupillo.driver_id != driver.id:
-            break
-
-        consecutive_weekends += 1
-        current_round -= 1
-
-    return min(consecutive_weekends * rules.PUPILLO_DISCOUNT_STEP, rules.PUPILLO_MAX_DISCOUNT)
-
-
-def get_race_driver_options(*, race, player=None):
-    options = []
-    for result in (
-        QualifyingResult.objects
-        .filter(
-            qualifying__weekend=race.weekend,
-            qualifying__type=race.type,
-        )
-        .select_related("driver", "driver__team")
-        .order_by("position")
-    ):
-        if not result.position:
-            continue
-
-        if race.type == "sprint":
-            option = {
-                "driver": result.driver,
-                "grid_position": result.position,
-                "cost": get_sprint_race_driver_cost(result.position),
-            }
-        else:
-            cost_breakdown = get_regular_race_driver_cost_breakdown(
-                grid_position=result.position,
-                driver=result.driver,
-                weekend=race.weekend,
-            )
-            option = {
-                "driver": result.driver,
-                "grid_position": result.position,
-                "grid_cost": cost_breakdown["grid_cost"],
-                "standings_cost": cost_breakdown["standings_cost"],
-                "cost": cost_breakdown["total_cost"],
-            }
-
-        if race.type == "regular" and player is not None:
-            pupillo_discount = get_regular_race_pupillo_discount(
-                player=player,
-                race=race,
-                driver=result.driver,
-            )
-            option["pupillo_discount"] = pupillo_discount
-            option["pupillo_cost"] = max(option["cost"] - pupillo_discount, 0)
-            option["previous_pupillo_streak"] = (
-                pupillo_discount // rules.PUPILLO_DISCOUNT_STEP
-                if pupillo_discount
-                else 0
-            )
-
-        options.append(option)
-
-    return options
-
-
-def get_sprint_race_driver_options(*, race):
-    return get_race_driver_options(race=race)
-
-
-def get_player_reserved_credit(*, player, exclude_race=None) -> int:
-    queryset = PlayerRaceChoice.objects.filter(
-        player=player,
-        credit_applied=False,
-    )
-
-    if exclude_race is not None:
-        queryset = queryset.exclude(race=exclude_race)
-
-    reserved_credit = queryset.aggregate(total=Sum("spent_amount"))["total"]
-    return reserved_credit or 0
-
-
-def get_player_spendable_credit(*, player, exclude_race=None) -> int:
-    return max(player.available_credit - get_player_reserved_credit(player=player, exclude_race=exclude_race), 0)
-
+# ============================================================================
+# Scelta piloti gara sprint
+# ============================================================================
 
 @transaction.atomic
 def choose_sprint_race_drivers(*, player, race, drivers):
@@ -161,7 +31,7 @@ def choose_sprint_race_drivers(*, player, race, drivers):
 
     options_by_driver_id = {
         option["driver"].id: option
-        for option in get_sprint_race_driver_options(race=race)
+        for option in costs.get_sprint_race_driver_options(race=race)
     }
 
     missing_driver_ids = [driver_id for driver_id in driver_ids if driver_id not in options_by_driver_id]
@@ -169,7 +39,7 @@ def choose_sprint_race_drivers(*, player, race, drivers):
         raise ValidationError("La griglia sprint non e' disponibile per uno o piu' piloti selezionati.")
 
     total_spent_amount = sum(options_by_driver_id[driver_id]["cost"] for driver_id in driver_ids)
-    spendable_credit = get_player_spendable_credit(player=player, exclude_race=race)
+    spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     if total_spent_amount > spendable_credit:
         raise ValidationError(
             f"Crediti insufficienti: te ne servono {total_spent_amount}, ma ne hai disponibili {spendable_credit}."
@@ -192,6 +62,10 @@ def choose_sprint_race_drivers(*, player, race, drivers):
     return total_spent_amount
 
 
+# ============================================================================
+# Scelta piloti gara regular (Grand Prix)
+# ============================================================================
+
 @transaction.atomic
 def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     if race.type != "regular":
@@ -210,7 +84,7 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
 
     options_by_driver_id = {
         option["driver"].id: option
-        for option in get_race_driver_options(race=race, player=player)
+        for option in costs.get_race_driver_options(race=race, player=player)
     }
 
     missing_driver_ids = [driver_id for driver_id in driver_ids if driver_id not in options_by_driver_id]
@@ -226,14 +100,14 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
         else:
             selected_costs_by_driver_id[driver.id] = option["cost"]
 
-    qualifying_bonus = get_regular_race_bonus(player=player, race=race)
-    discounted_costs_by_driver_id = _apply_race_credit_discount(
+    qualifying_bonus = bonuses.get_regular_race_bonus(player=player, race=race)
+    adjusted_costs_by_driver_id = bonuses.apply_race_credit_change(
         costs_by_driver_id=selected_costs_by_driver_id,
-        credit_discount=qualifying_bonus["credit_discount"],
+        credit_change=qualifying_bonus["credit_change"],
     )
-    total_spent_amount = sum(discounted_costs_by_driver_id.values())
+    total_spent_amount = sum(adjusted_costs_by_driver_id.values())
 
-    spendable_credit = get_player_spendable_credit(player=player, exclude_race=race)
+    spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     if total_spent_amount > spendable_credit:
         raise ValidationError(
             f"Crediti insufficienti: te ne servono {total_spent_amount}, ma ne hai disponibili {spendable_credit}."
@@ -244,7 +118,7 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     for driver in selected_drivers:
         option = options_by_driver_id[driver.id]
         is_pupillo = driver.id == pupillo_driver.id
-        spent_amount = discounted_costs_by_driver_id[driver.id]
+        spent_amount = adjusted_costs_by_driver_id[driver.id]
 
         PlayerRaceChoice.objects.update_or_create(
             player=player,
@@ -260,15 +134,19 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     return {
         "total_spent_amount": total_spent_amount,
         "pupillo_discount": pupillo_discount,
-        "qualifying_bonus_credit_discount": qualifying_bonus["credit_discount"],
+        "qualifying_bonus_credit_change": qualifying_bonus["credit_change"],
         "qualifying_bonus_points_multiplier": qualifying_bonus["points_multiplier"],
         "qualifying_bonus_level": qualifying_bonus["level"],
+        "qualifying_bonus_qualifying_points": qualifying_bonus["qualifying_points"],
     }
 
 
+# ============================================================================
+# Scelta pilota qualifica sprint
+# ============================================================================
+
 @transaction.atomic
 def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
-
     if slot not in {"sq1", "sq2", "sq3"}:
         raise ValidationError("Slot not valid")
 
@@ -286,30 +164,37 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
     )
 
 
+# ============================================================================
+# Scelta pilota qualifica regular (weekend non-sprint)
+# ============================================================================
+
 @transaction.atomic
-def choose_regular_quali_driver(*, player, qualifying, driver): 
-    
+def choose_regular_quali_driver(*, player, qualifying, driver):
     already_used = (
         PlayerQualifyingChoice.objects
         .filter(
-            player=player,                                # già limita al campionato del player
+            player=player,
             driver=driver,
             qualifying__type="regular",
             qualifying__weekend__season=qualifying.weekend.season,
         )
-        .exclude(qualifying=qualifying)                  # permette eventuale modifica della stessa gara
+        .exclude(qualifying=qualifying)
         .exists()
     )
 
     if already_used:
         raise ValidationError("Driver already used in this season's Regular Qualifying")
 
-    # Crea la nuova scelta
     PlayerQualifyingChoice.objects.update_or_create(
         player=player,
         qualifying=qualifying,
         defaults={"driver": driver},
     )
+
+
+# ============================================================================
+# Scelta multipla piloti qualifica regular (weekend sprint)
+# ============================================================================
 
 @transaction.atomic
 def choose_regular_quali_multi_choices(*, player, qualifying, selections_by_slot):

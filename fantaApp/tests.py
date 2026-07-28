@@ -23,6 +23,8 @@ from .models import (
 	PlayerRaceChoice,
 )
 from .services import player_choices as pc
+from .services import bonuses
+from .services import costs
 from .services import scheduled_updates as su
 
 
@@ -129,10 +131,10 @@ class SprintRaceChoiceTests(TestCase):
 		self.player.refresh_from_db()
 		self.assertEqual(self.player.available_credit, 100)
 
-		reserved_before_change = pc.get_player_reserved_credit(player=self.player)
+		reserved_before_change = costs.get_player_reserved_credit(player=self.player)
 		self.assertEqual(
 			reserved_before_change,
-			pc.get_sprint_race_driver_cost(20),
+			costs.get_sprint_race_driver_cost(20),
 		)
 
 		pc.choose_sprint_race_drivers(
@@ -147,8 +149,8 @@ class SprintRaceChoiceTests(TestCase):
 		self.assertSetEqual(selected_driver_ids, {self.driver_1.id})
 		self.assertEqual(self.player.available_credit, 100)
 		self.assertEqual(
-			pc.get_player_reserved_credit(player=self.player),
-			pc.get_sprint_race_driver_cost(1),
+			costs.get_player_reserved_credit(player=self.player),
+			costs.get_sprint_race_driver_cost(1),
 		)
 
 	def test_started_sprint_race_applies_credit_only_once(self):
@@ -166,7 +168,7 @@ class SprintRaceChoiceTests(TestCase):
 		su.apply_started_sprint_race_credits(player=self.player)
 		self.player.refresh_from_db()
 
-		expected_credit = 40 - pc.get_sprint_race_driver_cost(20)
+		expected_credit = 40 - costs.get_sprint_race_driver_cost(20)
 		self.assertEqual(self.player.available_credit, expected_credit)
 		self.assertEqual(
 			PlayerRaceChoice.objects.filter(player=self.player, race=self.sprint_race, credit_applied=True).count(),
@@ -277,18 +279,18 @@ class GrandPrixChoiceTests(TestCase):
 			pupillo_driver=self.driver_1,
 		)
 
-		self.assertEqual(pc.get_regular_race_pupillo_discount(player=self.player, race=fifth_race, driver=self.driver_1), 20)
+		self.assertEqual(costs.get_regular_race_pupillo_discount(player=self.player, race=fifth_race, driver=self.driver_1), 20)
 		self.assertEqual(result["pupillo_discount"], 20)
 		self.assertEqual(
 			result["total_spent_amount"],
-			pc.get_regular_race_driver_cost_breakdown(
+			costs.get_regular_race_driver_cost_breakdown(
 				grid_position=1,
 				driver=self.driver_1,
 				weekend=fifth_race.weekend,
 			)["total_cost"]
 			- 20
 			+
-			pc.get_regular_race_driver_cost_breakdown(
+			costs.get_regular_race_driver_cost_breakdown(
 				grid_position=2,
 				driver=self.driver_2,
 				weekend=fifth_race.weekend,
@@ -300,7 +302,7 @@ class GrandPrixChoiceTests(TestCase):
 		self.assertTrue(pupillo_choice.is_pupillo)
 		self.assertEqual(
 			pupillo_choice.spent_amount,
-			pc.get_regular_race_driver_cost_breakdown(
+			costs.get_regular_race_driver_cost_breakdown(
 				grid_position=1,
 				driver=self.driver_1,
 				weekend=fifth_race.weekend,
@@ -309,7 +311,7 @@ class GrandPrixChoiceTests(TestCase):
 		self.assertFalse(non_pupillo_choice.is_pupillo)
 		self.assertEqual(
 			non_pupillo_choice.spent_amount,
-			pc.get_regular_race_driver_cost_breakdown(
+			costs.get_regular_race_driver_cost_breakdown(
 				grid_position=2,
 				driver=self.driver_2,
 				weekend=fifth_race.weekend,
@@ -436,10 +438,10 @@ class SprintWeekendRegularQualifyingBonusTests(TestCase):
 				driver=driver,
 			)
 
-		bonus = pc.get_regular_race_bonus(player=self.player, race=self.race)
+		bonus = bonuses.get_regular_race_bonus(player=self.player, race=self.race)
 
 		self.assertEqual(bonus["level"], "q2_pass")
-		self.assertEqual(bonus["credit_discount"], 20)
+		self.assertEqual(bonus["credit_change"], -20)  # negativo = sconto
 		self.assertEqual(bonus["points_multiplier"], Decimal("1.2"))
 
 	def test_regular_race_bonus_discount_is_applied_to_total_spent_amount(self):
@@ -459,7 +461,7 @@ class SprintWeekendRegularQualifyingBonusTests(TestCase):
 		)
 
 		self.assertEqual(result["qualifying_bonus_level"], "q3_top3")
-		self.assertEqual(result["qualifying_bonus_credit_discount"], 50)
+		self.assertEqual(result["qualifying_bonus_credit_change"], -50)  # negativo = sconto
 		self.assertEqual(result["qualifying_bonus_points_multiplier"], Decimal("2"))
 		self.assertEqual(result["total_spent_amount"], 200)
 		self.assertEqual(

@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
 from ..models import League, ChampionshipManager, ChampionshipPlayer, Championship, Weekend
 from ..services import player_choices as pc
+from ..services import costs
 
 @login_required
 def user_dashboard(request):
@@ -70,8 +71,8 @@ def championship_dashboard(request, championship_id):
     reserved_credit = 0
     spendable_credit = 0
     if current_championship_player:
-        reserved_credit = pc.get_player_reserved_credit(player=current_championship_player)
-        spendable_credit = pc.get_player_spendable_credit(player=current_championship_player)
+        reserved_credit = costs.get_player_reserved_credit(player=current_championship_player)
+        spendable_credit = costs.get_player_spendable_credit(player=current_championship_player)
     
     standing_per_league = ChampionshipPlayer.objects.none()
     if current_championship_player:

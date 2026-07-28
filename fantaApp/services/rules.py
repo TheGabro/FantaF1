@@ -1,10 +1,13 @@
+"""
+Costanti e tabelle di gioco per FantaF1.
+Questo file contiene SOLO le costanti - la logica di calcolo è in bonuses.py e costs.py.
+"""
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
-from ..models import (
-    Weekend,
-    Driver
-)
+
+# ============================================================================
+# Costi per posizione in griglia - Sprint Race
+# ============================================================================
 
 SPRINT_RACE_COST_BY_GRID_POSITION = {
     1: 60,
@@ -29,8 +32,13 @@ SPRINT_RACE_COST_BY_GRID_POSITION = {
     20: 0,
     21: 0,
     22: 0,
-    
 }
+
+
+# ============================================================================
+# Costi per posizione in griglia - Regular Race (Grand Prix)
+# ============================================================================
+
 REGULAR_RACE_COST_BY_GRID_POSITION = {
     1: 140,
     2: 110,
@@ -55,16 +63,34 @@ REGULAR_RACE_COST_BY_GRID_POSITION = {
     21: 0,
     22: 0,
 }
+
+
+# ============================================================================
+# Costi aggiuntivi per posizione in classifica piloti
+# ============================================================================
+
 COST_BY_STANDINGS_POSITION = {
     1: 30,
     2: 25,
     3: 20,
     4: 15,
     5: 10,
-    6: 5
+    6: 5,
 }
+
+
+# ============================================================================
+# Sconto pupillo
+# ============================================================================
+
 PUPILLO_DISCOUNT_STEP = 5
 PUPILLO_MAX_DISCOUNT = 20
+
+
+# ============================================================================
+# Bonus multichoice (weekend sprint - qualifica regular)
+# Si applica alla gara regular del weekend sprint
+# ============================================================================
 
 QUALIFYING_MULTICHOICE_BONUS_RULES = {
     "none": {
@@ -85,50 +111,43 @@ QUALIFYING_MULTICHOICE_BONUS_RULES = {
     },
 }
 
-
-def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
-    return QUALIFYING_MULTICHOICE_BONUS_RULES.get(
-        level,
-        QUALIFYING_MULTICHOICE_BONUS_RULES["none"],
-    ).copy()
-
-
-def get_cost_from_grid(mapping, grid_position: int) -> int:
-    if not grid_position or grid_position < 1:
-        raise ValidationError("Posizione di griglia non valida per calcolare il costo del pilota.")
-    return mapping.get(grid_position, 0)
-
-def get_cost_from_standings_position(*, driver, weekend) -> int:
-    standing = (
-        driver.standings
-        .filter(
-            weekend__season=weekend.season,
-            weekend__round_number__lt=weekend.round_number,
-        )
-        .order_by("-weekend__round_number")
-        .first()
-    )
-    if standing is None:
-        return 0
-    return COST_BY_STANDINGS_POSITION.get(standing.position, 0)
-
-def get_regular_race_cost_breakdown(*, grid_position: int, driver: Driver, weekend: Weekend) -> dict:
-    grid_cost = get_cost_from_grid(REGULAR_RACE_COST_BY_GRID_POSITION, grid_position)
-    standings_cost = get_cost_from_standings_position(driver=driver, weekend=weekend)
-    return {
-        "grid_cost": grid_cost,
-        "standings_cost": standings_cost,
-        "total_cost": grid_cost + standings_cost,
-    }
+VALID_MULTI_CHOICE_SLOTS = ("q1_pass", "q2_pass", "q3_top3")
+MULTI_CHOICE_SLOT_SIZES = {
+    "q1_pass": 6,
+    "q2_pass": 5,
+    "q3_top3": 3,
+}
 
 
-def get_regular_race_cost(*, grid_position: int, driver: Driver, weekend: Weekend) -> int:
-    return get_regular_race_cost_breakdown(
-        grid_position=grid_position,
-        driver=driver,
-        weekend=weekend,
-    )["total_cost"]
+# ============================================================================
+# Bonus qualifica regular (weekend non-sprint)
+# Si applica alla gara regular del weekend non-sprint
+# credit_change: positivo = malus (costo aumenta), negativo = sconto (costo diminuisce)
+# qualifying_points: punti guadagnati dalla scelta qualifica
+# points_multiplier: moltiplicatore punti gara
+# ============================================================================
 
-
-def get_sprint_race_cost(grid_position: int) -> int:
-    return get_cost_from_grid(SPRINT_RACE_COST_BY_GRID_POSITION, grid_position)
+REGULAR_QUALIFYING_BONUS_BY_POSITION = {
+    22: {"credit_change": 30, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    21: {"credit_change": 20, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    20: {"credit_change": 20, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    19: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    18: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    17: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
+    16: {"credit_change": 0, "qualifying_points": 10, "points_multiplier": Decimal("1")},
+    15: {"credit_change": 0, "qualifying_points": 20, "points_multiplier": Decimal("1")},
+    14: {"credit_change": -5, "qualifying_points": 30, "points_multiplier": Decimal("1")},
+    13: {"credit_change": -5, "qualifying_points": 40, "points_multiplier": Decimal("1")},
+    12: {"credit_change": -10, "qualifying_points": 60, "points_multiplier": Decimal("1")},
+    11: {"credit_change": -10, "qualifying_points": 80, "points_multiplier": Decimal("1")},
+    10: {"credit_change": -15, "qualifying_points": 100, "points_multiplier": Decimal("1")},
+    9: {"credit_change": -15, "qualifying_points": 200, "points_multiplier": Decimal("1")},
+    8: {"credit_change": -20, "qualifying_points": 300, "points_multiplier": Decimal("1")},
+    7: {"credit_change": -20, "qualifying_points": 400, "points_multiplier": Decimal("1.1")},
+    6: {"credit_change": -25, "qualifying_points": 500, "points_multiplier": Decimal("1.2")},
+    5: {"credit_change": -20, "qualifying_points": 600, "points_multiplier": Decimal("1.3")},
+    4: {"credit_change": -15, "qualifying_points": 700, "points_multiplier": Decimal("1.4")},
+    3: {"credit_change": -10, "qualifying_points": 800, "points_multiplier": Decimal("1.5")},
+    2: {"credit_change": -5, "qualifying_points": 900, "points_multiplier": Decimal("1.7")},
+    1: {"credit_change": 0, "qualifying_points": 1000, "points_multiplier": Decimal("2")},
+}
