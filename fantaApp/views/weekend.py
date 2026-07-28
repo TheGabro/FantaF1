@@ -224,13 +224,13 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
         return sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id) 
         
 # # ───────────────────────────────────────────────────────────────────────────────
-# # 3) Sprint‑Race  (2 piloti, no pupillo)
+# # 3) Sprint‑Race  (1 piloti, no pupillo)
 # # ───────────────────────────────────────────────────────────────────────────────
 @login_required
 @transaction.atomic
 def sprint_race_choice(request, championship_id, weekend_id, event_id):
     """
-    Pagina che mostra 2 scelte per la Sprint Race, con relativi costi in crediti.
+    Pagina che mostra 1 scelte per la Sprint Race, con relativi costi in crediti.
     L'utente deve salvare entrambe le scelte in un solo submit.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
