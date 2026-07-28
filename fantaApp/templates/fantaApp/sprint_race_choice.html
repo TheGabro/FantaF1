@@ -120,11 +120,10 @@
 		const selectedDriversContainer = document.getElementById('selected-drivers-inputs');
 		const selectedDriversList = document.getElementById('selected-drivers-list');
 		const selectedTotalCost = document.getElementById('selected-total-cost');
-		const selectedCount = document.getElementById('selected-count');
 		const saveButton = document.getElementById('save-selection-button');
 		const eventStarted = layout && layout.dataset.eventStarted === 'true';
 
-		if (!layout || !rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost || !selectedCount) {
+		if (!layout || !rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost) {
 			return;
 		}
 
@@ -146,7 +145,6 @@
 			if (!selectedDriverIds.length) {
 				selectedDriversList.innerHTML = '<div style="padding:12px; border:1px dashed #bbb; border-radius:8px; color:#666;">Nessun pilota selezionato.</div>';
 				selectedTotalCost.textContent = '0';
-				selectedCount.textContent = '0';
 				if (saveButton) {
 					saveButton.disabled = true;
 					saveButton.style.opacity = '0.6';
@@ -173,7 +171,6 @@
 			}).join('');
 
 			selectedTotalCost.textContent = String(total);
-			selectedCount.textContent = String(selectedDriverIds.length);
 			if (saveButton) {
 				const canSave = selectedDriverIds.length === 1;
 				saveButton.disabled = !canSave;
