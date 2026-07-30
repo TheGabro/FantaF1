@@ -100,7 +100,7 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
         else:
             selected_costs_by_driver_id[driver.id] = option["cost"]
 
-    qualifying_bonus = bonuses.get_regular_race_bonus(player=player, race=race)
+    qualifying_bonus = bonuses.get_race_bonus(player=player, race=race)
     adjusted_costs_by_driver_id = bonuses.apply_race_credit_change(
         costs_by_driver_id=selected_costs_by_driver_id,
         credit_change=qualifying_bonus["credit_change"],
