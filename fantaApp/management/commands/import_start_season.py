@@ -1,5 +1,3 @@
-
-
 """
 Management command: `python manage.py import_start_season [--season <year>] [--dry-run]`
 
