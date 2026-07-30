@@ -317,7 +317,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
 
     event_started = helper._event_has_started(race)
     driver_options = costs.get_race_driver_options(race=race, player=player)
-    regular_race_bonus = bonuses.get_regular_race_bonus(player=player, race=race)
+    regular_race_bonus = bonuses.get_race_bonus(player=player, race=race)
     existing_choices = list(
         race.playerracechoice_set
         .filter(player=player)
