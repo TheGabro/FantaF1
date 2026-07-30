@@ -1,4 +1,4 @@
-from . import bonuses, costs, helper, player_choices, rules, scheduled_updates
+from . import bonuses, costs, credit_consolidation, helper, player_choices, rules
 
 __all__ = [
 	"bonuses",
@@ -6,5 +6,5 @@ __all__ = [
 	"helper",
 	"player_choices",
 	"rules",
-	"scheduled_updates",
+	"credit_consolidation",
 ]

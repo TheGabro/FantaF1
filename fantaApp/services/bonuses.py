@@ -185,9 +185,9 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
 # Bonus gara (unisce la logica per weekend sprint e regular)
 # ============================================================================
 
-def get_regular_race_bonus(*, player, race) -> dict:
+def get_race_bonus(*, player, race) -> dict:
     """
-    Restituisce il bonus per la gara regular.
+    Restituisce il bonus per la gara.
     - Weekend sprint: bonus da multichoice (q1_pass, q2_pass, q3_top3)
     - Weekend regular: bonus da scelta singola pilota (PlayerQualifyingChoice)
     

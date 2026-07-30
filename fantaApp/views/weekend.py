@@ -4,7 +4,7 @@ from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
-from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice,RaceResult
+from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, RaceResult, PlayerRaceResult
 from ..services import player_choices as pc
 from ..services import bonuses
 from ..services import costs
@@ -627,6 +627,9 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
     player_credit_used = sum(choice.spent_amount for choice in player_choices)
     player_pupillo = next((choice for choice in player_choices if choice.is_pupillo), None)
 
+    player_race_result = PlayerRaceResult.objects.filter(player=player, race=race).first()
+    player_weekend_points = player_race_result.total_points if player_race_result else None
+
     context = {
         "championship": champ,
         "weekend": weekend,
@@ -639,7 +642,7 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
         "player_choices": player_choices,
         "selected_driver_ids": selected_driver_ids,
         "player_pupillo": player_pupillo,
-        "player_weekend_points": None,
+        "player_weekend_points": player_weekend_points,
         "player_credit_used": player_credit_used,
     }
     return render(request, "fantaApp/race_results.html", context)
