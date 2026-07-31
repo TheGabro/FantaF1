@@ -24,11 +24,15 @@ class Migration(migrations.Migration):
             name='time',
             field=models.DurationField(blank=True, null=True),
         ),
-        migrations.AlterField(
+        migrations.RemoveField(
+            model_name='raceentry',
+            name='best_lap',
+        ),
+        migrations.AddField(
             model_name='raceentry',
             name='best_lap',
             field=models.SmallIntegerField(blank=True, null=True),
-        ),
+        ),      
         migrations.AlterField(
             model_name='raceentry',
             name='status',
