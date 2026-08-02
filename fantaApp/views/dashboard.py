@@ -12,15 +12,41 @@ def user_dashboard(request):
     championship = ChampionshipPlayer.objects.filter(
         user=user
     ).select_related('championship', 'league').order_by('championship__active','-championship__year')
+    
+    manageed_championships = ChampionshipManager.objects.filter(
+        user=user
+    ).select_related('championship').order_by('championship__active','-championship__year')
 
     context = {
         "user": user,
         "championship": championship,
+        "manageed_championships": manageed_championships,
         "is_admin": user.user_type == "admin",
         "is_staff": user.user_type == "staff",
         "is_premium": user.user_type == "premium"
     }
     return render(request, "fantaApp/user_dashboard.html", context)
+
+@login_required
+def edit_championship(request, championship_id):
+    championship = get_object_or_404(Championship, pk=championship_id)
+
+    if request.method == 'POST':
+        form = creations.ChampionshipForm(request.POST, instance=championship)
+        formset = creations.LeagueFormSet(request.POST, instance=championship)
+        if form.is_valid() and formset.is_valid():
+            form.save()
+            formset.save()
+            return redirect('championship_dashboard', championship_id=championship.id)
+    else:
+        form = creations.ChampionshipForm(instance=championship)
+        formset = creations.LeagueFormSet(instance=championship)
+
+    return render(request, 'fantaApp/edit_championship.html', {
+        'form': form,
+        'formset': formset,
+        'championship': championship
+    })
 
 
 @login_required

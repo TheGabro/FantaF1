@@ -9,6 +9,7 @@ urlpatterns = [
     path('auth/logout/', auth.logout, name='logout'),
     path("dashboard/account/", dashboard.user_dashboard, name = 'user_dashboard'),
     path("championships/create/", dashboard.create_championship, name='create_championship'),
+    path("dashboard/championships/managed/<int:championship_id>/edit/", dashboard.edit_championship, name='edit_championship'),
     path("dashboard/championships/<int:championship_id>/", dashboard.championship_dashboard, name='championship_dashboard'),
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/",

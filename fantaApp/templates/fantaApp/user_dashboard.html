@@ -29,4 +29,16 @@
   {% endfor %}
 </ul>
 
+<h2>Campionati gestiti</h2>
+<ul>
+  {% for e in manageed_championships %}
+  <li>
+    <a href="{% url 'championship_dashboard' e.championship.id %}">
+      {{ e.championship.name }} ({{ e.championship.year }})
+    </a>
+  </li>
+  {% empty %}
+  <li>Non gestisci ancora nessun campionato.</li>
+  {% endfor %}
+
 {% endblock %}
