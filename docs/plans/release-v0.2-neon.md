@@ -1,44 +1,47 @@
-# Release Plan - v0.2.0 Neon Migration
+# Release Plan - v0.2.0 Docker + Render
 
-## Scopo
-Portare l'app da SQLite a PostgreSQL su Neon con flusso Git ordinato e rilascio controllato.
+## Scope
+Deploy the app to Render using Docker, with release flow from develop to main.
 
-## Non obiettivi
-- Migrazione dei dati storici da SQLite
+## Non-goals
+- No historical data migration from SQLite to PostgreSQL.
+- No feature work outside release readiness.
 
-## Stato attuale
-- Configurazione env già introdotta (SECRET_KEY, DEBUG, ALLOWED_HOSTS)
-- `.env` escluso dal versionamento
-- `.env.example` presente
-- Milestone Neon creata su GitHub
+## Confirmed Constraints
+- Render is the hosting platform.
+- Docker is the deployment artifact.
+- SQLite stays local fallback only.
+- Hosted runtime must use PostgreSQL via DATABASE_URL.
+- Branch flow is feature/fix/chore to develop, then develop to main.
+- Runtime note: keep current Django compatibility workaround active for Python 3.14 runtime.
 
-## Strategia branch
-- Lavoro ordinario: `feature/*`, `fix/*`, `chore/*` -> `develop`
-- Rilascio: `develop` -> `main`
+## Release Steps
+1. Create release prep branch from develop.
+2. Finalize Docker and Render deploy checklist.
+3. Verify required environment variables are defined in Render.
+4. Run local checks and smoke run before PR.
+5. Open PR to develop and complete review/checks.
+6. Merge to develop.
+7. Open release PR from develop to main.
+8. After main merge, verify Render deployment health and tag v0.2.0.
 
-## Piano operativo
-1. Allineare branch locali `main` e `develop`.
-2. Creare branch `chore/postgres-neon` da `develop`.
-3. Aggiungere dipendenze in `requirements.txt`:
-   - `dj-database-url`
-   - `psycopg2-binary`
-4. Aggiornare `FantaF1/settings.py`:
-   - usare `DATABASE_URL` se presente
-   - fallback a SQLite se assente
-5. Aggiornare `.env.example` con placeholder `DATABASE_URL`.
-6. Verifica locale:
-   - `python manage.py check`
-   - `python manage.py migrate`
-   - `python manage.py runserver`
-   - test con e senza `DATABASE_URL`
-7. Push branch e PR verso `develop` con `Closes #<issue-neon>`.
-8. Dopo merge su `develop`, PR `develop -> main`.
-9. Tag/release `v0.2.0` dopo verifica finale su `main`.
+## Required Environment Variables
+- SECRET_KEY
+- DEBUG
+- ALLOWED_HOSTS
+- DATABASE_URL
+- RENDER_EXTERNAL_HOSTNAME
+- WEB_CONCURRENCY
 
-## Checklist pre-merge
-- Nessun segreto nel repository
-- Base branch della PR corretta (`develop`)
-- Test minimi passati
+## Verification Checklist
+- Docker image builds successfully.
+- Container starts and serves the app.
+- Database migrations run against hosted PostgreSQL.
+- App login and admin pages load.
+- Release branch and PR targets are correct.
+- No secrets committed to repository.
 
-## Note
-Questa cartella e' documentazione di progetto e non fa parte del codice eseguito da Django.
+## Rollback
+- Roll back Render service to last stable deploy.
+- Restore previous Render environment variables if needed.
+- If code rollback is needed, use a revert or hotfix PR on main.

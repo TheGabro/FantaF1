@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local database and secrets
+db.sqlite3
+.env
+
+# Collected static (rigenerati in build)
+staticfiles/
+media/
+
+# Git / IDE / OS
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docs and tooling caches
+docs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
