@@ -67,24 +67,28 @@ class PlayerQualifyingChoiceInline(admin.TabularInline):
     extra = 0
     fields = ['qualifying', 'driver', 'created_at']
     readonly_fields = ['created_at']
+    raw_id_fields = ['qualifying', 'driver']
 
 class PlayerQualifyingMultiChoiceInline(admin.TabularInline):
     model = PlayerQualifyingMultiChoice
     extra = 0
     fields = ['qualifying', 'selection_slot', 'driver', 'created_at']
     readonly_fields = ['created_at']
+    raw_id_fields = ['qualifying', 'driver']
 
 class PlayerSprintQualifyingChoiceInline(admin.TabularInline):
     model = PlayerSprintQualifyingChoice
     extra = 0
     fields = ['qualifying', 'selection_slot', 'driver', 'created_at']
     readonly_fields = ['created_at']
+    raw_id_fields = ['qualifying', 'driver']
 
 class PlayerRaceChoiceInline(admin.TabularInline):
     model = PlayerRaceChoice
     extra = 0
     fields = ['race', 'driver', 'spent_amount', 'credit_applied', 'is_pupillo', 'created_at']
     readonly_fields = ['created_at']
+    raw_id_fields = ['race', 'driver']
 
 @admin.register(Championship)
 class ChampionshipAdmin(admin.ModelAdmin):

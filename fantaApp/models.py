@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ObjectDoesNotExist
 import uuid
 
 
@@ -180,7 +181,12 @@ class Race(Event):
 
 
     def __str__(self):
-        return f"{self.weekend} - {self.type}"
+        try:
+            weekend_label = str(self.weekend)
+        except ObjectDoesNotExist:
+            # Defensive fallback for dangling FK rows in non-constrained DBs.
+            weekend_label = f"Weekend #{self.weekend_id}"
+        return f"{weekend_label} - {self.type}"
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
@@ -196,7 +202,12 @@ class Qualifying(Event):
 
 
     def __str__(self):
-        return f"{self.weekend} - {self.type}"
+        try:
+            weekend_label = str(self.weekend)
+        except ObjectDoesNotExist:
+            # Defensive fallback for dangling FK rows in non-constrained DBs.
+            weekend_label = f"Weekend #{self.weekend_id}"
+        return f"{weekend_label} - {self.type}"
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
