@@ -20,6 +20,10 @@
 
 <p><strong>Crediti disponibili:</strong> {{ spendable_credit }}{% if reserved_credit %} · <span style="color:#666;">{{ reserved_credit }} gia' prenotati su altre Sprint Race future</span>{% endif %}</p>
 
+{% if sprint_qualifying_bonus.credit_discount %}
+<p><strong>Bonus qualifica sprint:</strong> -{{ sprint_qualifying_bonus.credit_discount }} crediti sul costo del pilota scelto (livello {{ sprint_qualifying_bonus.level }}).</p>
+{% endif %}
+
 {% if current_choice_total %}
 <p><strong>Costo della selezione attuale:</strong> {{ current_choice_total }}</p>
 {% endif %}
@@ -37,7 +41,7 @@
 <form method="post">
 	{% csrf_token %}
 	{% endif %}
-	<div id="sprint-race-layout" data-event-started="{{ event_started|yesno:'true,false' }}" style="display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(280px, 1fr); gap:20px; align-items:start;">
+	<div id="sprint-race-layout" data-event-started="{{ event_started|yesno:'true,false' }}" data-qualifying-bonus-credit-discount="{{ sprint_qualifying_bonus.credit_discount|default:0 }}" style="display:grid; grid-template-columns:minmax(0, 1.8fr) minmax(280px, 1fr); gap:20px; align-items:start;">
 		<div style="overflow:auto; border:1px solid #ddd; border-radius:10px;">
 			<table style="width:100%; border-collapse:collapse; min-width:640px;">
 				<thead>
@@ -122,6 +126,7 @@
 		const selectedTotalCost = document.getElementById('selected-total-cost');
 		const saveButton = document.getElementById('save-selection-button');
 		const eventStarted = layout && layout.dataset.eventStarted === 'true';
+		const qualifyingBonusCreditDiscount = layout ? Number(layout.dataset.qualifyingBonusCreditDiscount || 0) : 0;
 
 		if (!layout || !rows.length || !selectedDriversContainer || !selectedDriversList || !selectedTotalCost) {
 			return;
@@ -170,7 +175,8 @@
 				`;
 			}).join('');
 
-			selectedTotalCost.textContent = String(total);
+			const totalWithBonus = Math.max(total - qualifyingBonusCreditDiscount, 0);
+			selectedTotalCost.textContent = String(totalWithBonus);
 			if (saveButton) {
 				const canSave = selectedDriverIds.length === 1;
 				saveButton.disabled = !canSave;
