@@ -4,7 +4,7 @@ Le costanti/tabelle sono definite in rules.py.
 """
 from decimal import Decimal
 
-from ..models import PlayerQualifyingChoice, PlayerQualifyingMultiChoice, QualifyingResult
+from ..models import PlayerQualifyingChoice, PlayerQualifyingMultiChoice, PlayerSprintQualifyingChoice, QualifyingResult
 from . import rules
 
 
@@ -20,6 +20,94 @@ def _passed_q1(result: QualifyingResult) -> bool:
 def _passed_q2(result: QualifyingResult) -> bool:
     """Verifica se il pilota ha passato la Q2."""
     return result.q3_time is not None
+
+def _slot_position(slot: str, choice_by_slot: dict, results_by_driver_id: dict) -> int | None:
+    driver_id = choice_by_slot.get(slot)
+    result = results_by_driver_id.get(driver_id) if driver_id is not None else None
+    return result.position if result is not None else None
+
+# ============================================================================
+# Bonus qualifiche sprint
+# ============================================================================
+
+def get_qualifying_sprint_bonus_rule(level: str) -> dict:
+    """Restituisce i valori bonus per un livello multichoice."""
+    return rules.SPRINT_BONUS_RULES.get(
+        level,
+        rules.SPRINT_BONUS_RULES["none"],
+    ).copy()
+
+
+def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
+    """
+    Calcola il bonus dalla scelta (sq1, sq2, sq3).
+    Si applica solo ai weekend sprint per la gara sprint.
+    """
+    if qualifying is None:
+        bonus = get_qualifying_sprint_bonus_rule("none")
+        return {
+            "level": "none",
+            "credit_discount": bonus["credit_discount"],
+            "points_modifier": bonus["points_modifier"],
+            "sq1": False,
+            "sq2": False,
+            "sq3": False,
+        }
+    
+    if not (qualifying.type == "sprint"):
+        bonus = get_qualifying_sprint_bonus_rule("none")
+        return {
+            "level": "none",
+            "credit_discount": bonus["credit_discount"],
+            "points_modifier": bonus["points_modifier"],
+            "sq1": False,
+            "sq2": False,
+            "sq3": False,
+        }
+
+    choice_by_slot = {
+        choice.selection_slot: choice.driver_id
+        for choice in (
+            PlayerSprintQualifyingChoice.objects
+            .filter(player=player, qualifying=qualifying)
+            .select_related("driver")
+        )
+    }
+
+    results_by_driver_id = {
+        result.driver_id: result
+        for result in QualifyingResult.objects.filter(qualifying=qualifying)
+    }
+
+    sq1_position = _slot_position("sq1", choice_by_slot, results_by_driver_id)
+    sq2_position = _slot_position("sq2", choice_by_slot, results_by_driver_id)
+    sq3_position = _slot_position("sq3", choice_by_slot, results_by_driver_id)
+
+    sq1_hit = sq1_position is not None and sq1_position > 15
+    sq2_hit = sq2_position is not None and 11 <= sq2_position <= 15
+    sq3_hit = sq3_position is not None and 6 <= sq3_position <= 10
+
+
+    if sq3_hit:
+        level = "sq3_hit"
+    elif sq2_hit:
+        level = "sq2_hit"
+    elif sq1_hit:
+        level = "sq1_hit"
+    else:
+        level = "made"
+    
+    bonus = get_qualifying_sprint_bonus_rule(level)
+    return {
+        "level": level,
+        "credit_discount": bonus["credit_discount"],
+        "points_modifier": bonus["points_modifier"],
+        "sq1_hit": sq1_hit,
+        "sq2_hit": sq2_hit,
+        "sq3_hit": sq3_hit,
+    }
+
+    
 
 
 # ============================================================================
@@ -180,6 +268,22 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "position": result.position,
     }
 
+# ============================================================================
+# Bonus gara sprint (aggiunta ai punti, non moltiplicatore)
+# ============================================================================
+
+def get_sprint_race_bonus(*, player, race) -> dict:
+    """
+    Bonus per la gara sprint, dalla scelta in sprint qualifying (sq1/sq2/sq3).
+    points_modifier: punti aggiunti (additivi) al punteggio FIA.
+    """
+    qualifying = race.weekend.qualifyings.filter(type="sprint").first()
+    sprint_bonus = get_sprint_qualifying_bonus(player=player, qualifying=qualifying)
+    return {
+        "level": sprint_bonus["level"],
+        "credit_discount": sprint_bonus["credit_discount"],
+        "points_modifier": sprint_bonus["points_modifier"],
+    }
 
 # ============================================================================
 # Bonus gara (unisce la logica per weekend sprint e regular)

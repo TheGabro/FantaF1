@@ -38,7 +38,12 @@ def choose_sprint_race_drivers(*, player, race, drivers):
     if missing_driver_ids:
         raise ValidationError("La griglia sprint non e' disponibile per uno o piu' piloti selezionati.")
 
-    total_spent_amount = sum(options_by_driver_id[driver_id]["cost"] for driver_id in driver_ids)
+    qualifying = race.weekend.qualifyings.filter(type="sprint").first()
+    qualifying_bonus = bonuses.get_sprint_qualifying_bonus(player=player, qualifying=qualifying)
+
+    base_cost = sum(options_by_driver_id[driver_id]["cost"] for driver_id in driver_ids)
+    # Lo sconto non può portare il costo sotto zero: nessun guadagno di crediti.
+    total_spent_amount = max(base_cost - qualifying_bonus["credit_discount"], 0)
     spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     if total_spent_amount > spendable_credit:
         raise ValidationError(
@@ -53,7 +58,7 @@ def choose_sprint_race_drivers(*, player, race, drivers):
             race=race,
             driver=driver,
             defaults={
-                "spent_amount": options_by_driver_id[driver.id]["cost"],
+                "spent_amount": total_spent_amount,
                 "credit_applied": False,
                 "is_pupillo": False,
             },

@@ -118,6 +118,37 @@ MULTI_CHOICE_SLOT_SIZES = {
     "q3_top3": 3,
 }
 
+# ============================================================================
+# Bonus sprint (weekend sprint - qualifica regular)
+# Si applica alla gara regular del weekend sprint
+# ============================================================================
+
+SPRINT_BONUS_RULES = {
+    "none": {
+        "credit_discount": 0,
+        "points_modifier": 0
+    },
+    "made": {
+        "credit_discount": 10,
+        "points_modifier": 0,
+    },
+    "sq1_hit": {
+        "credit_discount": 20,
+        "points_modifier": 0,
+    },
+    "sq2_hit": {
+        "credit_discount": 20,
+        "points_modifier": 1,
+    },
+    "sq3_hit": {
+        "credit_discount": 20,
+        "points_modifier": 2,
+    },
+}
+
+
+
+
 
 # ============================================================================
 # Bonus qualifica regular (weekend non-sprint)

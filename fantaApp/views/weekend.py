@@ -240,6 +240,8 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     event_started = helper._event_has_started(race)
     
     driver_options = costs.get_sprint_race_driver_options(race=race)
+    sprint_qualifying = weekend.qualifyings.filter(type="sprint").first()
+    sprint_qualifying_bonus = bonuses.get_sprint_qualifying_bonus(player=player, qualifying=sprint_qualifying)
     existing_choices = list(
         race.playerracechoice_set
         .filter(player=player)
@@ -296,6 +298,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         "weekend": weekend,
         "event": race,
         "driver_options": driver_options,
+        "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
