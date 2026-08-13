@@ -60,10 +60,16 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
     fia_points = _get_fia_points_for_choices(choices, race)
     credit_spent = sum(choice.spent_amount for choice in choices)
 
-    race_bonus = bonuses.get_race_bonus(player=player, race=race)
-    point_multiplier = float(race_bonus["points_multiplier"])
-
-    total_points = fia_points * point_multiplier
+    if race.type == "sprint":
+        # Sprint race: il bonus si somma ai punti FIA (nessun moltiplicatore).
+        sprint_bonus = bonuses.get_sprint_race_bonus(player=player, race=race)
+        point_multiplier = 1.0
+        total_points = fia_points + sprint_bonus["points_modifier"]
+    else:
+        # Gara regular: il bonus è un moltiplicatore sui punti FIA.
+        race_bonus = bonuses.get_race_bonus(player=player, race=race)
+        point_multiplier = float(race_bonus["points_multiplier"])
+        total_points = fia_points * point_multiplier
 
     result, _ = PlayerRaceResult.objects.update_or_create(
         player=player,
