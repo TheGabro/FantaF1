@@ -413,6 +413,7 @@ class PlayerRaceResult(models.Model):
     credit_spent = models.PositiveIntegerField()
     fia_points = models.PositiveIntegerField()
     point_multiplier = models.FloatField(default=1.0)
+    point_modifier = models.PositiveIntegerField(default=0)
     total_points = models.FloatField()
     calculated_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
