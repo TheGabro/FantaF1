@@ -36,9 +36,8 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
     Algoritmo:
       1. Legge le scelte del giocatore (PlayerRaceChoice)
       2. Somma i punti F1 ufficiali dei piloti scelti (fia_points)
-      3. Recupera il moltiplicatore dalla qualifica (bonus.get_regular_race_bonus)
-      4. total_points = fia_points * point_multiplier
-      5. Salva/aggiorna PlayerRaceResult
+      3. Applica il bonus qualifica: gara regular -> moltiplicatore, gara sprint -> additivo
+      4. Salva/aggiorna PlayerRaceResult (inclusi point_multiplier e point_modifier)
 
     Returns:
         L'istanza PlayerRaceResult creata o aggiornata.
@@ -60,10 +59,18 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
     fia_points = _get_fia_points_for_choices(choices, race)
     credit_spent = sum(choice.spent_amount for choice in choices)
 
-    race_bonus = bonuses.get_race_bonus(player=player, race=race)
-    point_multiplier = float(race_bonus["points_multiplier"])
-
-    total_points = fia_points * point_multiplier
+    if race.type == "sprint":
+        # Sprint race: il bonus si somma ai punti FIA (nessun moltiplicatore).
+        sprint_bonus = bonuses.get_sprint_race_bonus(player=player, race=race)
+        point_multiplier = 1.0
+        point_modifier = sprint_bonus["points_modifier"]
+        total_points = fia_points + point_modifier
+    else:
+        # Gara regular: il bonus è un moltiplicatore sui punti FIA.
+        race_bonus = bonuses.get_race_bonus(player=player, race=race)
+        point_multiplier = float(race_bonus["points_multiplier"])
+        point_modifier = 0
+        total_points = fia_points * point_multiplier
 
     result, _ = PlayerRaceResult.objects.update_or_create(
         player=player,
@@ -71,6 +78,7 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
         defaults={
             "fia_points": fia_points,
             "point_multiplier": point_multiplier,
+            "point_modifier": point_modifier,
             "total_points": total_points,
             "credit_spent": credit_spent,
         },
@@ -119,8 +127,8 @@ def compute_player_score_per_race(*, race) -> dict:
             # Calcola e salva i punti per questa gara
             compute_race_points(player=player, race=race)
             
-            # Aggiorna total_score come somma di TUTTI i PlayerRaceResult del giocatore
-            # (indipendentemente dal campionato)
+            # total_score = somma dei PlayerRaceResult di questo ChampionshipPlayer
+            # (gia' scoping al singolo campionato: ChampionshipPlayer e' per-campionato)
             total = sum(
                 r.total_points
                 for r in PlayerRaceResult.objects.filter(player=player)
