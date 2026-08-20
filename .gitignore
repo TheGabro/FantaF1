@@ -29,3 +29,7 @@ Thumbs.db
 
 # folders
 docs/
+
+#airflow
+airflow/config/
+airflow/logs/
