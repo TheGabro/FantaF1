@@ -4,8 +4,10 @@ from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
-from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice,RaceResult
+from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, RaceResult, PlayerRaceResult
 from ..services import player_choices as pc
+from ..services import bonuses
+from ..services import costs
 from ..services import helper
 
 
@@ -222,13 +224,13 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
         return sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event_id) 
         
 # # ───────────────────────────────────────────────────────────────────────────────
-# # 3) Sprint‑Race  (2 piloti, no pupillo)
+# # 3) Sprint‑Race  (1 piloti, no pupillo)
 # # ───────────────────────────────────────────────────────────────────────────────
 @login_required
 @transaction.atomic
 def sprint_race_choice(request, championship_id, weekend_id, event_id):
     """
-    Pagina che mostra 2 scelte per la Sprint Race, con relativi costi in crediti.
+    Pagina che mostra 1 scelte per la Sprint Race, con relativi costi in crediti.
     L'utente deve salvare entrambe le scelte in un solo submit.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
@@ -237,7 +239,9 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     # blocco modifiche se l'evento è già iniziato (solo UI)
     event_started = helper._event_has_started(race)
     
-    driver_options = pc.get_sprint_race_driver_options(race=race)
+    driver_options = costs.get_sprint_race_driver_options(race=race)
+    sprint_qualifying = weekend.qualifyings.filter(type="sprint").first()
+    sprint_qualifying_bonus = bonuses.get_sprint_qualifying_bonus(player=player, qualifying=sprint_qualifying)
     existing_choices = list(
         race.playerracechoice_set
         .filter(player=player)
@@ -285,8 +289,8 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 
         return redirect(request.path)
 
-    reserved_credit = pc.get_player_reserved_credit(player=player, exclude_race=race)
-    spendable_credit = pc.get_player_spendable_credit(player=player, exclude_race=race)
+    reserved_credit = costs.get_player_reserved_credit(player=player, exclude_race=race)
+    spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
     context = {
@@ -294,6 +298,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         "weekend": weekend,
         "event": race,
         "driver_options": driver_options,
+        "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
@@ -314,8 +319,8 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
 
     event_started = helper._event_has_started(race)
-    driver_options = pc.get_race_driver_options(race=race, player=player)
-    regular_race_bonus = pc.get_regular_race_bonus(player=player, race=race)
+    driver_options = costs.get_race_driver_options(race=race, player=player)
+    regular_race_bonus = bonuses.get_race_bonus(player=player, race=race)
     existing_choices = list(
         race.playerracechoice_set
         .filter(player=player)
@@ -379,15 +384,29 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
                 drivers=[options_by_driver_id[driver_id]["driver"] for driver_id in selected_ids],
                 pupillo_driver=options_by_driver_id[pupillo_driver_id]["driver"],
             )
-            if result["pupillo_discount"]:
+            
+            # Costruisci il messaggio in base ai bonus applicati
+            credit_change = result["qualifying_bonus_credit_change"]
+            credit_msg = ""
+            if credit_change < 0:
+                credit_msg = f"Sconto qualifica: {abs(credit_change)} crediti."
+            elif credit_change > 0:
+                credit_msg = f"Malus qualifica: +{credit_change} crediti."
+            
+            if result["pupillo_discount"] and credit_msg:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Bonus qualifica: -{result['qualifying_bonus_credit_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} crediti.",
                 )
-            elif result["qualifying_bonus_credit_discount"]:
+            elif result["pupillo_discount"]:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Bonus qualifica: -{result['qualifying_bonus_credit_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                )
+            elif credit_msg:
+                messages.success(
+                    request,
+                    f"Scelte salvate con successo. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} crediti.",
                 )
             else:
                 messages.success(
@@ -399,8 +418,8 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
 
         return redirect(request.path)
 
-    reserved_credit = pc.get_player_reserved_credit(player=player, exclude_race=race)
-    spendable_credit = pc.get_player_spendable_credit(player=player, exclude_race=race)
+    reserved_credit = costs.get_player_reserved_credit(player=player, exclude_race=race)
+    spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
     context = {
@@ -611,6 +630,9 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
     player_credit_used = sum(choice.spent_amount for choice in player_choices)
     player_pupillo = next((choice for choice in player_choices if choice.is_pupillo), None)
 
+    player_race_result = PlayerRaceResult.objects.filter(player=player, race=race).first()
+    player_weekend_points = player_race_result.total_points if player_race_result else None
+
     context = {
         "championship": champ,
         "weekend": weekend,
@@ -623,7 +645,7 @@ def _render_race_results_page(request, championship_id, weekend_id, event_id, *,
         "player_choices": player_choices,
         "selected_driver_ids": selected_driver_ids,
         "player_pupillo": player_pupillo,
-        "player_weekend_points": None,
+        "player_weekend_points": player_weekend_points,
         "player_credit_used": player_credit_used,
     }
     return render(request, "fantaApp/race_results.html", context)

@@ -11,6 +11,7 @@ env/
 # Django
 *.log
 local_settings.py
+.env
 
 media/
 staticfiles/
@@ -29,3 +30,5 @@ Thumbs.db
 # Frontend toolchain
 frontend/bin/
 frontend/dev_db.sqlite3
+# folders
+docs/

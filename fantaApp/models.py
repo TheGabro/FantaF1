@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ObjectDoesNotExist
 import uuid
 
 
@@ -180,7 +181,12 @@ class Race(Event):
 
 
     def __str__(self):
-        return f"{self.weekend} - {self.type}"
+        try:
+            weekend_label = str(self.weekend)
+        except ObjectDoesNotExist:
+            # Defensive fallback for dangling FK rows in non-constrained DBs.
+            weekend_label = f"Weekend #{self.weekend_id}"
+        return f"{weekend_label} - {self.type}"
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
@@ -196,7 +202,12 @@ class Qualifying(Event):
 
 
     def __str__(self):
-        return f"{self.weekend} - {self.type}"
+        try:
+            weekend_label = str(self.weekend)
+        except ObjectDoesNotExist:
+            # Defensive fallback for dangling FK rows in non-constrained DBs.
+            weekend_label = f"Weekend #{self.weekend_id}"
+        return f"{weekend_label} - {self.type}"
     
     class Meta:
         ordering = ['weekend__round_number', '-type']
@@ -395,4 +406,61 @@ class PlayerRaceChoice(AbstractPlayerChoice):
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "race", "driver")]
-        
+
+class PlayerRaceResult(models.Model):
+    player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
+    race = models.ForeignKey(Race, on_delete=models.CASCADE)
+    credit_spent = models.PositiveIntegerField()
+    fia_points = models.PositiveIntegerField()
+    point_multiplier = models.FloatField(default=1.0)
+    point_modifier = models.PositiveIntegerField(default=0)
+    total_points = models.FloatField()
+    calculated_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("player", "race")]
+        indexes = [
+            models.Index(fields=["player", "-calculated_at"]),
+            models.Index(fields=["race", "total_points"]),
+
+        ]
+
+    def __str__(self):
+        return f"{self.player.player_name} - {self.race.weekend}: {self.total_points} pts"
+ 
+class Status(models.TextChoices):
+    PENDING = "pending", "Pending"
+    WAITING_FOR_RESULTS = "waiting_for_results", "Waiting for results"
+    PROCESSED = "processed", "Processed"
+    ERROR = "error", "Error"   
+    
+class EventProcessingStatus(models.Model):
+    
+
+    
+    race = models.OneToOneField(
+        Race,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="processing_status",
+    )
+    qualifying = models.OneToOneField(
+        Qualifying,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="processing_status",
+    )
+
+    status = models.CharField(
+            max_length=30,
+            choices=Status.choices,
+            default=Status.PENDING,
+        )
+    
+    eligible_after = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(null=True)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)

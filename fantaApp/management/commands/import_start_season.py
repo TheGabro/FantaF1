@@ -1,23 +1,28 @@
-
-
 """
 Management command: `python manage.py import_start_season [--season <year>] [--dry-run]`
 
 Scarica piloti, circuiti e calendario per la stagione indicata tramite
 le funzioni del layer `services` e li salva/aggiorna nel database Django.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
-from fantaApp.models import Circuit, Driver, Weekend, Team, Race, Qualifying
+from fantaApp.models import Circuit, Driver, Weekend, Team, Race, Qualifying, EventProcessingStatus
+from fantaApp.services import helper
 from fantaApp.services.jolpicaSource import (
     get_circuits,
     get_drivers,
     get_weekends,
     get_teams,
 )
+
+# Le results F1 ufficiali arrivano con un certo ritardo dopo la bandiera a
+# scacchi: un evento diventa "eligible" per l'elaborazione solo un po' dopo
+# il suo orario di inizio ufficiale, non subito.
+ELIGIBLE_AFTER_DELAY = timedelta(hours=2)
 
 
 class Command(BaseCommand):
@@ -66,7 +71,23 @@ class Command(BaseCommand):
             )
             return fallback_driver
 
-        return Driver.objects.create(api_id=data["drivers_api_id"], **defaults)
+        return Driver.objects.get_or_create(api_id=data["drivers_api_id"], **defaults)
+
+    def _init_processing_status(self, *, race=None, qualifying=None):
+        event = race or qualifying
+        start = helper.event_start(event)
+        if not start:
+            self.stdout.write(self.style.WARNING(f"Skipped processing status for {event}: no start time"))
+            return
+
+        if timezone.is_naive(start):
+            start = timezone.make_aware(start, timezone.utc)
+
+        EventProcessingStatus.objects.get_or_create(
+            race=race,
+            qualifying=qualifying,
+            defaults={"eligible_after": start + ELIGIBLE_AFTER_DELAY},
+        )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -92,7 +113,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         circuits_cache: dict[str, Circuit] = {}
         for data in get_circuits(season):
-            circuit, _ = Circuit.objects.update_or_create(
+            circuit, _ = Circuit.objects.get_or_create(
                 api_id=data["circuit_api_id"],
                 defaults={
                     "name": data["name"],
@@ -110,7 +131,7 @@ class Command(BaseCommand):
         
         teams_cache: dict[str, Team] = {}
         for data in get_teams(season):
-            team, _ = Team.objects.update_or_create(
+            team, _ = Team.objects.get_or_create(
                 api_id=data["constructor_api_id"],
                 defaults={
                     "name": data['name'],
@@ -142,7 +163,7 @@ class Command(BaseCommand):
         weekends_payload = get_weekends(season)
         weekend_cache: dict[tuple[int, int], Weekend] = {}
         for data in weekends_payload:
-            weekend, _ = Weekend.objects.update_or_create(
+            weekend, _ = Weekend.objects.get_or_create(
                 season=season,
                 round_number=data["round_number"],
                 defaults={
@@ -170,18 +191,26 @@ class Command(BaseCommand):
         qualifying_count = 0
 
         for w in Weekend.objects.filter(season=season):
-            # Regular race and qualifying
-            _, race_created = Race.objects.get_or_create(weekend=w, type="regular")
-            _, qualifying_created = Qualifying.objects.get_or_create(weekend=w, type="regular")
-            race_count += 1 if race_created else 0
-            qualifying_count += 1 if qualifying_created else 0
 
-            # Sprint race/qualifying only if weekend is sprint‑type
+            # Il GP della domenica (type="regular") c'e' sempre; in piu', nei
+            # weekend sprint, ci sono anche la sprint qualifying e la sprint race.
+            event_types = ["regular"]
             if w.weekend_type == "sprint":
-                _, sprint_race_created = Race.objects.get_or_create(weekend=w, type="sprint")
-                _, sprint_qualifying_created = Qualifying.objects.get_or_create(weekend=w, type="sprint")
-                race_count += 1 if sprint_race_created else 0
-                qualifying_count += 1 if sprint_qualifying_created else 0
+                event_types.append("sprint")
+
+            for event_type in event_types:
+                race, race_created = Race.objects.get_or_create(weekend=w, type=event_type)
+                qualifying, qualifying_created = Qualifying.objects.get_or_create(weekend=w, type=event_type)
+
+                # get_or_create qui sotto e' idempotente: se lo stato esiste
+                # gia' non lo tocca, quindi va bene chiamarlo sempre e non solo
+                # per le Race/Qualifying create in questo run (serve a
+                # "recuperare" anche gli eventi creati da run precedenti).
+                self._init_processing_status(race=race)
+                self._init_processing_status(qualifying=qualifying)
+
+                race_count += 1 if race_created else 0
+                qualifying_count += 1 if qualifying_created else 0
 
         self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {race_count} created"))
         self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {qualifying_count} created"))

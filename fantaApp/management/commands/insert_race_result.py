@@ -14,7 +14,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--season",
             type=int,
-            help="seasonto call",
+            help="season to call",
         )
 
         parser.add_argument(
@@ -26,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="round to call",
+            help="sprint o regular",
         )
 
         parser.add_argument(
@@ -39,16 +39,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         season: int = options["season"]
         round: int = options["round"]
-        q_type: str = options["type"]
+        r_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
         race = Race.objects.get(
             weekend=weekend,
-            type = q_type
+            type = r_type
         )
         
         race_objs :list[RaceResult] = []
-        for data in get_race_result(season, round, True if q_type=='sprint' else False):
+        for data in get_race_result(season, round, True if r_type=='sprint' else False):
             fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
             race_objs.append(
                 RaceResult(

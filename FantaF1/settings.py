@@ -11,22 +11,37 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# --- Configurazione di base ---
+# Tutti i valori sensibili vengono letti da variabili d'ambiente (.env in locale,
+# dashboard di Render in produzione). Mai hardcodare questi valori nel codice.
+SECRET_KEY = os.getenv("SECRET_KEY")
+DEBUG = os.getenv("DEBUG", "False") == "True"
+# ALLOWED_HOSTS: lista di domini da cui Django accetta richieste.
+# In locale si imposta in .env (es. 127.0.0.1,localhost).
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!ctyboxt5(j*uegaqwl2l0x9n*c^7+w_#!e&(l@(#@juakb$$0'
+# CSRF_TRUSTED_ORIGINS: domini autorizzati a inviare form POST.
+# Viene popolato dinamicamente sotto con il dominio Render.
+CSRF_TRUSTED_ORIGINS = []
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+# --- Configurazione Render ---
+# Render imposta automaticamente RENDER_EXTERNAL_HOSTNAME con il dominio pubblico
+# del servizio (es. fantaf1.onrender.com). Se presente, lo aggiungiamo ad
+# ALLOWED_HOSTS e CSRF_TRUSTED_ORIGINS cosi' Django accetta le richieste in produzione.
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # Application definition
 
@@ -42,6 +57,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise deve stare subito dopo SecurityMiddleware e prima di tutto il resto.
+    # Si occupa di servire i file statici (CSS, JS, immagini) direttamente dal
+    # processo Django in produzione, senza bisogno di un server separato (es. Nginx).
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -73,14 +92,22 @@ WSGI_APPLICATION = 'FantaF1.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# Grazie alla variabile di ambiente il default database sarà sqlite3, 
+# ma in produzione useremo postgresql
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
-
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -117,6 +144,36 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# STATIC_ROOT: cartella dove 'manage.py collectstatic' raccoglie tutti i file
+# statici dell'app e di Django admin. Viene creata durante il build del Dockerfile.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    # CompressedManifestStaticFilesStorage: backend WhiteNoise che comprime i file
+    # statici (gzip/brotli) e aggiunge un hash al nome (es. main.a1b2c3.css).
+    # L'hash permette il caching aggressivo nel browser: se il file cambia,
+    # cambia il nome, e il browser scarica la nuova versione.
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# --- Sicurezza in produzione ---
+# Questi settings si attivano solo quando DEBUG=False (cioe' in produzione su Render).
+# Render usa un proxy che termina HTTPS prima di passare la richiesta a Django:
+# la connessione tra proxy e Django e' HTTP, ma il proxy aggiunge l'header
+# X-Forwarded-Proto: https. SECURE_PROXY_SSL_HEADER dice a Django di fidarsi
+# di quell'header per sapere se la connessione originale era HTTPS.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Redirige automaticamente tutte le richieste HTTP a HTTPS.
+    SECURE_SSL_REDIRECT = True
+    # I cookie di sessione e CSRF vengono inviati solo su connessioni HTTPS.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
