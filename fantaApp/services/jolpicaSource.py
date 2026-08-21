@@ -5,6 +5,10 @@ import time
 _RATE_LIMIT_SEC = 2.0                 # stay conservative with Jolpica rate limits
 _last_call_ts = 0.0                   # perf_counter timestamp of last call
 
+class ResultsNotAvailable(Exception):
+    """Sollevata quando la sessione richiesta non ha ancora risultati pubblicati dall'API."""
+
+
 def rate_limited_get(url: str, max_retries: int = 5, **kwargs):
     """
     Wrapper attorno a requests.get che assicura di non superare il rate limit.
@@ -132,7 +136,10 @@ def get_qualifying_result(season : int, round :int) -> list[dict]:
     qualy_r = rate_limited_get(qualy_url, timeout=10)
     qualy_r.raise_for_status()
     qualy_results : list[dict] = []
-    for q in qualy_r.json()['MRData']['RaceTable']['Races'][0]['QualifyingResults']:
+    qualy = qualy_r.json()['MRData']['RaceTable']['Races']
+    if not qualy:
+        raise ResultsNotAvailable(f"Risultati della sessione qualifiche non ancora disponibili per stagione {season}, round {round}")
+    for q in qualy[0]['QualifyingResults']:
         driver_quali = {
             "driver_api_id": q["Driver"]["driverId"],
             "position": q["position"],
@@ -167,7 +174,11 @@ def get_race_result(season: int, round: int, is_sprint : bool = False) -> list[d
     race_r = rate_limited_get(race_url, timeout=10)
     race_r.raise_for_status()
     race_results: list[dict] = []
-    for r in race_r.json()['MRData']['RaceTable']['Races'][0][endpoint]:
+    races = race_r.json()['MRData']['RaceTable']['Races']
+    if not races:
+        raise ResultsNotAvailable(f"Risultati della sessione {event} non ancora disponibili per stagione {season}, round {round}")
+    
+    for r in races[0][endpoint]:
         result = {
             "driver_api_id": r["Driver"]["driverId"],
             "position": int(r["position"]),
