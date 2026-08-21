@@ -1,16 +1,36 @@
 {% extends 'fantaApp/base.html' %}
 
-{% block content %}
-    <h1>Pagina di registrazione</h1>
-    <h2>Registrati </h2>
-        <form method="post">
-            {% csrf_token %}
-            {{ form_register.as_p }}
-            <input type="hidden" name="action" value="signup">
-            <button type="submit">Registrati</button>
-        </form>
-    <p>Hai già un account?</p>
-    <a href="{% url 'login' %}" class="btn">Login</a>
-    
+{% block title %}Registrati — Fanta F1{% endblock %}
 
+{% block content %}
+<div class="mx-auto mt-8 w-full max-w-sm sm:mt-16">
+  <div class="card-pad">
+    <h1 class="text-xl font-black uppercase italic">Registrati</h1>
+    <p class="mt-1 mb-5 text-sm text-muted">Crea il tuo account e inizia a giocare.</p>
+
+    {% if form_register.non_field_errors %}
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+        {% for error in form_register.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form_register %}
+        <div class="form-field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {{ field.errors }}
+          {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn-primary w-full">Crea account</button>
+    </form>
+  </div>
+
+  <p class="mt-4 text-center text-sm text-muted">
+    Hai già un account?
+    <a href="{% url 'login' %}" class="font-semibold text-accent hover:underline">Accedi</a>
+  </p>
+</div>
 {% endblock %}

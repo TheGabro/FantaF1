@@ -1,121 +1,75 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
+{% load static %}
 {% load dict_extras %}
 
-{% block championship_content %}
-<h2>{{ weekend.event_name }} – Race Qualifying</h2>
-<p>
-	<a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
-</p>
+{% block title %}{{ weekend.event_name }} · Qualifying — Fanta F1{% endblock %}
 
-{% if messages %}
-	{% for message in messages %}
-	{% if message.tags == 'error' %}
-	<p style="color:red;">{{ message }}</p>
-	{% else %}
-	<p style="color:green;">{{ message }}</p>
-	{% endif %}
-	{% endfor %}
-{% endif %}
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/select-dedupe.js' %}"></script>{% endblock %}
+
+{% block championship_content %}
+<a href="{% url 'weekend_details' championship.id weekend.id %}" class="btn-ghost mb-4 -ml-2 text-sm">← Eventi del weekend</a>
+
+<h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
 
 {% if event_started %}
-<p><strong>Le scelte per questa qualifica sono chiuse.</strong></p>
+  <div class="card-pad mb-5 border-accent/40">
+    <p class="text-sm font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
+  </div>
+{% else %}
+  <p class="mb-5 text-sm text-muted">
+    <strong class="text-ink">Regole:</strong> pronostica i piloti che passeranno il Q1 (fino a 6), quelli che passeranno il Q2 (fino a 5) e la top 3 del Q3.
+    Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti crediti e moltiplicatori punti sul Grand Prix.
+  </p>
 {% endif %}
 
-{% if not event_started %}
-<p><strong>Regole:</strong> seleziona 6 piloti per Q1, 5 per Q2 e 3 per Q3. Nessun pilota può essere scelto più di una volta.</p>
-<form method="post">
-	{% csrf_token %}
-{% endif %}
+{% if not event_started %}<form method="post">{% csrf_token %}{% endif %}
 
-<table>
-	<thead>
-		<tr>
-			<th>Slot</th>
-			<th>Pilota</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for code, label in slots %}
-		<tr>
-			<td style="vertical-align: top; padding: 8px 0;">{{ label }}</td>
-			<td style="padding: 8px 0;">
-				{% if event_started %}
-					{% with choices=existing|get_item:code %}
-						{% if choices %}
-							<ul>
-							{% for choice in choices %}
-								<li>✔ {{ choice.driver.team.short_name }} - {{ choice.driver.first_name }} {{ choice.driver.last_name }}</li>
-							{% endfor %}
-							</ul>
-						{% else %}
-							—
-						{% endif %}
-					{% endwith %}
-				{% else %}
-					{% with choices=existing|get_item:code %}
-					{% for i in slot_limits|get_item:code|to_range %}
-						{% with selected_choice=choices|get_item:i %}
-						<div style="margin-bottom: 8px;">
-							<select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}">
-								<option value="">-- scegli pilota --</option>
-								{% for d in drivers %}
-								<option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
-									{{ d.team.short_name }} - {{ d.first_name }} {{ d.last_name }}
-								</option>
-								{% endfor %}
-							</select>
-						</div>
-						{% endwith %}
-					{% endfor %}
-					{% endwith %}
-				{% endif %}
-			</td>
-		</tr>
-		{% endfor %}
-	</tbody>
-</table>
+<div class="grid items-start gap-4 md:grid-cols-3">
+  {% for code, label in slots %}
+    <div class="card-pad">
+      <h3 class="mb-3 text-sm font-bold uppercase tracking-wide">{{ label }}</h3>
+
+      {% if event_started %}
+        {% with choices=existing|get_item:code %}
+          {% if choices %}
+            <ul class="space-y-2">
+              {% for choice in choices %}
+                <li class="team-{{ choice.driver.team.short_name|slugify }}">
+                  <span class="team-chip text-sm">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</span>
+                  <span class="ml-1 text-xs text-muted">{{ choice.driver.team.short_name }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-sm text-muted">Nessun pronostico.</p>
+          {% endif %}
+        {% endwith %}
+      {% else %}
+        {% with choices=existing|get_item:code %}
+          <div class="space-y-2">
+            {% for i in slot_limits|get_item:code|to_range %}
+              {% with selected_choice=choices|get_item:i %}
+                <div class="form-field">
+                  <select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}" data-dedupe>
+                    <option value="">— scegli pilota —</option>
+                    {% for d in drivers %}
+                      <option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
+                        {{ d.team.short_name }} · {{ d.first_name }} {{ d.last_name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% endwith %}
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
 
 {% if not event_started %}
-<button type="submit">Salva tutte le scelte</button>
+  <button type="submit" class="btn-primary mt-5 w-full sm:w-auto">Salva tutti i pronostici</button>
 </form>
-
-<script>
-	(function () {
-		const selects = Array.from(document.querySelectorAll('select[name^="drivers_"]'));
-		if (!selects.length) return;
-
-		function refreshDriverOptions() {
-			const globallySelected = new Set();
-			selects.forEach((select) => {
-				if (select.value) {
-					globallySelected.add(select.value);
-				}
-			});
-
-			selects.forEach((select) => {
-				Array.from(select.options).forEach((option) => {
-					if (!option.value) {
-						option.hidden = false;
-						option.disabled = false;
-						return;
-					}
-
-					const selectedInAnotherSelect =
-						globallySelected.has(option.value) && select.value !== option.value;
-
-					option.hidden = selectedInAnotherSelect;
-					option.disabled = selectedInAnotherSelect;
-				});
-			});
-		}
-
-		selects.forEach((select) => {
-			select.addEventListener("change", refreshDriverOptions);
-		});
-
-		refreshDriverOptions();
-	})();
-</script>
 {% endif %}
 {% endblock %}
-
