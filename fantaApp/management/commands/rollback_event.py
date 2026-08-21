@@ -4,8 +4,8 @@ Management command:
 `python manage.py rollback_event --all [--dry-run]`
 
 Annulla l'elaborazione di uno o tutti gli eventi: cancella i dati importati/calcolati
-e riporta l'EventProcessingStatus a "pending", cosi' che process_pending_events
-lo riprenda al prossimo giro. Utile per correggere un evento finito in "error"
+e riporta l'EventProcessingStatus a "pending", cosi' che process_pending_qualifying/
+process_pending_races lo riprenda al prossimo giro. Utile per correggere un evento finito in "error"
 (o "processed" con dati sbagliati) senza dover intervenire a mano sul DB.
 """
 from django.core.management.base import BaseCommand, CommandError
