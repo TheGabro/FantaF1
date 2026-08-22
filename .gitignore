@@ -29,3 +29,5 @@ Thumbs.db
 
 # folders
 docs/
+airflow/logs/
+airflow/auth/
