@@ -1,28 +1,61 @@
 {% extends 'fantaApp/base.html' %}
 
+{% block title %}Fanta F1 — Il fantasy game della Formula 1{% endblock %}
+
 {% block content %}
-<h1>FantaF1 homepage</h1>
+<section class="py-10 sm:py-16">
+  <p class="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
 
-    {% if user.is_authenticated %}
-    <p>Ciao {{user.username}}, accedi alla tua dashboard per vedere i tuoi campionati</p>
-
-    <form method="post" action="{% url 'user_dashboard' %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Dashboard</button>
-    </form>
-
-    <p>
-      <a href="{% url 'create_championship' %}" class="btn">Crea un nuovo Campionato</a>
+  {% if user.is_authenticated %}
+    <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
+      Bentornato, {{ user.username }}
+    </h1>
+    <p class="mt-4 max-w-xl text-lg text-muted">
+      I tuoi campionati ti aspettano: controlla i crediti, fai le tue scelte per il prossimo weekend e scala la classifica.
     </p>
-    
-    <form method="post" action="{% url 'logout' %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
-    {% else %}
-    <p>Benvenuto nel sito del Fanta F1, accedi o registrati per cominciare a giocare</p>
-        <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
-        <a href="{% url 'register' %}" class="btn btn-secondary">Registrati</a>
-    {% endif %}
-{% endblock %}
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="{% url 'user_dashboard' %}" class="btn-primary">I miei campionati</a>
+      <a href="{% url 'create_championship' %}" class="btn-secondary">Crea un campionato</a>
+    </div>
+  {% else %}
+    <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
+      Sfida i tuoi amici<br />a ogni <span class="text-accent">weekend di gara</span>
+    </h1>
+    <p class="mt-4 max-w-xl text-lg text-muted">
+      Gestisci i tuoi crediti, scegli i piloti giusti dalla griglia, pronostica le qualifiche
+      e conquista la vetta del tuo campionato Fanta F1.
+    </p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="{% url 'register' %}" class="btn-primary">Inizia a giocare</a>
+      <a href="{% url 'login' %}" class="btn-secondary">Accedi</a>
+    </div>
+  {% endif %}
+</section>
 
+<section class="grid gap-4 pb-12 sm:grid-cols-3">
+  <div class="card-pad">
+    <span class="pos-badge mb-3 !bg-accent-soft !text-accent-strong dark:!text-accent">1</span>
+    <h2 class="text-base font-bold uppercase">Scegli i piloti</h2>
+    <p class="mt-2 text-sm text-muted">
+      Hai 2000 crediti a stagione: il costo di ogni pilota dipende dalla posizione in griglia
+      e dalla classifica del mondiale. Spendili bene.
+    </p>
+  </div>
+  <div class="card-pad">
+    <span class="pos-badge mb-3 !bg-accent-soft !text-accent-strong dark:!text-accent">2</span>
+    <h2 class="text-base font-bold uppercase">Pronostica le qualifiche</h2>
+    <p class="mt-2 text-sm text-muted">
+      Indovina gli eliminati in Q1, Q2 e la top 3: i pronostici giusti ti danno sconti sui crediti
+      e moltiplicatori di punti in gara.
+    </p>
+  </div>
+  <div class="card-pad">
+    <span class="pos-badge mb-3 !bg-accent-soft !text-accent-strong dark:!text-accent">3</span>
+    <h2 class="text-base font-bold uppercase">Punta sul pupillo</h2>
+    <p class="mt-2 text-sm text-muted">
+      Conferma lo stesso pilota weekend dopo weekend: il suo costo scende a ogni gara consecutiva.
+      Fedeltà premiata, fino a 20 crediti di sconto.
+    </p>
+  </div>
+</section>
+{% endblock %}

@@ -27,5 +27,9 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+# Frontend toolchain
+frontend/bin/
+frontend/dev_db.sqlite3
 # folders
 docs/
+.claude/

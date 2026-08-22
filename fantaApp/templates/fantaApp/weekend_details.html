@@ -1,80 +1,103 @@
-{% extends "fantaApp/championship_flow_base.html" %} {% block championship_content %}
-<h2>
-  <!-- prettier-ignore -->
-  Round {{ weekend.round_number }} · {{ weekend.event_name }}
-</h2>
+{% extends "fantaApp/championship_flow_base.html" %}
 
-<p>
-  <!-- prettier-ignore -->
-  Circuito: {{ weekend.circuit.name }} · {% if weekend.weekend_type == "sprint"%} Weekend Sprint {% else %} Weekend Regular {% endif %}
-</p>
+{% block title %}{{ weekend.event_name }} — Fanta F1{% endblock %}
 
-<hr />
+{% block championship_content %}
+<div class="mb-6 flex flex-wrap items-center gap-3">
+  <span class="pos-badge !h-12 !w-12 text-base">R{{ weekend.round_number }}</span>
+  <div>
+    <h2 class="text-2xl font-black uppercase italic leading-tight">{{ weekend.event_name }}</h2>
+    <p class="text-sm text-muted">
+      {{ weekend.circuit.name }} · {{ weekend.circuit.country }}
+      {% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y" }}{% endif %}
+    </p>
+  </div>
+  {% if weekend.weekend_type == "sprint" %}
+    <span class="badge-warn">Weekend Sprint</span>
+  {% else %}
+    <span class="badge-muted">Weekend Regular</span>
+  {% endif %}
+</div>
 
-<h3>Eventi del weekend</h3>
+<div class="grid gap-6 lg:grid-cols-3">
+  <!-- Sessioni e scelte -->
+  <section class="lg:col-span-2">
+    <h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Sessioni del weekend</h3>
+    <div class="space-y-3">
+      {% for ev in events %}
+        <div class="card flex flex-wrap items-center gap-4 p-4">
+          <span class="h-10 w-1.5 rounded-full {% if ev.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-bold">{{ ev.label }}</h4>
+            <p class="text-xs text-muted">
+              {% if ev.entity == "qualifying" and ev.subtype == "sprint" %}
+                {{ weekend.sprint_qualifying_start|date:"D j M · H:i"|default:"orario da definire" }}
+              {% elif ev.entity == "race" and ev.subtype == "sprint" %}
+                {{ weekend.sprint_start|date:"D j M · H:i"|default:"orario da definire" }}
+              {% elif ev.entity == "qualifying" %}
+                {{ weekend.qualifying_start|date:"D j M · H:i"|default:"orario da definire" }}
+              {% else %}
+                {{ weekend.race_start|date:"D j M · H:i"|default:"orario da definire" }}
+              {% endif %}
+            </p>
+          </div>
 
-<p class="text-muted">Scegli un evento per effettuare le tue scelte.</p>
+          {% if ev.has_choice %}
+            <span class="badge-ok">✓ Scelta effettuata</span>
+          {% else %}
+            <span class="badge-muted">Da scegliere</span>
+          {% endif %}
 
-<ul>
-  {% for ev in events %}
-  <li>
-    {% if ev.entity == "qualifying" and ev.subtype == "sprint" %}
-    <a
-      href="{% url 'sprint_race_qualifying_choice' championship.id weekend.id ev.event_id %}"
-      >{{ ev.label }}</a
-    >
-    {% if ev.has_choice %} ✔{% endif %}
-    {% elif ev.entity == "qualifying" and ev.subtype == "regular" %}
-    <a
-      href="{% url 'race_qualifying_choice' championship.id weekend.id ev.event_id %}"
-      >{{ ev.label }}</a
-    >
-    {% if ev.has_choice %} ✔{% endif %}
-    {% elif ev.entity == "race" and ev.subtype == "sprint" %}
-    <a
-      href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}"
-      >{{ ev.label }}</a
-    >
-    {% if ev.has_choice %} ✔{% endif %}
-    {% elif ev.entity == "race" and ev.subtype == "regular" %}
-    <a
-      href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}"
-      >{{ ev.label }}</a
-    >
-    {% if ev.has_choice %} ✔{% endif %}
-    {% else %} {{ ev.label }} {% if ev.has_choice %} ✔{% endif %} {% endif %}
-  </li>
-  {% empty %}
-  <li>Nessun evento trovato.</li>
-  {% endfor %}
-</ul>
+          {% if ev.entity == "qualifying" and ev.subtype == "sprint" %}
+            <a href="{% url 'sprint_race_qualifying_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+              {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
+            </a>
+          {% elif ev.entity == "qualifying" and ev.subtype == "regular" %}
+            <a href="{% url 'race_qualifying_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+              {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
+            </a>
+          {% elif ev.entity == "race" and ev.subtype == "sprint" %}
+            <a href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+              {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
+            </a>
+          {% elif ev.entity == "race" and ev.subtype == "regular" %}
+            <a href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+              {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
+            </a>
+          {% endif %}
+        </div>
+      {% empty %}
+        <div class="card-pad text-center text-sm text-muted">
+          Nessuna sessione disponibile per questo weekend (dati non ancora importati).
+        </div>
+      {% endfor %}
+    </div>
+  </section>
 
-<h3>Risultati del weekend</h3>
-
-<ul>
-  {% for r in results %}
-  <li>
-    {% if r.subtype == "sprint" %}
-    <a
-      href="{% url 'sprint_race_results' championship.id weekend.id r.event_id %}"
-      >{{ r.label }}</a
-    >
-    {% elif r.subtype == "regular" %}
-    <a
-      href="{% url 'regular_race_results' championship.id weekend.id r.event_id %}"
-      >{{ r.label }}</a
-    >
-    {% endif %}
-    </li>
-  {% empty %}
-  <p class="text-muted">I risultati ufficiali saranno disponibili qui una volta conclusi gli eventi.</p>
-  
-  {% endfor %}
-
-</ul>
-
-
-
-
-
+  <!-- Risultati -->
+  <aside>
+    <h3 class="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Risultati ufficiali</h3>
+    <div class="space-y-3">
+      {% for r in results %}
+        {% if r.subtype == "sprint" %}
+          <a href="{% url 'sprint_race_results' championship.id weekend.id r.event_id %}"
+             class="card group flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
+            <span class="font-bold group-hover:text-accent">{{ r.label }}</span>
+            <span class="text-muted">→</span>
+          </a>
+        {% else %}
+          <a href="{% url 'regular_race_results' championship.id weekend.id r.event_id %}"
+             class="card group flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
+            <span class="font-bold group-hover:text-accent">{{ r.label }}</span>
+            <span class="text-muted">→</span>
+          </a>
+        {% endif %}
+      {% empty %}
+        <div class="card-pad text-sm text-muted">
+          I risultati compariranno qui una volta conclusi gli eventi in pista.
+        </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
 {% endblock %}

@@ -428,4 +428,39 @@ class PlayerRaceResult(models.Model):
 
     def __str__(self):
         return f"{self.player.player_name} - {self.race.weekend}: {self.total_points} pts"
-        
+ 
+class Status(models.TextChoices):
+    PENDING = "pending", "Pending"
+    WAITING_FOR_RESULTS = "waiting_for_results", "Waiting for results"
+    PROCESSED = "processed", "Processed"
+    ERROR = "error", "Error"   
+    
+class EventProcessingStatus(models.Model):
+    
+
+    
+    race = models.OneToOneField(
+        Race,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="processing_status",
+    )
+    qualifying = models.OneToOneField(
+        Qualifying,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="processing_status",
+    )
+
+    status = models.CharField(
+            max_length=30,
+            choices=Status.choices,
+            default=Status.PENDING,
+        )
+    
+    eligible_after = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(null=True)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
