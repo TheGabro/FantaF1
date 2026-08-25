@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from fantaApp.models import Weekend, Driver, DriverStanding
-from fantaApp.services.jolpicaSource import get_driver_standings
+from fantaApp.services.sources.jolpicaSource import get_driver_standings
 
 class Command(BaseCommand):
     help = "Import driver standings"
