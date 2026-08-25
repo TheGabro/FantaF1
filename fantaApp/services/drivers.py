@@ -5,6 +5,8 @@ from django.core.management.base import CommandError
 
 logger = logging.getLogger(__name__)
 
+class TeamNotFound(LookupError):
+    pass
 
 def find_driver(*, season: int, api_id=None, number=None,
                 first_name=None, last_name=None) -> Driver | None:
@@ -59,6 +61,17 @@ def save_driver(*, season: int, data: dict, team: Team) -> None:
         for field, value in defaults.items():
             setattr(driver, field, value)
         driver.save(update_fields=["api_id", *defaults.keys()])
+        
+def save_drivers(*, season: int, payload: list[dict]) -> list[Driver]:
+    teams_by_api_id = Team.objects.in_bulk(field_name="api_id")
+    saved = []
+    for data in payload:
+        team = teams_by_api_id.get(data["team"])
+        if team is None:
+            raise TeamNotFound(f"Team '{data['team']}' non presente a DB: importa prima i team.")
+        saved.append(save_driver(season=season, data=data, team=team))
+    return saved
+
 
     
 def resolve_fastf1_driver(*, season: int, data: dict) -> Driver:

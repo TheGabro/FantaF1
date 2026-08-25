@@ -7,14 +7,14 @@ le funzioni del layer `services` e li salva/aggiorna nel database Django.
 from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
 from django.db import transaction
 from django.utils import timezone
 
 from fantaApp.models import Circuit, Weekend, Team, Race, Qualifying, EventProcessingStatus
-from fantaApp.services import helper, drivers
+from fantaApp.services import helper
 from fantaApp.services.sources.jolpicaSource import (
     get_circuits,
-    get_drivers,
     get_weekends,
     get_teams,
 )
@@ -103,15 +103,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # 3) Drivers
         # ------------------------------------------------------------------
-        drivers_payload = get_drivers(season)
-        for data in drivers_payload:
-            drivers.save_driver(
-                season=season,
-                data=data,
-                team=teams_cache[data["team"]],
-            )
-        self.stdout.write(self.style.SUCCESS(f"• Drivers imported: {len(drivers_payload)}"))
-        
+        call_command("import_drivers", season=season, stdout=self.stdout)
 
         # ------------------------------------------------------------------
         # 4) Weekends
