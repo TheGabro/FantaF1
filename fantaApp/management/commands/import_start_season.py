@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from fantaApp.models import Circuit, Driver, Weekend, Team, Race, Qualifying, EventProcessingStatus
 from fantaApp.services import helper
-from fantaApp.services.jolpicaSource import (
+from fantaApp.services.sources.jolpicaSource import (
     get_circuits,
     get_drivers,
     get_weekends,
