@@ -1,0 +1,66 @@
+{% extends "fantaApp/championship_section_base.html" %}
+
+{% block title %}Prossime gare — {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block section_content %}
+{% include "fantaApp/_championship_credits.html" %}
+
+{% if current_championship_player %}
+  <div class="card-pad mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-bold">Scelte ancora aperte</h2>
+      <p class="mt-1 text-sm text-muted">Solo le sessioni non ancora iniziate: dopo il via la scelta si blocca.</p>
+    </div>
+    {% if pending_count %}
+      <span class="badge-warn">{{ pending_count }} scelt{{ pending_count|pluralize:"a,e" }} da fare</span>
+    {% else %}
+      <span class="badge-ok">Sei in pari</span>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="space-y-4">
+  {% for item in open_weekends %}
+    <section class="card">
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-4">
+        <span class="pos-badge shrink-0 !h-11 !w-11 text-base">R{{ item.weekend.round_number }}</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
+          <p class="truncate text-sm text-muted">{{ item.weekend.circuit.name }}</p>
+        </div>
+        {% if item.weekend.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
+        <a href="{% url 'weekend_details' championship.id item.weekend.id %}" class="btn-ghost shrink-0">Dettaglio weekend →</a>
+      </div>
+
+      <ul class="divide-y divide-line">
+        {% for s in item.sessions %}
+          <li class="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3">
+            <span class="h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
+            <div class="min-w-0 flex-1">
+              <h4 class="font-bold">{{ s.label }}</h4>
+              <p class="text-sm text-muted">{{ s.start|date:"D j M · H:i"|default:"orario da definire" }}</p>
+            </div>
+
+            {% if s.has_choice %}
+              <span class="badge-ok shrink-0">✓ Scelta effettuata</span>
+            {% else %}
+              <span class="badge-muted shrink-0">Da scegliere</span>
+            {% endif %}
+
+            {% if current_championship_player %}
+              <a href="{% url s.url_name championship.id item.weekend.id s.event.id %}" class="btn-secondary shrink-0">
+                {% if s.has_choice %}Modifica{% else %}Scegli{% endif %}
+              </a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% empty %}
+    <div class="card-pad text-center text-base text-muted">
+      Nessuna sessione aperta: tutte le sessioni della stagione {{ championship.year }} sono già iniziate,
+      oppure il calendario non è ancora stato importato.
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -143,4 +143,46 @@
 
   /* Riga pilota selezionata nelle pagine di scelta */
   .row-selected { @apply bg-accent-soft/50; }
+
+  /* Tab di navigazione fra le sezioni della dashboard campionato.
+     Barra su fondo surface-2, tab attiva a pillola accent: stesso trattamento
+     di .btn-primary, incluso il rosso profondo in dark (il bianco sul rosso
+     chiaro non regge il contrasto). */
+  .championship-tabs {
+    @apply mb-6 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1;
+  }
+  .championship-tab {
+    @apply shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold
+      text-muted transition-colors hover:bg-surface hover:text-ink;
+  }
+  .championship-tab-active {
+    @apply bg-accent text-white shadow-sm hover:bg-accent hover:text-white
+      dark:bg-accent-strong dark:hover:bg-accent-strong;
+  }
+
+  /* Tabella classifiche: molte colonne numeriche, allineate e leggibili.
+     Le colonne numeriche stanno strette sul contenuto; lo spazio in eccesso
+     lo assorbe la colonna Giocatore (w-full), così i numeri di uno stesso
+     gruppo restano vicini invece di spalmarsi sulla larghezza. */
+  .table-stats { @apply w-full border-collapse text-base; }
+  .table-stats thead th {
+    @apply px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted
+      bg-surface-2 whitespace-nowrap;
+  }
+  .table-stats thead tr:first-child th { @apply pb-1 pt-3 text-center; }
+  .table-stats thead tr:last-child th { @apply pt-1 pb-2 border-b border-line; }
+  .table-stats td { @apply px-3 py-3 border-b border-line; }
+  .table-stats tbody tr:nth-child(even) { @apply bg-surface-2/50; }
+  .table-stats tbody tr.row-me { @apply bg-accent-soft; }
+  .table-stats tbody tr:last-child td { @apply border-b-0; }
+  .table-stats .num { @apply text-right font-bold tabular-nums whitespace-nowrap; }
+  .table-stats .num-soft { @apply text-right tabular-nums whitespace-nowrap text-muted; }
+  /* Separatore fra i gruppi di colonne (Punti | Fantamilioni | Gare) */
+  .table-stats .group-start { @apply border-l border-line; }
+
+  /* Riga di statistiche affiancate dentro una card (crediti, riepiloghi) */
+  .stat-row { @apply flex flex-wrap divide-x divide-line; }
+  .stat-cell { @apply min-w-40 flex-1 px-5 py-4; }
+  .stat-label { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
+  .stat-value { @apply mt-1 text-4xl font-black tabular-nums leading-none; }
 }

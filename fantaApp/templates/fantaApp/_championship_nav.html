@@ -1,0 +1,37 @@
+{% comment %}
+  Navigazione fra le sezioni della dashboard campionato.
+  Richiede in context: championship, active_section.
+  Per aggiungere una sezione: una voce qui + view/URL corrispondente.
+{% endcomment %}
+<nav class="championship-tabs" aria-label="Sezioni del campionato">
+  <a href="{% url 'championship_dashboard' championship.id %}"
+     class="championship-tab {% if active_section == 'standings_general' %}championship-tab-active{% endif %}"
+     {% if active_section == 'standings_general' %}aria-current="page"{% endif %}>
+    Classifica generale
+  </a>
+  <a href="{% url 'championship_league_standings' championship.id %}"
+     class="championship-tab {% if active_section == 'standings_league' %}championship-tab-active{% endif %}"
+     {% if active_section == 'standings_league' %}aria-current="page"{% endif %}>
+    Classifica lega
+  </a>
+  <a href="{% url 'championship_my_choices' championship.id %}"
+     class="championship-tab {% if active_section == 'my_choices' %}championship-tab-active{% endif %}"
+     {% if active_section == 'my_choices' %}aria-current="page"{% endif %}>
+    Le mie scelte
+  </a>
+  <a href="{% url 'championship_next_races' championship.id %}"
+     class="championship-tab {% if active_section == 'next_races' %}championship-tab-active{% endif %}"
+     {% if active_section == 'next_races' %}aria-current="page"{% endif %}>
+    Prossime gare
+  </a>
+  <a href="{% url 'championship_calendar' championship.id %}"
+     class="championship-tab {% if active_section == 'calendar' %}championship-tab-active{% endif %}"
+     {% if active_section == 'calendar' %}aria-current="page"{% endif %}>
+    Calendario
+  </a>
+  <a href="{% url 'championship_info' championship.id %}"
+     class="championship-tab {% if active_section == 'info' %}championship-tab-active{% endif %}"
+     {% if active_section == 'info' %}aria-current="page"{% endif %}>
+    Info
+  </a>
+</nav>

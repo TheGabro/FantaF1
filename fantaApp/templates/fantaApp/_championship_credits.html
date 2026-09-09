@@ -1,0 +1,22 @@
+{% comment %}
+  Riepilogo crediti del giocatore, in una card a tre celle.
+  Richiede in context: current_championship_player, reserved_credit, spendable_credit.
+{% endcomment %}
+{% if current_championship_player %}
+  <div class="card mb-6">
+    <div class="stat-row">
+      <div class="stat-cell">
+        <p class="stat-label">Fantamilioni disponibili</p>
+        <p class="stat-value">{{ current_championship_player.available_credit }}</p>
+      </div>
+      <div class="stat-cell">
+        <p class="stat-label">Prenotati su gare future</p>
+        <p class="stat-value">{{ reserved_credit }}</p>
+      </div>
+      <div class="stat-cell">
+        <p class="stat-label">Spendibili ora</p>
+        <p class="stat-value text-ok">{{ spendable_credit }}</p>
+      </div>
+    </div>
+  </div>
+{% endif %}

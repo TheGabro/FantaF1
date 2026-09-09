@@ -1,6 +1,6 @@
 from django.urls import path
 
-from fantaApp.views import auth, dashboard, general, weekend
+from fantaApp.views import auth, dashboard, general, invites, weekend
 
 urlpatterns = [
     path("", general.home, name = "home"),
@@ -9,7 +9,16 @@ urlpatterns = [
     path('auth/logout/', auth.logout, name='logout'),
     path("dashboard/account/", dashboard.user_dashboard, name = 'user_dashboard'),
     path("championships/create/", dashboard.create_championship, name='create_championship'),
+    path("championships/<int:championship_id>/iscriviti/", invites.join_championship, name='join_championship'),
+    # Invito: il token va in fondo al percorso perché è quello che si incolla in chat.
+    path("campionati/invito/", invites.invite_redeem, name='invite_redeem'),
+    path("campionati/invito/<str:token>/", invites.invite_accept, name='invite_accept'),
     path("dashboard/championships/<int:championship_id>/", dashboard.championship_dashboard, name='championship_dashboard'),
+    path("dashboard/championships/<int:championship_id>/lega/", dashboard.championship_league_standings, name='championship_league_standings'),
+    path("dashboard/championships/<int:championship_id>/calendario/", dashboard.championship_calendar, name='championship_calendar'),
+    path("dashboard/championships/<int:championship_id>/prossime-gare/", dashboard.championship_next_races, name='championship_next_races'),
+    path("dashboard/championships/<int:championship_id>/le-mie-scelte/", dashboard.championship_my_choices, name='championship_my_choices'),
+    path("dashboard/championships/<int:championship_id>/info/", dashboard.championship_info, name='championship_info'),
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/",
         weekend.weekend_detail,

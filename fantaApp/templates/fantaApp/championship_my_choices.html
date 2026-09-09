@@ -1,0 +1,144 @@
+{% extends "fantaApp/championship_section_base.html" %}
+
+{% block title %}Le mie scelte — {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block section_content %}
+{% if current_championship_player %}
+  <div class="card mb-6">
+    <div class="stat-row">
+      <div class="stat-cell">
+        <p class="stat-label">Punti dai weekend</p>
+        <p class="stat-value">{{ season_points|floatformat:"-2" }}</p>
+        <p class="mt-2 text-sm text-muted">In classifica: <span class="font-semibold text-ink">{{ current_championship_player.total_score }}</span></p>
+      </div>
+      <div class="stat-cell">
+        <p class="stat-label">Fantamilioni spesi</p>
+        <p class="stat-value">{{ season_spent }}</p>
+        <p class="mt-2 text-sm text-muted">Su gare già disputate</p>
+      </div>
+      <div class="stat-cell">
+        <p class="stat-label">Weekend giocati</p>
+        <p class="stat-value">{{ played_count }}</p>
+        <p class="mt-2 text-sm text-muted">Stagione {{ championship.year }}</p>
+      </div>
+    </div>
+  </div>
+
+  {% include "fantaApp/_championship_credits.html" %}
+{% endif %}
+
+<div class="space-y-4">
+  {% for item in weekend_summaries %}
+    <section class="card">
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-4">
+        <span class="pos-badge shrink-0 !h-11 !w-11 text-base">R{{ item.weekend.round_number }}</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
+          <p class="truncate text-sm text-muted">
+            {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y" }}{% endif %}
+          </p>
+        </div>
+        {% if item.spent %}
+          <div class="shrink-0 text-right">
+            <p class="stat-label">Spesi</p>
+            <p class="text-xl font-bold tabular-nums">{{ item.spent }}</p>
+          </div>
+        {% endif %}
+        <div class="shrink-0 text-right">
+          <p class="stat-label">Punti</p>
+          {% if item.is_scored %}
+            <p class="text-3xl font-black leading-none tabular-nums text-accent">{{ item.points|floatformat:"-2" }}</p>
+          {% else %}
+            <p class="text-sm font-semibold text-muted">non ancora calcolati</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <ul class="divide-y divide-line">
+        {% for s in item.sessions %}
+          {% if s.choices or s.slots or s.result %}
+            <li class="flex flex-wrap items-start gap-x-6 gap-y-4 px-5 py-4">
+              <span class="mt-1 h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
+
+              <div class="min-w-0 flex-1 space-y-2">
+                <h4 class="text-sm font-bold uppercase tracking-wide text-muted">{{ s.label }}</h4>
+
+                {# Gara: piloti scelti con costo, pupillo evidenziato #}
+                {% if s.choices %}
+                  <div class="flex flex-wrap gap-x-6 gap-y-2">
+                    {% for c in s.choices %}
+                      <span class="flex items-center gap-2">
+                        <span class="team-chip team-{{ c.driver.team.short_name|slugify }} text-lg">{{ c.driver.first_name }} {{ c.driver.last_name }}</span>
+                        {% if c.is_pupillo %}<span class="badge-accent">Pupillo</span>{% endif %}
+                        <span class="text-sm tabular-nums text-muted">{{ c.spent_amount }} FM</span>
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+                {# Qualifica: una riga per slot, con tutti i piloti di quello slot #}
+                {% for slot in s.slots %}
+                  <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span class="w-28 shrink-0 text-sm font-semibold text-muted">{{ slot.slot }}</span>
+                    <span class="flex flex-wrap gap-x-5 gap-y-1">
+                      {% for c in slot.choices %}
+                        <span class="team-chip team-{{ c.driver.team.short_name|slugify }} text-lg">{{ c.driver.first_name }} {{ c.driver.last_name }}</span>
+                      {% endfor %}
+                    </span>
+                  </div>
+                {% endfor %}
+
+                {% if not s.choices and not s.slots %}
+                  <p class="text-base text-muted">Nessuna scelta effettuata.</p>
+                {% endif %}
+              </div>
+
+              {% if s.result %}
+                <div class="stat-row shrink-0 rounded-lg border border-line bg-surface-2">
+                  <div class="px-4 py-2">
+                    <p class="stat-label">Punti FIA</p>
+                    <p class="mt-0.5 text-xl font-bold tabular-nums">{{ s.result.fia_points }}</p>
+                  </div>
+                  <div class="px-4 py-2">
+                    <p class="stat-label">Molt.</p>
+                    <p class="mt-0.5 text-xl font-bold tabular-nums">×{{ s.result.point_multiplier|floatformat:"-2" }}</p>
+                  </div>
+                  {% if s.result.point_modifier %}
+                    <div class="px-4 py-2">
+                      <p class="stat-label">Bonus</p>
+                      <p class="mt-0.5 text-xl font-bold tabular-nums">+{{ s.result.point_modifier }}</p>
+                    </div>
+                  {% endif %}
+                  <div class="px-4 py-2">
+                    <p class="stat-label">Totale</p>
+                    <p class="mt-0.5 text-2xl font-black tabular-nums text-accent">{{ s.result.total_points|floatformat:"-2" }}</p>
+                  </div>
+                </div>
+              {% endif %}
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </section>
+  {% empty %}
+    <div class="card-pad text-center text-base text-muted">
+      {% if current_championship_player %}
+        Non hai ancora scelte registrate per la stagione {{ championship.year }}.
+        Le sessioni ancora aperte sono nella sezione <a href="{% url 'championship_next_races' championship.id %}" class="font-semibold text-accent hover:underline">Prossime gare</a>.
+      {% else %}
+        Non sei iscritto a questo campionato, quindi non c'è nessuno storico di scelte da mostrare.
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+{% if skipped_weekends %}
+  <div class="card-pad mt-4">
+    <p class="text-sm text-muted">
+      <span class="font-semibold text-ink">{{ skipped_weekends|length }} weekend non giocat{{ skipped_weekends|length|pluralize:"o,i" }}</span>
+      — nessuna scelta registrata, nessun punto assegnato:
+      {% for w in skipped_weekends %}<a href="{% url 'weekend_details' championship.id w.id %}" class="font-semibold hover:text-accent">R{{ w.round_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+    </p>
+  </div>
+{% endif %}
+{% endblock %}

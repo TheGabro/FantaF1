@@ -51,6 +51,32 @@
         </template>
       </div>
 
+      <div class="border-t border-line pt-5">
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          {{ form.join_as_player }}
+          <span>{{ form.join_as_player.label }}</span>
+        </label>
+        <p class="mt-1 text-xs text-muted">
+          Essere manager non basta per giocare: senza iscrizione non compari in classifica
+          e non puoi fare scelte.
+        </p>
+
+        <div id="player-fields" class="mt-3 space-y-3">
+          <div class="form-field">
+            <label for="{{ form.player_name.id_for_label }}">{{ form.player_name.label }}</label>
+            {{ form.player_name }}
+            {{ form.player_name.errors }}
+            <span class="helptext">Se lo lasci vuoto viene usato il tuo username.</span>
+          </div>
+
+          <div class="form-field hidden" id="player-league-field">
+            <label for="{{ form.player_league_index.id_for_label }}">{{ form.player_league_index.label }}</label>
+            {{ form.player_league_index }}
+            {{ form.player_league_index.errors }}
+          </div>
+        </div>
+      </div>
+
       <button type="submit" class="btn-primary w-full">Crea campionato</button>
     </form>
   </div>
@@ -70,7 +96,53 @@
       var html = template.innerHTML.replaceAll('__prefix__', index);
       container.insertAdjacentHTML('beforeend', html);
       totalForms.value = index + 1;
+      syncLeagueChoices();
     });
+
+    /* Le leghe non esistono ancora nel database: la tendina "La tua lega" si
+       popola dai nomi digitati qui sopra e invia la posizione, non un id.
+       L'ordine delle opzioni segue quello dei campi non vuoti, cioè lo stesso
+       ordine in cui la view crea le leghe. */
+    var leagueSelect = document.getElementById('id_player_league_index');
+    var leagueField = document.getElementById('player-league-field');
+
+    function syncLeagueChoices() {
+      if (!leagueSelect || !leagueField) return;
+      var names = [];
+      container.querySelectorAll('input[type="text"]').forEach(function (input) {
+        var name = input.value.trim();
+        if (name) names.push(name);
+      });
+      if (!names.length) names.push('Lega Unica');
+
+      var previous = leagueSelect.value;
+      leagueSelect.innerHTML = '';
+      names.forEach(function (name, index) {
+        var option = document.createElement('option');
+        option.value = index;
+        option.textContent = name;
+        leagueSelect.appendChild(option);
+      });
+      if (parseInt(previous, 10) < names.length) leagueSelect.value = previous;
+      // Con una lega sola non c'è niente da scegliere: si nasconde la riga.
+      leagueField.classList.toggle('hidden', names.length < 2);
+    }
+
+    container.addEventListener('input', syncLeagueChoices);
+    syncLeagueChoices();
+  })();
+
+  /* I campi del giocatore servono solo a chi partecipa davvero */
+  (function () {
+    var checkbox = document.getElementById('id_join_as_player');
+    var fields = document.getElementById('player-fields');
+    if (!checkbox || !fields) return;
+
+    function toggle() {
+      fields.classList.toggle('hidden', !checkbox.checked);
+    }
+    checkbox.addEventListener('change', toggle);
+    toggle();
   })();
 </script>
 {% endblock %}

@@ -1,0 +1,98 @@
+{% extends "fantaApp/championship_section_base.html" %}
+
+{% block title %}Info — {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block section_content %}
+<div class="grid gap-6 lg:grid-cols-2">
+  {% if is_manager %}
+    <section class="card-pad lg:col-span-2 border-accent/40">
+      <h2 class="text-lg font-bold">Invita i tuoi amici</h2>
+      <p class="mt-1 text-sm text-muted">
+        Chiunque apra questo link può iscriversi al campionato: mandalo solo a chi vuoi in gara.
+        Scade dopo 30 giorni, poi ne serve uno nuovo.
+      </p>
+
+      <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          id="invite-url"
+          class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 font-mono text-xs"
+          value="{{ invite_url }}"
+          readonly
+        />
+        <button type="button" id="copy-invite" class="btn-secondary shrink-0" data-copied="Copiato!">
+          Copia link
+        </button>
+      </div>
+    </section>
+  {% endif %}
+  <section class="card">
+    <div class="flex items-center justify-between border-b border-line px-5 py-4">
+      <h2 class="text-lg font-bold">Leghe</h2>
+      <span class="badge-muted">{{ leagues|length }}</span>
+    </div>
+    <ul class="divide-y divide-line">
+      {% for l in leagues %}
+        <li class="flex items-center justify-between gap-3 px-5 py-3">
+          <span class="text-base font-semibold">{{ l.name }}</span>
+          <span class="badge-muted">{{ l.participants_count }} giocator{{ l.participants_count|pluralize:"e,i" }}</span>
+        </li>
+      {% empty %}
+        <li class="px-5 py-4 text-sm text-muted">Nessuna lega creata.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card">
+    <div class="flex items-center justify-between border-b border-line px-5 py-4">
+      <h2 class="text-lg font-bold">Manager del campionato</h2>
+      <span class="badge-muted">{{ managers|length }}</span>
+    </div>
+    <ul class="divide-y divide-line">
+      {% for m in managers %}
+        <li class="flex items-center gap-3 px-5 py-3">
+          <span class="h-2 w-2 shrink-0 rounded-full bg-accent"></span>
+          <span class="text-base font-semibold">{{ m.player_name }}</span>
+          <span class="text-sm text-muted">· {{ m.league.name }}</span>
+        </li>
+      {% empty %}
+        <li class="px-5 py-4 text-sm text-muted">Nessun manager registrato come giocatore.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card-pad lg:col-span-2">
+    <h2 class="mb-3 text-lg font-bold">Campionato</h2>
+    <dl class="grid gap-x-8 gap-y-2 text-base sm:grid-cols-2">
+      <div class="flex justify-between border-b border-line py-1"><dt class="text-muted">Nome</dt><dd class="font-semibold">{{ championship.name }}</dd></div>
+      <div class="flex justify-between border-b border-line py-1"><dt class="text-muted">Stagione</dt><dd class="font-semibold">{{ championship.year }}</dd></div>
+      <div class="flex justify-between border-b border-line py-1"><dt class="text-muted">Stato</dt><dd class="font-semibold">{% if championship.active %}Attivo{% else %}Concluso{% endif %}</dd></div>
+      <div class="flex justify-between border-b border-line py-1"><dt class="text-muted">Visibilità</dt><dd class="font-semibold">{% if championship.is_private %}Privato{% else %}Pubblico{% endif %}</dd></div>
+    </dl>
+  </section>
+</div>
+
+{% if is_manager %}
+<script>
+  /* Copia del link d'invito. navigator.clipboard non c'è su http non locale:
+     in quel caso si ripiega sulla selezione del testo, che l'utente copia a mano. */
+  (function () {
+    var button = document.getElementById('copy-invite');
+    var input = document.getElementById('invite-url');
+    if (!button || !input) return;
+
+    button.addEventListener('click', function () {
+      input.select();
+      var done = function () {
+        var original = button.textContent;
+        button.textContent = button.dataset.copied;
+        setTimeout(function () { button.textContent = original; }, 1500);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).then(done, function () {});
+      }
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}
