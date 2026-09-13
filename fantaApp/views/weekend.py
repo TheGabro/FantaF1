@@ -120,6 +120,32 @@ def _base_context(request, championship_id: int, weekend_id: int):
     player       = request.user.championshipplayer_set.get(championship=championship)
     return championship, weekend, player
 
+
+def _grid_preview_options(weekend):
+    """
+    Piloti da mostrare quando la griglia non è ancora stata importata.
+
+    Stessi campi delle opzioni vere (costruite da costs.get_race_driver_options
+    sui QualifyingResult), ma con posizione e costi a None: senza griglia non c'è
+    nessun prezzo da calcolare. Serve solo a non lasciare la pagina vuota — la
+    scelta resta bloccata, qui e nel POST.
+    """
+    return [
+        {
+            "driver": driver,
+            "grid_position": None,
+            "cost": None,
+            "grid_cost": None,
+            "standings_cost": None,
+        }
+        for driver in (
+            Driver.objects
+            .filter(season=weekend.season, number__isnull=False)
+            .select_related("team")
+            .order_by("team__name", "number")
+        )
+    ]
+
 # ───────────────────────────────────────────────────────────────────────────────
 #  1) Sprint‑Qualifying
 # ───────────────────────────────────────────────────────────────────────────────
@@ -293,18 +319,22 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
+    grid_available = bool(driver_options)
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": race,
-        "driver_options": driver_options,
+        # Senza griglia si mostrano comunque i piloti, in sola anteprima
+        "driver_options": driver_options or _grid_preview_options(weekend),
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
         "event_started": event_started,
-        "grid_available": bool(driver_options),
+        "grid_available": grid_available,
+        # Unica condizione che abilita form, bottoni e salvataggio
+        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/sprint_race_choice.html", context)
 
@@ -422,11 +452,13 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     spendable_credit = costs.get_player_spendable_credit(player=player, exclude_race=race)
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
+    grid_available = bool(driver_options)
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": race,
-        "driver_options": driver_options,
+        # Senza griglia si mostrano comunque i piloti, in sola anteprima
+        "driver_options": driver_options or _grid_preview_options(weekend),
         "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
@@ -435,7 +467,9 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
         "event_started": event_started,
-        "grid_available": bool(driver_options),
+        "grid_available": grid_available,
+        # Unica condizione che abilita form, bottoni e salvataggio
+        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/regular_race_choice.html", context)
 
