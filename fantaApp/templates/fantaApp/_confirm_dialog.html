@@ -1,0 +1,13 @@
+{% comment %}
+Dialog di conferma condiviso dalla pagina: lo pilota confirm-submit.js,
+che intercetta il submit dei form con data-confirm-submit.
+Senza JavaScript il dialog resta chiuso e i form salvano direttamente.
+{% endcomment %}
+<dialog id="confirm-dialog" class="confirm-dialog">
+  <h2 class="text-base font-bold uppercase italic tracking-wide">Conferma</h2>
+  <p data-confirm-text class="mt-2 text-sm text-muted"></p>
+  <div class="mt-5 flex justify-end gap-2">
+    <button type="button" data-confirm-cancel class="btn-secondary">Annulla</button>
+    <button type="button" data-confirm-ok class="btn-primary">Conferma</button>
+  </div>
+</dialog>

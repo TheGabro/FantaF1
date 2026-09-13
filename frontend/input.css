@@ -76,6 +76,11 @@
 .team-aud { --team: #f50537; }
 .team-cad { --team: #bfa048; }
 
+/* Inchiostro da usare SOPRA il colore scuderia (numero e sigla sulla card pilota):
+   bianco di default, scuro sulle livree chiare dove il bianco non si legge. */
+.team-mer, .team-mcl, .team-ast, .team-wil,
+.team-rb, .team-sau, .team-haa, .team-cad { --team-ink: #15151e; }
+
 @layer base {
   html { @apply font-sans; }
   body { @apply bg-canvas text-ink antialiased min-h-screen; }
@@ -185,4 +190,114 @@
   .stat-cell { @apply min-w-40 flex-1 px-5 py-4; }
   .stat-label { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
   .stat-value { @apply mt-1 text-4xl font-black tabular-nums leading-none; }
+
+  /* ── Griglia di scelta piloti ───────────────────────────────────────
+     Gerarchia: .driver-grid → .team-group (pannello scuderia) →
+     .driver-pick (bottone) → .driver-card. Tutto il colore passa da
+     --team (classi .team-xxx sul pannello), così una regola sola vale
+     per tutte le scuderie. Usata dalle pagine di scelta pilota. */
+  /* Due scuderie per riga da lg in su; sotto, una per riga a tutta larghezza */
+  .driver-grid { @apply grid gap-4 lg:grid-cols-2; }
+
+  .team-group {
+    border: 1px solid color-mix(in srgb, var(--team, #9ca3af) 45%, transparent);
+    background: color-mix(in srgb, var(--team, #9ca3af) 8%, var(--bg-surface));
+    @apply flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:gap-5;
+  }
+  /* Pannello di destra speculare: nome scuderia a destra, card accostate a lui */
+  @media (min-width: 64rem) {
+    .team-group:nth-child(even) { flex-direction: row-reverse; }
+    .team-group:nth-child(even) .team-group-name { text-align: right; }
+    .team-group:nth-child(even) .team-group-cards { justify-content: flex-end; }
+  }
+  /* Nel tema chiaro il colore puro non regge il contrasto su fondo tinto
+     (Haas, Williams, Mercedes): si scurisce restando riconoscibile. */
+  .team-group-name {
+    color: color-mix(in srgb, var(--team, #9ca3af) 82%, #000);
+    @apply text-lg font-black uppercase italic leading-none tracking-wide sm:w-32 sm:shrink-0 sm:text-xl;
+  }
+  [data-theme="dark"] .team-group-name { color: var(--team, #9ca3af); }
+  .team-group-cards { @apply flex flex-1 flex-wrap gap-4; }
+
+  /* Il bottone è solo l'area cliccabile. Altezza fissa: card (8rem × 4/3),
+     due righe di nome e due di nota "già usato" ci stanno sempre, così le card
+     restano allineate anche quando il testo sotto è di lunghezza diversa. */
+  .driver-pick {
+    appearance: none; background: none; border: 0; padding: 0;
+    @apply flex h-44 w-32 cursor-pointer flex-col text-left;
+  }
+  .driver-pick:disabled { @apply cursor-not-allowed; }
+
+  .driver-card {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(150deg, #f5f7f9 0%, #ced3d9 38%, #eef0f3 52%, #b4bac2 100%);
+    border: 1px solid var(--border-line);
+    @apply block shrink-0 overflow-hidden rounded-xl transition;
+  }
+  [data-theme="dark"] .driver-card {
+    background: linear-gradient(150deg, #71767f 0%, #3f434b 38%, #7d828b 52%, #2c3037 100%);
+  }
+  /* Metà sinistra nel colore scuderia, con taglio diagonale */
+  .driver-card::before {
+    content: "";
+    position: absolute; inset: 0 auto 0 0; width: 58%;
+    background: var(--team, #9ca3af);
+    clip-path: polygon(0 0, 100% 0, 62% 100%, 0 100%);
+  }
+  .driver-card-number, .driver-card-code {
+    color: var(--team-ink, #fff);
+    @apply absolute left-2.5 z-10 block font-black italic leading-none;
+  }
+  .driver-card-number { @apply top-2 text-2xl tabular-nums; }
+  .driver-card-code { @apply bottom-2 text-lg tracking-wide; }
+  /* Segnaposto foto: sostituibile con <img> quando arrivano gli scatti veri */
+  .driver-card-photo {
+    color: color-mix(in srgb, var(--text-ink) 30%, transparent);
+    @apply absolute bottom-0 right-1 z-0 block h-[86%] w-1/2;
+  }
+  .driver-card-photo svg, .driver-card-photo img { @apply h-full w-full object-contain object-bottom; }
+  .driver-lock { @apply absolute right-1.5 top-1.5 z-10 block rounded-full bg-black/60 p-1 text-white; }
+  /* Nome e nota sono troncati a due righe: oltre non crescono, l'altezza del
+     bottone resta quella e la griglia non si sfalsa */
+  .driver-name {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    @apply mt-2 overflow-hidden text-center text-sm font-semibold leading-tight transition-colors;
+  }
+  .driver-name-last { @apply font-bold uppercase; }
+  .driver-name-note {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    @apply mt-0.5 overflow-hidden text-center text-xs font-normal text-muted;
+  }
+
+  /* Stati: hover/focus "accendono" card e nome nel colore scuderia */
+  .driver-pick:not(:disabled):hover .driver-card,
+  .driver-pick:not(:disabled):focus-visible .driver-card {
+    box-shadow: 0 0 0 2px var(--team, #9ca3af),
+                0 12px 22px -12px color-mix(in srgb, var(--team, #9ca3af) 80%, transparent);
+    filter: brightness(1.06);
+    @apply -translate-y-0.5;
+  }
+  .driver-pick:not(:disabled):hover .driver-name,
+  .driver-pick:not(:disabled):focus-visible .driver-name {
+    color: color-mix(in srgb, var(--team, #9ca3af) 82%, #000);
+  }
+  [data-theme="dark"] .driver-pick:not(:disabled):hover .driver-name,
+  [data-theme="dark"] .driver-pick:not(:disabled):focus-visible .driver-name {
+    color: var(--team, #9ca3af);
+  }
+  .driver-card.is-selected { box-shadow: 0 0 0 3px var(--accent); }
+  /* Pilota già speso in un'altra qualifica della stagione */
+  .driver-card.is-locked { filter: grayscale(1); opacity: 0.45; }
+  /* Scelta già fatta: tutta la griglia si spegne tranne il pilota scelto */
+  .driver-grid-locked .driver-card:not(.is-selected) { filter: grayscale(1); opacity: 0.45; }
+
+  /* Dialog di conferma (elemento <dialog> nativo).
+     Il margin:auto è obbligatorio: il reset di Tailwind azzera i margini e
+     senza di esso il dialog si incolla in alto a sinistra invece di centrarsi. */
+  .confirm-dialog {
+    margin: auto;
+    @apply w-[min(26rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-5 text-ink shadow-xl;
+  }
+  .confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 }

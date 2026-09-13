@@ -1,0 +1,31 @@
+{% comment %}
+Griglia di scelta pilota, raggruppata per scuderia: ogni card è il bottone
+di submit del form che avvolge il partial (posta driver=<id>).
+
+Contesto atteso:
+  drivers          Driver ordinati per team__name, number, con gli attributi
+                   annotati dalla view: .is_selected e .locked_event
+  picker_locked    true quando la griglia non è selezionabile (scelta già
+                   fatta o evento iniziato)
+{% endcomment %}
+<div class="driver-grid{% if picker_locked %} driver-grid-locked{% endif %}">
+  {% regroup drivers by team as team_groups %}
+  {% for group in team_groups %}
+    <section class="team-group team-{{ group.grouper.short_name|slugify }}">
+      <h3 class="team-group-name">{{ group.grouper.name }}</h3>
+      <div class="team-group-cards">
+        {% for driver in group.list %}
+          <button type="submit" name="driver" value="{{ driver.id }}" class="driver-pick"
+                  {% if picker_locked or driver.locked_event %}disabled{% endif %}
+                  {% if driver.locked_event %}title="Pilota già usato nel {{ driver.locked_event }}"{% endif %}
+                  data-confirm-text="Confermi {{ driver.first_name }} {{ driver.last_name }} come tuo pronostico?"
+                  aria-label="Scegli {{ driver.first_name }} {{ driver.last_name }}">
+            {% include "fantaApp/_driver_card.html" with card_selected=driver.is_selected card_locked=driver.locked_event %}
+          </button>
+        {% empty %}
+          <p class="text-sm text-muted">Nessun pilota disponibile.</p>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>

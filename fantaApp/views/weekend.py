@@ -545,18 +545,28 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         # blocco modifiche se l'evento è già iniziato (solo UI)
     event_started = helper._event_has_started(qualifying)
 
-    drivers_taken = (
-        PlayerQualifyingChoice.objects
-        .filter(
-            player=player,
-            qualifying__weekend__season=weekend.season,
-            qualifying__type="regular",
+    # Piloti già spesi in un'altra qualifica regular della stagione: restano in
+    # griglia ma bloccati, con il GP in cui sono stati usati.
+    locked_events_by_driver_id = {
+        choice.driver_id: choice.qualifying.weekend.event_name
+        for choice in (
+            PlayerQualifyingChoice.objects
+            .filter(
+                player=player,
+                qualifying__weekend__season=weekend.season,
+                qualifying__type="regular",
+            )
+            .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
+            .select_related("qualifying__weekend")
         )
-        .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
-        .values_list("driver_id", flat=True)
-    )
+    }
 
     if request.method == "POST" and not event_started:
+        if request.POST.get("action") == "delete":
+            PlayerQualifyingChoice.objects.filter(player=player, qualifying=qualifying).delete()
+            messages.success(request, "Scelta cestinata: puoi selezionare un altro pilota.")
+            return redirect(request.path)
+
         driver_id = request.POST.get("driver")
         if not driver_id:
             messages.error(request, "Devi selezionare un pilota.")
@@ -570,8 +580,11 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         driver = Driver.objects.filter(
             id=driver_id,
             season=weekend.season,
-        ).exclude(id__in=drivers_taken).first()
+        ).exclude(id__in=locked_events_by_driver_id.keys()).first()
 
+        if driver is None:
+            messages.error(request, "Pilota non valido o già usato in un'altra qualifica.")
+            return redirect(request.path)
 
         try:
             pc.choose_regular_quali_driver(
@@ -583,25 +596,35 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         except ValidationError as e:
             messages.error(request, e.message)
         return redirect(request.path)
-    
-    drivers_available = (
-        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
-        .order_by("team__name", "first_name", "last_name")
-    )
 
     existing = PlayerQualifyingChoice.objects.filter(
         player=player,
         qualifying=qualifying,
-    ).first()
+    ).select_related("driver", "driver__team").first()
 
+    # Solo piloti titolari: le riserve a DB non hanno numero di gara e la card
+    # lo mostra come dato principale.
+    drivers_available = list(
+        Driver.objects
+        .filter(season=weekend.season, number__isnull=False)
+        .select_related("team")
+        .order_by("team__name", "number")
+    )
+    selected_driver_id = existing.driver_id if existing else None
+    for driver in drivers_available:
+        driver.is_selected = driver.id == selected_driver_id
+        driver.locked_event = locked_events_by_driver_id.get(driver.id)
 
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": qualifying,
         "existing": existing,
-        "drivers": drivers_available,    # per i select ancora vuoti
+        "drivers": drivers_available,    # griglia raggruppata per scuderia
         "event_started": event_started,
+        # La griglia si spegne quando la scelta è già fatta (serve il cestino)
+        # o quando la qualifica è iniziata.
+        "picker_locked": bool(existing) or event_started,
     }
     return render(request, "fantaApp/regular_race_qualifying_choice.html", context)
 
