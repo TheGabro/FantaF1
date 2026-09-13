@@ -61,6 +61,170 @@
     </ul>
   </section>
 
+  {% comment %}
+    Regolamento: tutte le tabelle arrivano da services/rules.py, la stessa
+    sorgente che usa il calcolo dei punti. Non possono divergere dal gioco vero.
+  {% endcomment %}
+  <section class="card lg:col-span-2">
+    <div class="border-b border-line px-5 py-4">
+      <h2 class="text-lg font-bold">Regolamento</h2>
+      <p class="text-sm text-muted">Punteggi e costi in vigore, letti direttamente dalle tabelle di gioco.</p>
+    </div>
+
+    <details class="border-b border-line px-5 py-3 text-sm" open>
+      <summary class="cursor-pointer font-semibold">Qualifica del sabato — weekend regular</summary>
+      <p class="mt-2 text-muted">
+        Si sceglie un pilota solo, e ogni pilota può essere speso una volta sola nella stagione.
+        La posizione che ottiene in qualifica vale punti per la classifica qualifiche, uno sconto o un
+        malus sui fantamilioni del Grand Prix e un moltiplicatore sui punti di quella gara.
+      </p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Posizione del pilota scelto</th>
+              <th class="!text-right">Punti qualifica</th>
+              <th class="!text-right">Fantamilioni</th>
+              <th class="!text-right">Moltiplicatore gara</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.regular_qualifying %}
+              <tr>
+                <td class="font-semibold">P{{ rule.position }}</td>
+                <td class="text-right tabular-nums {% if rule.qualifying_points %}font-bold{% else %}text-muted{% endif %}">{{ rule.qualifying_points }}</td>
+                <td class="text-right tabular-nums {% if rule.credit_change > 0 %}text-accent{% elif rule.credit_change < 0 %}text-ok{% else %}text-muted{% endif %}">
+                  {% if rule.credit_change > 0 %}+{{ rule.credit_change }} (malus){% elif rule.credit_change < 0 %}{{ rule.credit_change }} (sconto){% else %}—{% endif %}
+                </td>
+                <td class="text-right tabular-nums {% if rule.points_multiplier == 1 %}text-muted{% else %}font-bold{% endif %}">×{{ rule.points_multiplier }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="border-b border-line px-5 py-3 text-sm">
+      <summary class="cursor-pointer font-semibold">Qualifica del sabato — weekend sprint</summary>
+      <p class="mt-2 text-muted">
+        Si pronosticano {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
+        {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3.
+        I livelli sono a scaletta: vale quello più alto raggiunto, non la somma.
+      </p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Livello raggiunto</th>
+              <th class="!text-right">Punti qualifica</th>
+              <th class="!text-right">Sconto</th>
+              <th class="!text-right">Moltiplicatore gara</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.multichoice %}
+              <tr>
+                <td>{{ rule.label }}</td>
+                <td class="text-right font-bold tabular-nums">{{ rule.qualifying_points }}</td>
+                <td class="text-right tabular-nums text-ok">−{{ rule.credit_discount }}</td>
+                <td class="text-right tabular-nums {% if rule.points_multiplier == 1 %}text-muted{% else %}font-bold{% endif %}">×{{ rule.points_multiplier }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="border-b border-line px-5 py-3 text-sm">
+      <summary class="cursor-pointer font-semibold">Sprint shootout del venerdì</summary>
+      <p class="mt-2 text-muted">
+        Si indica un pilota per ciascuna fascia di eliminazione. I punti vinti qui si sommano
+        al punteggio della sprint race, e valgono per la classifica campionato sprint.
+      </p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Esito</th>
+              <th class="!text-right">Punti sulla sprint</th>
+              <th class="!text-right">Sconto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.shootout %}
+              <tr>
+                <td>{{ rule.label }}</td>
+                <td class="text-right tabular-nums {% if rule.points_modifier %}font-bold{% else %}text-muted{% endif %}">
+                  {% if rule.points_modifier %}+{{ rule.points_modifier }}{% else %}—{% endif %}
+                </td>
+                <td class="text-right tabular-nums text-ok">−{{ rule.credit_discount }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="border-b border-line px-5 py-3 text-sm">
+      <summary class="cursor-pointer font-semibold">Costo dei piloti</summary>
+      <p class="mt-2 text-muted">
+        Il costo dipende dalla posizione in griglia. Dall'undicesima in giù il pilota è gratis.
+        Chi sta nei primi posti della classifica piloti costa un extra.
+      </p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Posizione in griglia</th>
+              <th class="!text-right">Grand Prix</th>
+              <th class="!text-right">Sprint race</th>
+              <th class="!text-right">Extra da classifica</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.grid_costs %}
+              <tr>
+                <td class="font-semibold">P{{ rule.position }}</td>
+                <td class="text-right tabular-nums">{{ rule.regular }}</td>
+                <td class="text-right tabular-nums">{{ rule.sprint }}</td>
+                <td class="text-right tabular-nums {% if not rule.standings_extra %}text-muted{% endif %}">
+                  {% if rule.standings_extra %}+{{ rule.standings_extra }}{% else %}—{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <div class="px-5 py-4 text-sm">
+      <dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt class="font-semibold">Pupillo</dt>
+          <dd class="text-muted">
+            Confermare lo stesso pupillo di weekend in weekend sconta {{ rulebook.pupillo_step }} fantamilioni
+            ogni volta, fino a un massimo di {{ rulebook.pupillo_max }}.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Magate e sucate</dt>
+          <dd class="text-muted">
+            Magata: Grand Prix sopra i {{ rulebook.magata_points }} punti, le sprint non contano.
+            Sucata: gara sotto i {{ rulebook.sucata_points }} punti, sprint incluse.
+          </dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="font-semibold">Le quattro classifiche</dt>
+          <dd class="text-muted">
+            Lega e generale contano i punti delle gare. Qualifiche e campionato sprint sono due minigiochi:
+            la prima somma i punti presi in qualifica, la seconda i punti delle sole sprint (shootout incluso,
+            già compresi nel totale generale).
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
   <section class="card-pad lg:col-span-2">
     <h2 class="mb-3 text-lg font-bold">Campionato</h2>
     <dl class="grid gap-x-8 gap-y-2 text-base sm:grid-cols-2">

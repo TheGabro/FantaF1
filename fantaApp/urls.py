@@ -13,11 +13,19 @@ urlpatterns = [
     # Invito: il token va in fondo al percorso perché è quello che si incolla in chat.
     path("campionati/invito/", invites.invite_redeem, name='invite_redeem'),
     path("campionati/invito/<str:token>/", invites.invite_accept, name='invite_accept'),
-    path("dashboard/championships/<int:championship_id>/", dashboard.championship_dashboard, name='championship_dashboard'),
-    path("dashboard/championships/<int:championship_id>/lega/", dashboard.championship_league_standings, name='championship_league_standings'),
-    path("dashboard/championships/<int:championship_id>/calendario/", dashboard.championship_calendar, name='championship_calendar'),
-    path("dashboard/championships/<int:championship_id>/prossime-gare/", dashboard.championship_next_races, name='championship_next_races'),
+    # Sezione Gioca: la radice del campionato e' il prossimo weekend da giocare.
+    # Il nome 'championship_dashboard' resta: e' il bersaglio dei link dalla
+    # dashboard utente, dagli inviti e dal banner.
+    path("dashboard/championships/<int:championship_id>/", dashboard.championship_next_weekend, name='championship_dashboard'),
     path("dashboard/championships/<int:championship_id>/le-mie-scelte/", dashboard.championship_my_choices, name='championship_my_choices'),
+    path("dashboard/championships/<int:championship_id>/calendario/", dashboard.championship_calendar, name='championship_calendar'),
+
+    # Sezione Classifiche: lega, generale e i due minigiochi.
+    path("dashboard/championships/<int:championship_id>/classifiche/lega/", dashboard.championship_league_standings, name='championship_league_standings'),
+    path("dashboard/championships/<int:championship_id>/classifiche/generale/", dashboard.championship_general_standings, name='championship_general_standings'),
+    path("dashboard/championships/<int:championship_id>/classifiche/qualifiche/", dashboard.championship_qualifying_standings, name='championship_qualifying_standings'),
+    path("dashboard/championships/<int:championship_id>/classifiche/sprint/", dashboard.championship_sprint_standings, name='championship_sprint_standings'),
+
     path("dashboard/championships/<int:championship_id>/info/", dashboard.championship_info, name='championship_info'),
     path(
         "dashboard/championships/<int:championship_id>/weekend/<int:weekend_id>/",

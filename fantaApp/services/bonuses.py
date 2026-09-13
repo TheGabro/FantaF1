@@ -122,6 +122,48 @@ def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
     ).copy()
 
 
+def resolve_multichoice_level(*, choices_by_slot: dict, results_by_driver_id: dict) -> str:
+    """
+    Livello raggiunto dalla scelta multichoice, a partire dai dati gia' caricati.
+
+    Estratta da get_qualifying_multichoice_bonus() perche' la classifica
+    qualifiche deve valutare molti giocatori insieme: caricando scelte e
+    risultati in blocco si evita di rifare due query per ogni giocatore.
+    I livelli sono a scaletta: q2_pass richiede q1_pass, q3_top3 richiede q2_pass.
+    """
+    q1_driver_ids = choices_by_slot.get("q1_pass", [])
+    q2_driver_ids = choices_by_slot.get("q2_pass", [])
+    q3_driver_ids = choices_by_slot.get("q3_top3", [])
+
+    q1_pass_hit = len(q1_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q1_pass"] and all(
+        results_by_driver_id.get(driver_id) is not None and _passed_q1(results_by_driver_id[driver_id])
+        for driver_id in q1_driver_ids
+    )
+    q2_pass_hit = q1_pass_hit and len(q2_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q2_pass"] and all(
+        results_by_driver_id.get(driver_id) is not None and _passed_q2(results_by_driver_id[driver_id])
+        for driver_id in q2_driver_ids
+    )
+
+    top_three_driver_ids = {
+        result.driver_id
+        for result in results_by_driver_id.values()
+        if result.position in {1, 2, 3}
+    }
+    q3_top3_hit = (
+        q2_pass_hit
+        and len(q3_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q3_top3"]
+        and set(q3_driver_ids) == top_three_driver_ids
+    )
+
+    if q3_top3_hit:
+        return "q3_top3"
+    if q2_pass_hit:
+        return "q2_pass"
+    if q1_pass_hit:
+        return "q1_pass"
+    return "none"
+
+
 def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
     """
     Calcola il bonus dalla scelta multichoice (q1_pass, q2_pass, q3_top3).
@@ -163,47 +205,20 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
         for result in QualifyingResult.objects.filter(qualifying=qualifying)
     }
 
-    q1_driver_ids = choices_by_slot["q1_pass"]
-    q2_driver_ids = choices_by_slot["q2_pass"]
-    q3_driver_ids = choices_by_slot["q3_top3"]
-
-    q1_pass_hit = len(q1_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q1_pass"] and all(
-        results_by_driver_id.get(driver_id) is not None and _passed_q1(results_by_driver_id[driver_id])
-        for driver_id in q1_driver_ids
+    level = resolve_multichoice_level(
+        choices_by_slot=choices_by_slot,
+        results_by_driver_id=results_by_driver_id,
     )
-    q2_pass_hit = q1_pass_hit and len(q2_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q2_pass"] and all(
-        results_by_driver_id.get(driver_id) is not None and _passed_q2(results_by_driver_id[driver_id])
-        for driver_id in q2_driver_ids
-    )
-
-    top_three_driver_ids = {
-        result.driver_id
-        for result in results_by_driver_id.values()
-        if result.position in {1, 2, 3}
-    }
-    q3_top3_hit = (
-        q2_pass_hit
-        and len(q3_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q3_top3"]
-        and set(q3_driver_ids) == top_three_driver_ids
-    )
-
-    if q3_top3_hit:
-        level = "q3_top3"
-    elif q2_pass_hit:
-        level = "q2_pass"
-    elif q1_pass_hit:
-        level = "q1_pass"
-    else:
-        level = "none"
 
     bonus = get_qualifying_multichoice_bonus_rule(level)
     return {
         "level": level,
         "credit_discount": bonus["credit_discount"],
         "points_multiplier": bonus["points_multiplier"],
-        "q1_pass_hit": q1_pass_hit,
-        "q2_pass_hit": q2_pass_hit,
-        "q3_top3_hit": q3_top3_hit,
+        # I flag restano a scaletta: il livello raggiunto implica i precedenti
+        "q1_pass_hit": level in {"q1_pass", "q2_pass", "q3_top3"},
+        "q2_pass_hit": level in {"q2_pass", "q3_top3"},
+        "q3_top3_hit": level == "q3_top3",
     }
 
 

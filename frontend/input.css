@@ -154,7 +154,7 @@
      di .btn-primary, incluso il rosso profondo in dark (il bianco sul rosso
      chiaro non regge il contrasto). */
   .championship-tabs {
-    @apply mb-6 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1;
+    @apply flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1;
   }
   .championship-tab {
     @apply shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold
@@ -164,6 +164,16 @@
     @apply bg-accent text-white shadow-sm hover:bg-accent hover:text-white
       dark:bg-accent-strong dark:hover:bg-accent-strong;
   }
+
+  /* Secondo livello: sotto-tab del gruppo attivo. Trattamento più leggero della
+     barra principale — sottolineatura invece della pillola piena — così si
+     legge la gerarchia fra i due livelli. */
+  .championship-subtabs { @apply flex gap-4 overflow-x-auto border-b border-line px-1; }
+  .championship-subtab {
+    @apply shrink-0 whitespace-nowrap border-b-2 border-transparent px-1 pb-2 pt-1
+      text-sm font-semibold text-muted transition-colors hover:text-ink;
+  }
+  .championship-subtab-active { @apply border-accent text-accent; }
 
   /* Tabella classifiche: molte colonne numeriche, allineate e leggibili.
      Le colonne numeriche stanno strette sul contenuto; lo spazio in eccesso

@@ -124,7 +124,7 @@
     <div class="card-pad text-center text-base text-muted">
       {% if current_championship_player %}
         Non hai ancora scelte registrate per la stagione {{ championship.year }}.
-        Le sessioni ancora aperte sono nella sezione <a href="{% url 'championship_next_races' championship.id %}" class="font-semibold text-accent hover:underline">Prossime gare</a>.
+        Le sessioni ancora aperte sono nella sezione <a href="{% url 'championship_dashboard' championship.id %}" class="font-semibold text-accent hover:underline">Prossimo weekend</a>.
       {% else %}
         Non sei iscritto a questo campionato, quindi non c'è nessuno storico di scelte da mostrare.
       {% endif %}
