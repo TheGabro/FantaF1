@@ -17,7 +17,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from fantaApp.models import EventProcessingStatus, Qualifying, Status
-from fantaApp.services.jolpicaSource import ResultsNotAvailable
+from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable
 
 MAX_WAITING_ATTEMPTS = 10
 
