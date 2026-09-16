@@ -4,7 +4,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from fantaApp.models import Weekend, Race, Driver, RaceResult
-from fantaApp.services.jolpicaSource import get_race_result
+from fantaApp.services.sources.jolpicaSource import get_race_result
 
 
 class Command(BaseCommand):

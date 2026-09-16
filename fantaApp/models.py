@@ -165,6 +165,21 @@ class Weekend(models.Model):
         ordering = ['season', 'round_number']
         unique_together = ('season', 'round_number')
 
+class WeekendParticipant(models.Model):
+    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='participants')
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='driver_participations')
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team_participations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.weekend} - {self.driver.short_name} ({self.team.short_name})"
+
+    class Meta:
+        unique_together = ('weekend', 'driver')
+        ordering = ['weekend__round_number', 'driver__short_name']
+
+
 class Event(models.Model):
     weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE,related_name='%(class)ss' )
     

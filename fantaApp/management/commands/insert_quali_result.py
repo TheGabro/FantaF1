@@ -1,11 +1,12 @@
 from django.utils.dateparse import parse_duration
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from fantaApp.models import Weekend, Qualifying, Driver, QualifyingResult
-from fantaApp.services.jolpicaSource import get_qualifying_result
-from fantaApp.services.fastf1Source import get_sprint_qualifying_result
+from fantaApp.services.sources.jolpicaSource import get_qualifying_result
+from fantaApp.services.sources.fastf1Source import get_sprint_qualifying_result
+from fantaApp.services import drivers
 
 
 def get_best_lap(*times):
@@ -13,37 +14,7 @@ def get_best_lap(*times):
     return min(valid_times) if valid_times else None
 
 
-def resolve_fastf1_driver(*, season: int, data: dict) -> Driver:
-    queryset = Driver.objects.filter(season=season)
 
-    short_name = data.get("short_name")
-    if short_name:
-        driver = queryset.filter(short_name__iexact=short_name).first()
-        if driver:
-            return driver
-
-    number = data.get("number")
-    if number:
-        driver = queryset.filter(number=number).first()
-        if driver:
-            return driver
-
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    if first_name and last_name:
-        driver = queryset.filter(
-            first_name__iexact=first_name,
-            last_name__iexact=last_name,
-        ).first()
-        if driver:
-            return driver
-
-    raise CommandError(
-        "Impossibile fare match del pilota FastF1: "
-        f"short_name={short_name}, number={number}, "
-        f"first_name={first_name}, last_name={last_name}, "
-        f"fastf1_driver_id={data.get('fastf1_driver_id')}, season={season}"
-    )
 
 
 class Command(BaseCommand):
@@ -127,7 +98,7 @@ class Command(BaseCommand):
                 q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
                 q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
                 q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None
-                driver = resolve_fastf1_driver(season=season, data=data)
+                driver = drivers.resolve_fastf1_driver(season=season, data=data)
                 quali_objs.append(
                     QualifyingResult(
                         qualifying=qualifying,

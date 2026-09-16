@@ -11,7 +11,7 @@ from ..models import (
     PlayerRaceChoice,
     PlayerSprintQualifyingChoice,
 )
-from . import bonuses, costs
+from . import bonuses, costs, rules
 
 
 # ============================================================================
@@ -189,6 +189,24 @@ def choose_regular_quali_driver(*, player, qualifying, driver):
 
     if already_used:
         raise ValidationError("Driver already used in this season's Regular Qualifying")
+    
+    same_team_picks = (
+        PlayerQualifyingChoice.objects
+        .filter(
+            player=player,
+            driver__team=driver.team,
+            qualifying__type="regular",
+            qualifying__weekend__season=qualifying.weekend.season,
+        )
+        .exclude(qualifying=qualifying)
+        .count()
+    )
+
+    if same_team_picks >= rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM:
+        raise ValidationError(
+            f"Hai gia' scelto un pilota {driver.team.name} "
+            f"{rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM} volte in questa stagione."
+        )
 
     PlayerQualifyingChoice.objects.update_or_create(
         player=player,
