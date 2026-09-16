@@ -51,7 +51,7 @@ BASE_URL = 'https://api.jolpi.ca/ergast/f1/'
 
 
 def get_drivers(season:int) -> list[dict]:
-    drivers_url = f"{BASE_URL}{season}/drivers.json"
+    drivers_url = f"{BASE_URL}{season}/drivers.json?limit=100"
     driver_r = rate_limited_get(drivers_url, timeout=10)
     driver_r.raise_for_status()
     drivers : list[dict] = []

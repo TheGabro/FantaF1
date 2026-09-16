@@ -6,9 +6,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, RaceResult, PlayerRaceResult
 from ..services import player_choices as pc
-from ..services import bonuses
-from ..services import costs
-from ..services import helper
+from ..services import bonuses, costs, rules, helper
+from django.db.models import Count
+
 
 
 
@@ -169,9 +169,10 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
             messages.error(request, "Formato pilota non valido.")
             return redirect(request.path)
         drivers_by_id = Driver.objects.filter(
-            season=weekend.season,
+            driver_participations__weekend=weekend,
             id__in=selected_ids,
         ).in_bulk()
+
 
         if len(drivers_by_id) != len(set(selected_ids)):
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
@@ -191,10 +192,11 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
 
     drivers_avail = (
         Driver.objects
-        .filter(season=weekend.season)
+        .filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
+
 
     context = {
         "championship": champ,
@@ -497,7 +499,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Formato pilota non valido.")
             return redirect(request.path)
         drivers_by_id = Driver.objects.filter(
-            season=weekend.season,
+            driver_participations__weekend=weekend,
             id__in=selected_ids,
         ).in_bulk()
 
@@ -521,7 +523,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
 
     drivers_avail = (
         Driver.objects
-        .filter(season=weekend.season)
+        .filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
@@ -555,6 +557,20 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
         .values_list("driver_id", flat=True)
     )
+    
+    teams_maxed_out = (
+        PlayerQualifyingChoice.objects
+            .filter(
+                player=player,
+                qualifying__weekend__season=weekend.season,
+                qualifying__type="regular",
+            )
+            .exclude(qualifying=qualifying)
+            .values("driver__team_id")
+            .annotate(picks=Count("id"))
+            .filter(picks__gte=rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM)
+            .values_list("driver__team_id", flat=True)
+    )
 
     if request.method == "POST" and not event_started:
         driver_id = request.POST.get("driver")
@@ -568,9 +584,9 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             return redirect(request.path)
 
         driver = Driver.objects.filter(
+            driver_participations__weekend=weekend,
             id=driver_id,
-            season=weekend.season,
-        ).exclude(id__in=drivers_taken).first()
+        ).exclude(id__in=drivers_taken).exclude(team_id__in=teams_maxed_out).first()
 
 
         try:
@@ -585,7 +601,9 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         return redirect(request.path)
     
     drivers_available = (
-        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
+        Driver.objects.filter(driver_participations__weekend=weekend)
+        .exclude(id__in=drivers_taken)
+        .exclude(team_id__in=teams_maxed_out)
         .order_by("team__name", "first_name", "last_name")
     )
 

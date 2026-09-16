@@ -1,34 +1,76 @@
 {% extends 'fantaApp/base.html' %}
 
-{% block title %}Crea Campionato{% endblock %}
+{% block title %}Crea campionato — Fanta F1{% endblock %}
 
 {% block content %}
-  <h1>Crea un nuovo campionato</h1>
+<div class="mx-auto w-full max-w-lg">
+  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2 text-sm">← I miei campionati</a>
 
-  <form method="post">
-    {% csrf_token %}
-    
-    {{ form.non_field_errors }}
-    {{form.year}}
-    <div>
-      <label for="{{ form.name.id_for_label }}">Nome del Campionato:</label>
-      {{ form.name }}
-      {{ form.name.errors }}
-    </div>
+  <div class="card-pad">
+    <h1 class="text-xl font-black uppercase italic">Crea un nuovo campionato</h1>
+    <p class="mt-1 mb-5 text-sm text-muted">
+      Diventerai automaticamente manager del campionato. Se non specifichi nessuna lega ne verrà creata una unica.
+    </p>
 
-        <hr>
-    <h3>Leghe del Campionato (opzionali)</h3>
-    {{ formset.management_form }}
-
-        {% for subform in formset %}
-      <div>
-        {{ subform.name.label_tag }} {{ subform.name }}
-        {{ subform.name.errors }}
+    {% if form.non_field_errors %}
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
-    {% endfor %}
+    {% endif %}
 
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
+      {{ form.year }}
 
+      <div class="form-field">
+        <label for="{{ form.name.id_for_label }}">Nome del campionato</label>
+        {{ form.name }}
+        {{ form.name.errors }}
+      </div>
 
-    <button type="submit">Crea campionato</button>
-  </form>
+      <div>
+        <h2 class="mb-1 text-sm font-bold uppercase tracking-wide text-muted">Leghe (opzionali)</h2>
+        <p class="mb-3 text-xs text-muted">
+          Le leghe dividono i giocatori in classifiche separate all'interno dello stesso campionato.
+        </p>
+        {{ formset.management_form }}
+
+        <div id="league-forms" class="space-y-2">
+          {% for subform in formset %}
+            <div class="form-field">
+              {{ subform.name }}
+              {{ subform.name.errors }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" id="add-league" class="btn-ghost mt-2 text-sm">+ Aggiungi un'altra lega</button>
+
+        <template id="league-empty-form">
+          <div class="form-field">{{ formset.empty_form.name }}</div>
+        </template>
+      </div>
+
+      <button type="submit" class="btn-primary w-full">Crea campionato</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  /* Aggiunta dinamica di righe lega al formset Django */
+  (function () {
+    var addButton = document.getElementById('add-league');
+    var container = document.getElementById('league-forms');
+    var template = document.getElementById('league-empty-form');
+    var totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+    if (!addButton || !container || !template || !totalForms) return;
+
+    addButton.addEventListener('click', function () {
+      var index = parseInt(totalForms.value, 10);
+      var html = template.innerHTML.replaceAll('__prefix__', index);
+      container.insertAdjacentHTML('beforeend', html);
+      totalForms.value = index + 1;
+    });
+  })();
+</script>
 {% endblock %}

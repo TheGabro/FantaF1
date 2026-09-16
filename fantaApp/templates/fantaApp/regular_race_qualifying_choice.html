@@ -1,39 +1,52 @@
-{% extends 'fantaApp/championship_flow_base.html' %} {% block championship_content %}
-<h2>{{ weekend.event_name }} – Race Qualifying</h2>
-<p>
-  <a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
-</p>
+{% extends 'fantaApp/championship_flow_base.html' %}
 
-{% if messages %} {% for message in messages %}
-<p style="color:{% if message.tags == 'error' %}red{% else %}green{% endif %};">
-  {{ message }}
-</p>
-{% endfor %} {% endif %} {% if event_started %}
-<p><strong>Le scelte per questa qualifica sono chiuse.</strong></p>
-{% endif %}
+{% block title %}{{ weekend.event_name }} · Qualifying — Fanta F1{% endblock %}
 
+{% block championship_content %}
+<a href="{% url 'weekend_details' championship.id weekend.id %}" class="btn-ghost mb-4 -ml-2 text-sm">← Eventi del weekend</a>
+
+<h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
 
 {% if event_started %}
-  {% if existing %}
-    <p>{{ existing.driver.team.name }} - {{ existing.driver.first_name }} {{ existing.driver.last_name }} ✔</p>
-  {% else %}
-    <p>—</p>
-  {% endif %}
-{% else %}
-<form method="post">
-  {% csrf_token %}
-  <div class="mb-3">
-    <label for="driver" class="form-label">Scegli un pilota:</label>
-    <select class="form-select" id="driver" name="driver">
-      <option value="">-- Seleziona un pilota --</option>
-      {% for driver in drivers %}
-      <option value="{{ driver.id }}" {% if existing and existing.driver_id == driver.id %}selected{% endif %}>
-        {{ driver.team.name }} - {{ driver.first_name }} {{ driver.last_name }}
-      </option>
-      {% endfor %}
-    </select>
+  <div class="card-pad mb-5 border-accent/40">
+    <p class="text-sm font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
   </div>
-  <button type="submit" class="btn btn-primary">Salva</button>
-</form>
+{% else %}
+  <p class="mb-5 text-sm text-muted">
+    <strong class="text-ink">Regole:</strong> pronostica il pilota che farà la pole position.
+  </p>
 {% endif %}
+
+<div class="mx-auto max-w-md">
+  {% if event_started %}
+    <div class="card-pad">
+      <p class="mb-1 text-sm font-bold uppercase tracking-wide text-muted">Il tuo pronostico</p>
+      {% if existing %}
+        <p class="team-{{ existing.driver.team.short_name|slugify }}">
+          <span class="team-chip text-lg">{{ existing.driver.first_name }} {{ existing.driver.last_name }}</span>
+          <span class="ml-1 text-sm text-muted">{{ existing.driver.team.name }}</span>
+          <span class="badge-ok ml-2">✓</span>
+        </p>
+      {% else %}
+        <p class="text-sm text-muted">Nessun pronostico effettuato.</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <form method="post" class="card-pad space-y-4">
+      {% csrf_token %}
+      <div class="form-field">
+        <label for="driver">Scegli un pilota</label>
+        <select id="driver" name="driver">
+          <option value="">— Seleziona un pilota —</option>
+          {% for driver in drivers %}
+            <option value="{{ driver.id }}" {% if existing and existing.driver_id == driver.id %}selected{% endif %}>
+              {{ driver.team.short_name }} · {{ driver.first_name }} {{ driver.last_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-primary w-full">Salva il pronostico</button>
+    </form>
+  {% endif %}
+</div>
 {% endblock %}

@@ -1,94 +1,70 @@
-{% extends 'fantaApp/championship_flow_base.html' %} {% load dict_extras %} {% block championship_content %}
-<h2>{{ weekend.event_name }} – Sprint Qualifying</h2>
-<p>
-  <a href="{% url 'weekend_details' championship.id weekend.id %}">← Torna agli eventi del weekend</a>
-</p>
+{% extends 'fantaApp/championship_flow_base.html' %}
+{% load static %}
+{% load dict_extras %}
 
-{% if messages %} {% for message in messages %}
-<p style="color:{% if message.tags == 'error' %}red{% else %}green{% endif %};">
-  {{ message }}
-</p>
-{% endfor %} {% endif %} {% if event_started %}
-<p><strong>Le scelte per questa Sprint-Qualifying sono chiuse.</strong></p>
+{% block title %}{{ weekend.event_name }} · Sprint Qualifying — Fanta F1{% endblock %}
+
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/select-dedupe.js' %}"></script>{% endblock %}
+
+{% block championship_content %}
+<a href="{% url 'weekend_details' championship.id weekend.id %}" class="btn-ghost mb-4 -ml-2 text-sm">← Eventi del weekend</a>
+
+<h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-warn">Sprint Qualifying</span></h2>
+
+{% if event_started %}
+  <div class="card-pad mb-5 border-accent/40">
+    <p class="text-sm font-bold text-accent">🏁 Le scelte per questa Sprint Qualifying sono chiuse.</p>
+  </div>
+{% else %}
+  <p class="mb-5 text-sm text-muted">
+    <strong class="text-ink">Regole:</strong> pronostica un pilota per ciascuno slot.
+    Ogni pilota può comparire in un solo slot; puoi salvare anche solo alcune scelte.
+  </p>
 {% endif %}
 
-{% if not event_started %}
-<form method="post">
-  {% csrf_token %}
-  {% endif %}
-  <table>
-    <thead>
-      <tr>
-        <th>Slot</th>
-        <th>Pilota selezionato / Disponibile</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for code, label in slots %}
-      <tr>
-        <td>{{ label }}</td>
-        <td>
+<div class="mx-auto max-w-2xl">
+  {% if not event_started %}<form method="post">{% csrf_token %}{% endif %}
+
+  <div class="space-y-3">
+    {% for code, label in slots %}
+      <div class="card flex flex-wrap items-center gap-4 p-4">
+        <span class="pos-badge shrink-0 !h-10 !w-14 uppercase">{{ code }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="mb-1 text-sm font-bold">{{ label }}</p>
           {% if event_started %}
-            {% if code in existing %}
-              {% with choice=existing|get_item:code %}✔ {{ choice.driver.short_name }}{% endwith %}
-            {% else %}
-              —
-            {% endif %}
+            {% with choice=existing|get_item:code %}
+              {% if choice %}
+                <p class="team-{{ choice.driver.team.short_name|slugify }}">
+                  <span class="team-chip">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</span>
+                  <span class="ml-1 text-xs text-muted">{{ choice.driver.team.short_name }}</span>
+                </p>
+              {% else %}
+                <p class="text-sm text-muted">Nessun pronostico.</p>
+              {% endif %}
+            {% endwith %}
           {% else %}
-          {% with choice=existing|get_item:code %}
-          <select name="driver_{{ code }}" id="driver_{{ code }}">
-            <option value="">-- scegli pilota --</option>
-            {% for d in drivers %}
-            <option value="{{ d.id }}" {% if choice and choice.driver_id == d.id %}selected{% endif %}>
-              {{ d.team.short_name }} - {{ d.first_name }} {{d.last_name}}
-            </option>
-            {% endfor %}
-          </select>
-          {% endwith %}
+            {% with choice=existing|get_item:code %}
+              <div class="form-field">
+                <select name="driver_{{ code }}" id="driver_{{ code }}" data-dedupe>
+                  <option value="">— scegli pilota —</option>
+                  {% for d in drivers %}
+                    <option value="{{ d.id }}" {% if choice and choice.driver_id == d.id %}selected{% endif %}>
+                      {{ d.team.short_name }} · {{ d.first_name }} {{ d.last_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endwith %}
           {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </div>
+        {% if event_started %}{% if code in existing %}<span class="badge-ok shrink-0">✓</span>{% endif %}{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
   {% if not event_started %}
-  <button type="submit">Salva tutte le scelte</button>
-</form>
-<script>
-  (function () {
-    const selects = Array.from(document.querySelectorAll('select[name^="driver_"]'));
-    if (!selects.length) return;
-
-    function refreshDriverOptions() {
-      const selectedValues = new Set(
-        selects
-          .map((select) => select.value)
-          .filter((value) => value !== "")
-      );
-
-      selects.forEach((select) => {
-        Array.from(select.options).forEach((option) => {
-          if (!option.value) {
-            option.hidden = false;
-            option.disabled = false;
-            return;
-          }
-
-          const selectedInAnotherSelect =
-            selectedValues.has(option.value) && select.value !== option.value;
-
-          option.hidden = selectedInAnotherSelect;
-          option.disabled = selectedInAnotherSelect;
-        });
-      });
-    }
-
-    selects.forEach((select) => {
-      select.addEventListener("change", refreshDriverOptions);
-    });
-
-    refreshDriverOptions();
-  })();
-</script>
-{% endif %}
+    <button type="submit" class="btn-primary mt-5 w-full">Salva i pronostici</button>
+  </form>
+  {% endif %}
+</div>
 {% endblock %}

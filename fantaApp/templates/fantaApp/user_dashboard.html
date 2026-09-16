@@ -1,32 +1,94 @@
-{% extends 'fantaApp/base.html' %} {% block content %} {% csrf_token %}
-<h1>Ciao {{ user.username }}! Questa è la tua dashboard FantaF1</h1>
+{% extends 'fantaApp/base.html' %}
 
-{% if is_admin %}
-<p>Hai accesso al <a href="{% url 'admin:index' %}">Pannello Admin</a></p>
-{% elif is_staff %}
-<p>Hai accesso staff: <a href="{% url 'admin:index' %}">Pannello Staff</a></p>
-<!-- funzioni extra -->
-{% elif is_premium %}
-<p>Utente premium, hai più funzionalità</p>
-{% else %}
-<p>Benvenuto nel gioco!</p>
-{% endif %}
+{% block title %}I miei campionati — Fanta F1{% endblock %}
 
-<a href="{% url 'home' %}" class="btn">Home</a>
-<a href="{% url 'logout' %}" class="btn">Logout</a>
+{% block content %}
+<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">La tua dashboard</p>
+    <h1 class="mt-1 text-3xl font-black uppercase italic">
+      Ciao, {{ user.username }}
+      {% if is_admin %}<span class="badge-accent ml-2 align-middle not-italic">Admin</span>
+      {% elif is_staff %}<span class="badge-accent ml-2 align-middle not-italic">Staff</span>
+      {% elif is_premium %}<span class="badge-warn ml-2 align-middle not-italic">Premium</span>{% endif %}
+    </h1>
+  </div>
+  <div class="flex gap-3">
+    {% if is_admin or is_staff %}
+      <a href="{% url 'admin:index' %}" class="btn-secondary">Pannello admin</a>
+    {% endif %}
+    <a href="{% url 'create_championship' %}" class="btn-primary">+ Crea campionato</a>
+  </div>
+</div>
 
-<h2>I miei campionati</h2>
-<ul>
+<h2 class="mb-4 text-sm font-bold uppercase tracking-wide text-muted">I miei campionati</h2>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {% for e in championship %}
-  <li>
-    <a href="{% url 'championship_dashboard' e.championship.id %}">
-      {{ e.championship.name }} ({{ e.championship.year }})
-    </a>
-    - lega: {{ e.league.name }}
-  </li>
-  {% empty %}
-  <li>Non sei ancora iscritto a nessun campionato.</li>
-  {% endfor %}
-</ul>
+    <a href="{% url 'championship_dashboard' e.championship.id %}"
+       class="card-pad group transition-shadow hover:shadow-md hover:border-accent/50">
+      <div class="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
+            {{ e.championship.name }}
+          </h3>
+          <p class="text-sm text-muted">Stagione {{ e.championship.year }} · {{ e.league.name }}</p>
+        </div>
+        {% if e.championship.active %}
+          <span class="badge-ok shrink-0">In corso</span>
+        {% else %}
+          <span class="badge-muted shrink-0">Concluso</span>
+        {% endif %}
+      </div>
 
+      <p class="mb-4 text-sm text-muted">Giochi come <span class="font-semibold text-ink">{{ e.player_name }}</span></p>
+
+      <div class="flex gap-6 border-t border-line pt-3">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-muted">Crediti</p>
+          <p class="text-xl font-black">{{ e.available_credit }}</p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-muted">Punti</p>
+          <p class="text-xl font-black">{{ e.total_score }}</p>
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="card-pad sm:col-span-2 lg:col-span-3 text-center">
+      <p class="text-4xl">🏁</p>
+      <h3 class="mt-2 text-lg font-bold">Non sei ancora iscritto a nessun campionato</h3>
+      <p class="mx-auto mt-1 max-w-md text-sm text-muted">
+        Crea il tuo campionato e invita i tuoi amici, oppure chiedi a un organizzatore di iscriverti al suo.
+      </p>
+      <a href="{% url 'create_championship' %}" class="btn-primary mt-4">Crea un campionato</a>
+    </div>
+  {% endfor %}
+</div>
+
+{# Campionati in cui l'utente è manager: letti dal template perché la view non li passa. #}
+{# Nota: qui compaiono anche se non si è iscritti come giocatori (iscrizione oggi possibile solo da admin). #}
+{% if user.championshipmanager_set.all %}
+  <h2 class="mb-4 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for m in user.championshipmanager_set.all %}
+      <a href="{% url 'championship_dashboard' m.championship.id %}"
+         class="card-pad group transition-shadow hover:shadow-md hover:border-accent/50">
+        <div class="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
+              {{ m.championship.name }}
+            </h3>
+            <p class="text-sm text-muted">Stagione {{ m.championship.year }}</p>
+          </div>
+          <span class="badge-accent shrink-0">Manager</span>
+        </div>
+        <div class="flex gap-6 border-t border-line pt-3 text-sm text-muted">
+          <span><strong class="text-ink">{{ m.championship.leagues.count }}</strong> legh{{ m.championship.leagues.count|pluralize:"a,e" }}</span>
+          <span><strong class="text-ink">{{ m.championship.participants.count }}</strong> giocator{{ m.championship.participants.count|pluralize:"e,i" }}</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
 {% endblock %}

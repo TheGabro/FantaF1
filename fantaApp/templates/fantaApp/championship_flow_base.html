@@ -1,20 +1,22 @@
 {% extends "fantaApp/base.html" %}
 
 {% block content %}
-<div style="position: sticky; top: 0; background: #f0f0f0; padding: 10px 12px; border-bottom: 1px solid #ddd; z-index: 10;">
-  <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-    <div style="font-weight: 600;">
-      {% block championship_banner_link %}
-      <a href="{% url 'championship_dashboard' championship.id %}" style="text-decoration: none; color: inherit; font-weight: 600;">
-        {{ championship.name }} {{ championship.year }}
-      </a>
-      {% endblock %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+  <div class="flex items-center gap-3">
+    <span class="h-8 w-1.5 rounded-full bg-accent"></span>
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wide text-muted">Campionato</p>
+      <h1 class="text-lg font-bold leading-tight">
+        {% block championship_banner_link %}
+          <a href="{% url 'championship_dashboard' championship.id %}" class="hover:text-accent">
+            {{ championship.name }} {{ championship.year }}
+          </a>
+        {% endblock %}
+      </h1>
     </div>
-    <a href="{% url 'home' %}" style="text-decoration: none;">Homepage</a>
   </div>
+  <a href="{% url 'user_dashboard' %}" class="btn-ghost text-sm">← I miei campionati</a>
 </div>
 
-<div style="margin-top: 12px;">
-  {% block championship_content %}{% endblock %}
-</div>
+{% block championship_content %}{% endblock %}
 {% endblock %}

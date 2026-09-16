@@ -7,14 +7,14 @@ le funzioni del layer `services` e li salva/aggiorna nel database Django.
 from datetime import datetime, timedelta
 
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
 from django.db import transaction
 from django.utils import timezone
 
-from fantaApp.models import Circuit, Driver, Weekend, Team, Race, Qualifying, EventProcessingStatus
+from fantaApp.models import Circuit, Weekend, Team, Race, Qualifying, EventProcessingStatus
 from fantaApp.services import helper
-from fantaApp.services.jolpicaSource import (
+from fantaApp.services.sources.jolpicaSource import (
     get_circuits,
-    get_drivers,
     get_weekends,
     get_teams,
 )
@@ -28,50 +28,6 @@ ELIGIBLE_AFTER_DELAY = timedelta(hours=2)
 class Command(BaseCommand):
     help = "Import Season beginning"
 
-    def _save_driver(self, *, season: int, data: dict, team: Team) -> Driver:
-        short_name = data["short_name"] or data["drivers_api_id"][:3].upper()
-        defaults = {
-            "first_name": data["first_name"],
-            "last_name": data["last_name"],
-            "number": data["number"],
-            "short_name": short_name,
-            "season": season,
-            "team": team,
-        }
-
-        driver = Driver.objects.filter(api_id=data["drivers_api_id"]).first()
-        if driver:
-            for field, value in defaults.items():
-                setattr(driver, field, value)
-            driver.save(update_fields=[*defaults.keys()])
-            return driver
-
-        fallback_driver = None
-        if data["number"] is not None:
-            fallback_driver = Driver.objects.filter(season=season, number=data["number"]).first()
-
-        if fallback_driver is None:
-            fallback_driver = Driver.objects.filter(
-                season=season,
-                first_name=data["first_name"],
-                last_name=data["last_name"],
-            ).first()
-
-        if fallback_driver:
-            old_api_id = fallback_driver.api_id
-            for field, value in defaults.items():
-                setattr(fallback_driver, field, value)
-            fallback_driver.api_id = data["drivers_api_id"]
-            fallback_driver.save(update_fields=["api_id", *defaults.keys()])
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Updated existing driver match for {fallback_driver.first_name} {fallback_driver.last_name}: "
-                    f"api_id {old_api_id} -> {fallback_driver.api_id}"
-                )
-            )
-            return fallback_driver
-
-        return Driver.objects.get_or_create(api_id=data["drivers_api_id"], **defaults)
 
     def _init_processing_status(self, *, race=None, qualifying=None):
         event = race or qualifying
@@ -147,15 +103,7 @@ class Command(BaseCommand):
         # ------------------------------------------------------------------
         # 3) Drivers
         # ------------------------------------------------------------------
-        drivers_payload = get_drivers(season)
-        for data in drivers_payload:
-            self._save_driver(
-                season=season,
-                data=data,
-                team=teams_cache[data["team"]],
-            )
-        self.stdout.write(self.style.SUCCESS(f"• Drivers imported: {len(drivers_payload)}"))
-        
+        call_command("import_drivers", season=season, stdout=self.stdout)
 
         # ------------------------------------------------------------------
         # 4) Weekends
@@ -214,6 +162,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {race_count} created"))
         self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {qualifying_count} created"))
+
+        # ------------------------------------------------------------------
+        # 4c) Weekend participants
+        # ------------------------------------------------------------------
+        call_command("sync_weekend_participants", season=season, stdout=self.stdout)
 
         
 
