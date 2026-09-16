@@ -601,7 +601,9 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         return redirect(request.path)
     
     drivers_available = (
-        Driver.objects.filter(driver_participations__weekend=weekend).exclude(id__in=drivers_taken)
+        Driver.objects.filter(driver_participations__weekend=weekend)
+        .exclude(id__in=drivers_taken)
+        .exclude(team_id__in=teams_maxed_out)
         .order_by("team__name", "first_name", "last_name")
     )
 
