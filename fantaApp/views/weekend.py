@@ -6,9 +6,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from ..models import Championship, Weekend, Race, Qualifying, Driver, PlayerSprintQualifyingChoice, PlayerRaceChoice, PlayerQualifyingChoice, PlayerQualifyingMultiChoice, RaceResult, PlayerRaceResult
 from ..services import player_choices as pc
-from ..services import bonuses
-from ..services import costs
-from ..services import helper
+from ..services import bonuses, costs, rules, helper
+from django.db.models import Count
+
 
 
 
@@ -557,6 +557,20 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
         .values_list("driver_id", flat=True)
     )
+    
+    teams_maxed_out = (
+        PlayerQualifyingChoice.objects
+            .filter(
+                player=player,
+                qualifying__weekend__season=weekend.season,
+                qualifying__type="regular",
+            )
+            .exclude(qualifying=qualifying)
+            .values("driver__team_id")
+            .annotate(picks=Count("id"))
+            .filter(picks__gte=rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM)
+            .values_list("driver__team_id", flat=True)
+    )
 
     if request.method == "POST" and not event_started:
         driver_id = request.POST.get("driver")
@@ -572,7 +586,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         driver = Driver.objects.filter(
             driver_participations__weekend=weekend,
             id=driver_id,
-        ).exclude(id__in=drivers_taken).first()
+        ).exclude(id__in=drivers_taken).exclude(team_id__in=teams_maxed_out).first()
 
 
         try:

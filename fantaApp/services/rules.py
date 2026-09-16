@@ -182,3 +182,9 @@ REGULAR_QUALIFYING_BONUS_BY_POSITION = {
     2: {"credit_change": -5, "qualifying_points": 900, "points_multiplier": Decimal("1.7")},
     1: {"credit_change": 0, "qualifying_points": 1000, "points_multiplier": Decimal("2")},
 }
+
+# ============================================================================
+# Limite scelte stesso team (qualifica regular)
+# ============================================================================
+
+REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM = 2
