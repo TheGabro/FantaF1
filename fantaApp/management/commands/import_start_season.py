@@ -163,6 +163,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"• Race rows ready: {race_count} created"))
         self.stdout.write(self.style.SUCCESS(f"• Qualifying rows ready: {qualifying_count} created"))
 
+        # ------------------------------------------------------------------
+        # 4c) Weekend participants
+        # ------------------------------------------------------------------
+        call_command("sync_weekend_participants", season=season, stdout=self.stdout)
+
         
 
         # ------------------------------------------------------------------

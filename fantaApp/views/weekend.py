@@ -169,9 +169,10 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
             messages.error(request, "Formato pilota non valido.")
             return redirect(request.path)
         drivers_by_id = Driver.objects.filter(
-            season=weekend.season,
+            driver_participations__weekend=weekend,
             id__in=selected_ids,
         ).in_bulk()
+
 
         if len(drivers_by_id) != len(set(selected_ids)):
             messages.error(request, "Uno o più piloti selezionati non sono validi per questa stagione.")
@@ -191,10 +192,11 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
 
     drivers_avail = (
         Driver.objects
-        .filter(season=weekend.season)
+        .filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
+
 
     context = {
         "championship": champ,
@@ -497,7 +499,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(request, "Formato pilota non valido.")
             return redirect(request.path)
         drivers_by_id = Driver.objects.filter(
-            season=weekend.season,
+            driver_participations__weekend=weekend,
             id__in=selected_ids,
         ).in_bulk()
 
@@ -521,7 +523,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
 
     drivers_avail = (
         Driver.objects
-        .filter(season=weekend.season)
+        .filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
@@ -568,8 +570,8 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             return redirect(request.path)
 
         driver = Driver.objects.filter(
+            driver_participations__weekend=weekend,
             id=driver_id,
-            season=weekend.season,
         ).exclude(id__in=drivers_taken).first()
 
 
@@ -585,7 +587,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         return redirect(request.path)
     
     drivers_available = (
-        Driver.objects.filter(season=weekend.season).exclude(id__in=drivers_taken)
+        Driver.objects.filter(driver_participations__weekend=weekend).exclude(id__in=drivers_taken)
         .order_by("team__name", "first_name", "last_name")
     )
 
