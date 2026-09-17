@@ -1,7 +1,7 @@
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from ..models import EventProcessingStatus, Qualifying, Status
+from ..models import EventProcessingStatus, Status
 
 MAX_WAITING_ATTEMPTS = 10
 
