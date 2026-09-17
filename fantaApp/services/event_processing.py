@@ -33,7 +33,7 @@ def mark(event_status, *, status, now, error="") -> str:
     return status
 
 
-def eligible_statuses(now: timezone.datetime) -> QuerySet[EventProcessingStatus]:
+def eligible_events(now: timezone.datetime) -> QuerySet[EventProcessingStatus]:
     """Restituisce gli EventProcessingStatus eligible in ordine cronologico."""
 
     eligible = (
