@@ -5,58 +5,112 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0032_alter_driver_unique_together'),
+        ("fantaApp", "0032_alter_driver_unique_together"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlayerQualifyingChoice',
+            name="PlayerQualifyingChoice",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cost', models.PositiveIntegerField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='fantaApp.driver')),
-                ('player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.championshipplayer')),
-                ('qualifying', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.qualifying')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("cost", models.PositiveIntegerField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.championshipplayer",
+                    ),
+                ),
+                (
+                    "qualifying",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.qualifying",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='PlayerRaceChoice',
+            name="PlayerRaceChoice",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cost', models.PositiveIntegerField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('is_pupillo', models.BooleanField(default=False)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='fantaApp.driver')),
-                ('player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.championshipplayer')),
-                ('race', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.race')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("cost", models.PositiveIntegerField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("is_pupillo", models.BooleanField(default=False)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.championshipplayer",
+                    ),
+                ),
+                (
+                    "race",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="fantaApp.race"
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.DeleteModel(
-            name='RaceResult',
+            name="RaceResult",
         ),
         migrations.AddIndex(
-            model_name='playerracechoice',
-            index=models.Index(fields=['player', 'driver'], name='fantaApp_pl_player__20a9f8_idx'),
+            model_name="playerracechoice",
+            index=models.Index(
+                fields=["player", "driver"], name="fantaApp_pl_player__20a9f8_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='playerracechoice',
-            unique_together={('player', 'race', 'driver')},
+            name="playerracechoice",
+            unique_together={("player", "race", "driver")},
         ),
         migrations.AddIndex(
-            model_name='playerqualifyingchoice',
-            index=models.Index(fields=['player', 'driver'], name='fantaApp_pl_player__ab0528_idx'),
+            model_name="playerqualifyingchoice",
+            index=models.Index(
+                fields=["player", "driver"], name="fantaApp_pl_player__ab0528_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='playerqualifyingchoice',
-            unique_together={('player', 'qualifying')},
+            name="playerqualifyingchoice",
+            unique_together={("player", "qualifying")},
         ),
     ]

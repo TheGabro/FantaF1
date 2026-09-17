@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0021_circuit_api_id'),
+        ("fantaApp", "0021_circuit_api_id"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='circuit',
-            name='api_id',
+            model_name="circuit",
+            name="api_id",
             field=models.CharField(max_length=50, unique=True),
         ),
         migrations.AlterField(
-            model_name='driver',
-            name='api_id',
+            model_name="driver",
+            name="api_id",
             field=models.CharField(max_length=50, unique=True),
         ),
         migrations.AlterField(
-            model_name='team',
-            name='api_id',
+            model_name="team",
+            name="api_id",
             field=models.CharField(max_length=50, unique=True),
         ),
     ]

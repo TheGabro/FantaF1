@@ -10,6 +10,7 @@ from django.core.management.base import BaseCommand
 from fantaApp.models import Race, Weekend
 from fantaApp.services.credit_consolidation import consolidate_race_credits
 
+
 class Command(BaseCommand):
     help = "compute all players score for a single race"
 

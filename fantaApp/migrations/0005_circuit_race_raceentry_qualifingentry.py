@@ -5,85 +5,170 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0004_team_alter_customuser_email_driver'),
+        ("fantaApp", "0004_team_alter_customuser_email_driver"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Circuit',
+            name="Circuit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('continent', models.CharField(max_length=50)),
-                ('state', models.CharField(max_length=50)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('modified_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("continent", models.CharField(max_length=50)),
+                ("state", models.CharField(max_length=50)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("modified_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                ("active", models.BooleanField(default=True)),
             ],
             options={
-                'ordering': ['name'],
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='Race',
+            name="Race",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('year', models.IntegerField()),
-                ('week', models.IntegerField()),
-                ('fp1_start', models.DateTimeField(blank=True, null=True)),
-                ('fp2_start', models.DateTimeField(blank=True, null=True)),
-                ('fp3_start', models.DateTimeField(blank=True, null=True)),
-                ('sprint_start', models.DateTimeField(blank=True, null=True)),
-                ('qualifying_start', models.DateTimeField(blank=True, null=True)),
-                ('race_start', models.DateTimeField(blank=True, null=True)),
-                ('race_type', models.CharField(choices=[('regular', 'Regular Race'), ('sprint', 'Sprint Race')], default='regular', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('modified_at', models.DateTimeField(auto_now=True)),
-                ('deleted_at', models.DateTimeField(blank=True, null=True)),
-                ('circuit', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.circuit')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("year", models.IntegerField()),
+                ("week", models.IntegerField()),
+                ("fp1_start", models.DateTimeField(blank=True, null=True)),
+                ("fp2_start", models.DateTimeField(blank=True, null=True)),
+                ("fp3_start", models.DateTimeField(blank=True, null=True)),
+                ("sprint_start", models.DateTimeField(blank=True, null=True)),
+                ("qualifying_start", models.DateTimeField(blank=True, null=True)),
+                ("race_start", models.DateTimeField(blank=True, null=True)),
+                (
+                    "race_type",
+                    models.CharField(
+                        choices=[
+                            ("regular", "Regular Race"),
+                            ("sprint", "Sprint Race"),
+                        ],
+                        default="regular",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("modified_at", models.DateTimeField(auto_now=True)),
+                ("deleted_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "circuit",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.circuit",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['year', 'week'],
-                'unique_together': {('circuit', 'year', 'week')},
+                "ordering": ["year", "week"],
+                "unique_together": {("circuit", "year", "week")},
             },
         ),
         migrations.CreateModel(
-            name='RaceEntry',
+            name="RaceEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('position', models.IntegerField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('finished', 'Finished'), ('dnf', 'Did Not Finish'), ('disqualified', 'Disqualified'), ('dns', 'Did Not Start'), ('retired', 'Retired')], max_length=20)),
-                ('starting_grid', models.IntegerField(blank=True, null=True)),
-                ('points', models.IntegerField(default=0)),
-                ('best_lap', models.DurationField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.driver')),
-                ('race', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='entries', to='fantaApp.race')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("position", models.IntegerField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("finished", "Finished"),
+                            ("dnf", "Did Not Finish"),
+                            ("disqualified", "Disqualified"),
+                            ("dns", "Did Not Start"),
+                            ("retired", "Retired"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("starting_grid", models.IntegerField(blank=True, null=True)),
+                ("points", models.IntegerField(default=0)),
+                ("best_lap", models.DurationField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "race",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="entries",
+                        to="fantaApp.race",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['race', 'position'],
-                'unique_together': {('race', 'driver')},
+                "ordering": ["race", "position"],
+                "unique_together": {("race", "driver")},
             },
         ),
         migrations.CreateModel(
-            name='QualifingEntry',
+            name="QualifingEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('q1_position', models.IntegerField(blank=True, null=True)),
-                ('q1_time', models.DurationField(blank=True, null=True)),
-                ('q2_position', models.IntegerField(blank=True, null=True)),
-                ('q2_time', models.DurationField(blank=True, null=True)),
-                ('q3_position', models.IntegerField(blank=True, null=True)),
-                ('q3_time', models.DurationField(blank=True, null=True)),
-                ('best_lap', models.DurationField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.driver')),
-                ('race', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='qualifing_entries', to='fantaApp.race')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("q1_position", models.IntegerField(blank=True, null=True)),
+                ("q1_time", models.DurationField(blank=True, null=True)),
+                ("q2_position", models.IntegerField(blank=True, null=True)),
+                ("q2_time", models.DurationField(blank=True, null=True)),
+                ("q3_position", models.IntegerField(blank=True, null=True)),
+                ("q3_time", models.DurationField(blank=True, null=True)),
+                ("best_lap", models.DurationField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "race",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="qualifing_entries",
+                        to="fantaApp.race",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['race', 'q3_position'],
-                'unique_together': {('race', 'driver')},
+                "ordering": ["race", "q3_position"],
+                "unique_together": {("race", "driver")},
             },
         ),
     ]

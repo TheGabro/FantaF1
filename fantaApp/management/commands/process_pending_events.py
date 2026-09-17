@@ -12,18 +12,20 @@ la cui Qualifying non e' "processed" interrompe la passata: ci si arriva solo se
 la qualifica e' finita in errore, e proseguire significherebbe calcolare
 punteggi su dati incompleti.
 """
+
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from fantaApp.models import EventProcessingStatus, Qualifying, Status
 from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable
+from fantaApp.services.event_processing import qualifying_ready, mark, eligible_statuses
 
 MAX_WAITING_ATTEMPTS = 10
 
 
 class Command(BaseCommand):
-    help = "Processa gli EventProcessingStatus eligible in ordine cronologico"
+    help = "Event processing: process pending events in chronological order"
 
     def _process_race(self, race):
         call_command(
@@ -47,36 +49,11 @@ class Command(BaseCommand):
             type=qualifying.type,
         )
 
-    def _qualifying_ready(self, race) -> bool:
-        qualifying = (
-            Qualifying.objects
-            .filter(weekend=race.weekend, type=race.type)
-            .select_related("processing_status")
-            .first()
-        )
-        return bool(qualifying) and qualifying.processing_status.status == Status.PROCESSED
-
-    def _mark(self, event_status, *, status, now, error=""):
-        """Registra l'esito di un tentativo sull'EventProcessingStatus."""
-        event_status.status = status
-        event_status.attempts += 1
-        event_status.last_attempt_at = now
-        event_status.last_error = error
-        event_status.save(
-            update_fields=["status", "attempts", "last_attempt_at", "last_error"]
-        )
 
     def handle(self, *args, **options):
         now = timezone.now()
-        eligible = (
-            EventProcessingStatus.objects
-            .select_related("race__weekend", "qualifying__weekend")
-            .filter(
-                status__in=[Status.PENDING, Status.WAITING_FOR_RESULTS],
-                eligible_after__lte=now,
-            )
-            .order_by("eligible_after")
-        )
+        
+        eligible = eligible_statuses(now)
 
         processed = waiting = errored = skipped = 0
 
@@ -85,10 +62,12 @@ class Command(BaseCommand):
 
             # La guardia sta fuori dal try: non puo' sollevare ResultsNotAvailable,
             # e se la query fallisse non avrebbe senso marcare la gara in errore.
-            if event_status.race and not self._qualifying_ready(event_status.race):
+            if event_status.race and not qualifying_ready(event_status.race):
                 skipped += 1
                 self.stdout.write(
-                    self.style.WARNING(f"… {event}: qualifica non elaborata, mi fermo qui")
+                    self.style.WARNING(
+                        f"… {event}: qualifying non ancora processed, skipping"
+                    )
                 )
                 break
 
@@ -98,40 +77,34 @@ class Command(BaseCommand):
                 else:
                     self._process_qualifying(event_status.qualifying)
             except ResultsNotAvailable:
-                # _mark incrementa attempts, quindi il confronto guarda avanti di uno.
-                if event_status.attempts + 1 >= MAX_WAITING_ATTEMPTS:
-                    self._mark(
-                        event_status,
-                        status=Status.ERROR,
-                        now=now,
-                        error="Risultati non disponibili dopo il numero massimo di tentativi",
-                    )
+                final_status = mark(event_status, status=Status.WAITING_FOR_RESULTS, now=now)
+                if final_status == Status.ERROR:
                     errored += 1
                     self.stdout.write(
                         self.style.ERROR(
-                            f"✗ {event}: nessun risultato dopo {event_status.attempts} tentativi"
+                            f"✗ {event}: max attempts reached, marking as ERROR"
                         )
                     )
                 else:
-                    self._mark(event_status, status=Status.WAITING_FOR_RESULTS, now=now)
                     waiting += 1
                     self.stdout.write(
                         self.style.WARNING(
-                            f"… {event}: risultati non disponibili, tentativo {event_status.attempts}"
+                            f"… {event}: results not available, "
+                            f"marked as WAITING_FOR_RESULTS (attempts: {event_status.attempts})"
                         )
                     )
             except Exception as exc:
-                self._mark(event_status, status=Status.ERROR, now=now, error=str(exc))
+                mark(event_status, status=Status.ERROR, now=now, error=str(exc))
                 errored += 1
                 self.stdout.write(self.style.ERROR(f"✗ {event}: {exc}"))
             else:
-                self._mark(event_status, status=Status.PROCESSED, now=now)
+                mark(event_status, status=Status.PROCESSED, now=now)
                 processed += 1
-                self.stdout.write(self.style.SUCCESS(f"✓ {event}: elaborato"))
+                self.stdout.write(self.style.SUCCESS(f"✓ {event}: processed"))
 
         self.stdout.write(
             self.style.MIGRATE_HEADING(
-                f"=== Completato: {processed} elaborati, {waiting} in attesa dei risultati, "
-                f"{skipped} bloccati da una qualifica, {errored} in errore ==="
+                f"=== Completed: {processed} processed, {waiting} waiting for results, "
+                f"{skipped} blocked by a qualifying, {errored} in error ==="
             )
         )

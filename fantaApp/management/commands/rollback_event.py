@@ -8,6 +8,7 @@ e riporta l'EventProcessingStatus a "pending", cosi' che process_pending_qualify
 process_pending_races lo riprenda al prossimo giro. Utile per correggere un evento finito in "error"
 (o "processed" con dati sbagliati) senza dover intervenire a mano sul DB.
 """
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -54,16 +55,22 @@ class Command(BaseCommand):
             )
         else:
             qualifying = event_status.qualifying
-            deleted_results, _ = QualifyingResult.objects.filter(qualifying=qualifying).delete()
+            deleted_results, _ = QualifyingResult.objects.filter(
+                qualifying=qualifying
+            ).delete()
             self.stdout.write(
-                self.style.SUCCESS(f"• {qualifying}: {deleted_results} QualifyingResult cancellati")
+                self.style.SUCCESS(
+                    f"• {qualifying}: {deleted_results} QualifyingResult cancellati"
+                )
             )
 
         event_status.status = Status.PENDING
         event_status.attempts = 0
         event_status.last_attempt_at = None
         event_status.last_error = ""
-        event_status.save(update_fields=["status", "attempts", "last_attempt_at", "last_error"])
+        event_status.save(
+            update_fields=["status", "attempts", "last_attempt_at", "last_error"]
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -71,7 +78,9 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
 
         if rollback_all:
-            statuses = list(EventProcessingStatus.objects.select_related("race", "qualifying"))
+            statuses = list(
+                EventProcessingStatus.objects.select_related("race", "qualifying")
+            )
         else:
             required = ("season", "round", "type", "event")
             missing = [name for name in required if options[name] is None]
@@ -80,21 +89,29 @@ class Command(BaseCommand):
                     f"Senza --all servono tutti questi argomenti: {', '.join('--' + m for m in missing)}"
                 )
 
-            weekend = Weekend.objects.get(season=options["season"], round_number=options["round"])
+            weekend = Weekend.objects.get(
+                season=options["season"], round_number=options["round"]
+            )
             if options["event"] == "race":
                 race = Race.objects.get(weekend=weekend, type=options["type"])
                 statuses = [EventProcessingStatus.objects.get(race=race)]
             else:
-                qualifying = Qualifying.objects.get(weekend=weekend, type=options["type"])
+                qualifying = Qualifying.objects.get(
+                    weekend=weekend, type=options["type"]
+                )
                 statuses = [EventProcessingStatus.objects.get(qualifying=qualifying)]
 
         for event_status in statuses:
             self._rollback_one(event_status)
 
-        self.stdout.write(self.style.SUCCESS(f"• {len(statuses)} evento/i rimesso/i in 'pending'"))
+        self.stdout.write(
+            self.style.SUCCESS(f"• {len(statuses)} evento/i rimesso/i in 'pending'")
+        )
 
         if dry_run:
             self.stdout.write(self.style.WARNING("Dry-run attivo: rollback volontario"))
-            raise transaction.TransactionManagementError("Dry-run — transaction rollback")
+            raise transaction.TransactionManagementError(
+                "Dry-run — transaction rollback"
+            )
 
         self.stdout.write(self.style.SUCCESS("=== Rollback completato ==="))

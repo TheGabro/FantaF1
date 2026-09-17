@@ -14,9 +14,6 @@ def get_best_lap(*times):
     return min(valid_times) if valid_times else None
 
 
-
-
-
 class Command(BaseCommand):
     """
     Management command: `python manage.py insert_quali_result [--season <year>] [--round <number>] [--type <type>] [--dry-run]`
@@ -36,24 +33,20 @@ class Command(BaseCommand):
             type=int,
             help="round to call",
         )
-        
-        parser.add_argument(
-            "--type",
-            type=str,
-            help="type of the event"
-        )
+
+        parser.add_argument("--type", type=str, help="type of the event")
 
         parser.add_argument(
-            "--dry-run", #it's a boolean flag, if present it will roll back at the end
+            "--dry-run",  # it's a boolean flag, if present it will roll back at the end
             action="store_true",
             help="Execute command without final commit",
         )
-        
+
     TYPES = [
-        ('regular', 'Regular Race Qualifying'),
-        ('sprint', 'Sprint Race Qualifying')
+        ("regular", "Regular Race Qualifying"),
+        ("sprint", "Sprint Race Qualifying"),
     ]
-    
+
     @transaction.atomic
     def handle(self, *args, **options):
         season: int = options["season"]
@@ -61,12 +54,9 @@ class Command(BaseCommand):
         q_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
-        qualifying = Qualifying.objects.get(
-            weekend=weekend,
-            type = q_type
-        )
-        quali_objs :list[QualifyingResult] = []
-        if q_type == 'regular':
+        qualifying = Qualifying.objects.get(weekend=weekend, type=q_type)
+        quali_objs: list[QualifyingResult] = []
+        if q_type == "regular":
             self.stdout.write(self.style.SUCCESS("=== Import regular qualigfying ==="))
             for data in get_qualifying_result(season, round):
                 q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
@@ -89,7 +79,7 @@ class Command(BaseCommand):
                         q2_time=q2_time,
                         q3_time=q3_time,
                         best_lap=get_best_lap(q1_time, q2_time, q3_time),
-                        position=data["position"]
+                        position=data["position"],
                     )
                 )
         else:
@@ -110,18 +100,20 @@ class Command(BaseCommand):
                         position=data["position"],
                     )
                 )
-        
 
         # Inserimento veloce: una singola INSERT
         QualifyingResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
-        self.stdout.write(self.style.SUCCESS(f"• Races qualifying imported: {len(quali_objs)}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"• Races qualifying imported: {len(quali_objs)}")
+        )
 
         # ------------------------------------------------------------------
         # Commit / Rollback
         # ------------------------------------------------------------------
         if dry_run:
             self.stdout.write(self.style.WARNING("Dry‑run active: volontary rollback"))
-            raise transaction.TransactionManagementError("Dry‑run — transaction rollback")
+            raise transaction.TransactionManagementError(
+                "Dry‑run — transaction rollback"
+            )
 
         self.stdout.write(self.style.SUCCESS("=== Import succeded ==="))
-    

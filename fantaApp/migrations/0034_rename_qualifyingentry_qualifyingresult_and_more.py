@@ -5,48 +5,129 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0033_playerqualifyingchoice_playerracechoice_and_more'),
+        ("fantaApp", "0033_playerqualifyingchoice_playerracechoice_and_more"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='QualifyingEntry',
-            new_name='QualifyingResult',
+            old_name="QualifyingEntry",
+            new_name="QualifyingResult",
         ),
         migrations.CreateModel(
-            name='PlayerSprintQualifyingChoice',
+            name="PlayerSprintQualifyingChoice",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cost', models.PositiveIntegerField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('selection_slot', models.CharField(choices=[('q1', 'Out in Q1'), ('q2', 'Out in Q2'), ('q3', 'Q3 (6‑10)')], max_length=2)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='fantaApp.driver')),
-                ('player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.championshipplayer')),
-                ('qualifying', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.qualifying')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("cost", models.PositiveIntegerField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "selection_slot",
+                    models.CharField(
+                        choices=[
+                            ("q1", "Out in Q1"),
+                            ("q2", "Out in Q2"),
+                            ("q3", "Q3 (6‑10)"),
+                        ],
+                        max_length=2,
+                    ),
+                ),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.championshipplayer",
+                    ),
+                ),
+                (
+                    "qualifying",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.qualifying",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'indexes': [models.Index(fields=['player', 'driver'], name='fantaApp_pl_player__4967ee_idx')],
-                'unique_together': {('player', 'qualifying', 'selection_slot')},
+                "abstract": False,
+                "indexes": [
+                    models.Index(
+                        fields=["player", "driver"],
+                        name="fantaApp_pl_player__4967ee_idx",
+                    )
+                ],
+                "unique_together": {("player", "qualifying", "selection_slot")},
             },
         ),
         migrations.CreateModel(
-            name='PlayerQualifyingMultiChoice',
+            name="PlayerQualifyingMultiChoice",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('cost', models.PositiveIntegerField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('selection_slot', models.CharField(choices=[('q1_pass', 'Pass Q1'), ('q2_pass', 'Pass Q2'), ('q3_top5', 'Q3 – Top-5')], max_length=8)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='fantaApp.driver')),
-                ('player', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.championshipplayer')),
-                ('qualifying', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.qualifying')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("cost", models.PositiveIntegerField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "selection_slot",
+                    models.CharField(
+                        choices=[
+                            ("q1_pass", "Pass Q1"),
+                            ("q2_pass", "Pass Q2"),
+                            ("q3_top5", "Q3 – Top-5"),
+                        ],
+                        max_length=8,
+                    ),
+                ),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="fantaApp.driver",
+                    ),
+                ),
+                (
+                    "player",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.championshipplayer",
+                    ),
+                ),
+                (
+                    "qualifying",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="fantaApp.qualifying",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
-                'indexes': [models.Index(fields=['player', 'driver'], name='fantaApp_pl_player__f8d73d_idx')],
-                'unique_together': {('player', 'qualifying', 'selection_slot')},
+                "abstract": False,
+                "indexes": [
+                    models.Index(
+                        fields=["player", "driver"],
+                        name="fantaApp_pl_player__f8d73d_idx",
+                    )
+                ],
+                "unique_together": {("player", "qualifying", "selection_slot")},
             },
         ),
     ]

@@ -29,8 +29,7 @@ def consolidate_race_credits_if_started(*, race) -> int:
         return 0
 
     pending_choices = list(
-        PlayerRaceChoice.objects
-        .select_for_update()
+        PlayerRaceChoice.objects.select_for_update()
         .select_related("player", "race", "race__weekend")
         .filter(
             race=race,
@@ -43,11 +42,15 @@ def consolidate_race_credits_if_started(*, race) -> int:
 
     totals_by_player_id = {}
     for choice in pending_choices:
-        totals_by_player_id[choice.player_id] = totals_by_player_id.get(choice.player_id, 0) + choice.spent_amount
+        totals_by_player_id[choice.player_id] = (
+            totals_by_player_id.get(choice.player_id, 0) + choice.spent_amount
+        )
 
     players = {
         championship_player.id: championship_player
-        for championship_player in ChampionshipPlayer.objects.select_for_update().filter(id__in=totals_by_player_id)
+        for championship_player in ChampionshipPlayer.objects.select_for_update().filter(
+            id__in=totals_by_player_id
+        )
     }
 
     for player_id, total_spent in totals_by_player_id.items():
@@ -55,7 +58,9 @@ def consolidate_race_credits_if_started(*, race) -> int:
         championship_player.available_credit -= total_spent
         championship_player.save(update_fields=["available_credit"])
 
-    PlayerRaceChoice.objects.filter(id__in=[choice.id for choice in pending_choices]).update(credit_applied=True)
+    PlayerRaceChoice.objects.filter(
+        id__in=[choice.id for choice in pending_choices]
+    ).update(credit_applied=True)
     return len(pending_choices)
 
 

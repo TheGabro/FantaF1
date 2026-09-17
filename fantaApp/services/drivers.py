@@ -5,11 +5,14 @@ from django.core.management.base import CommandError
 
 logger = logging.getLogger(__name__)
 
+
 class TeamNotFound(LookupError):
     pass
 
-def find_driver(*, season: int, api_id=None, number=None,
-                first_name=None, last_name=None) -> Driver | None:
+
+def find_driver(
+    *, season: int, api_id=None, number=None, first_name=None, last_name=None
+) -> Driver | None:
     """Cerca un pilota nel DB, dalla chiave più forte alla più debole."""
     if api_id:
         driver = Driver.objects.filter(api_id=api_id).first()
@@ -23,7 +26,9 @@ def find_driver(*, season: int, api_id=None, number=None,
 
     if first_name and last_name:
         driver = Driver.objects.filter(
-            season=season, first_name=first_name, last_name=last_name,
+            season=season,
+            first_name=first_name,
+            last_name=last_name,
         ).first()
         if driver:
             return driver
@@ -54,26 +59,33 @@ def save_driver(*, season: int, data: dict, team: Team) -> None:
         Driver.objects.create(api_id=api_id, **defaults)
     else:
         if driver.api_id != api_id:
-            logger.warning("api_id riconciliato per %s %s: %s -> %s",
-                           driver.first_name, driver.last_name, driver.api_id, api_id)
+            logger.warning(
+                "api_id riconciliato per %s %s: %s -> %s",
+                driver.first_name,
+                driver.last_name,
+                driver.api_id,
+                api_id,
+            )
             driver.api_id = api_id
 
         for field, value in defaults.items():
             setattr(driver, field, value)
         driver.save(update_fields=["api_id", *defaults.keys()])
-        
+
+
 def save_drivers(*, season: int, payload: list[dict]) -> list[Driver]:
     teams_by_api_id = Team.objects.in_bulk(field_name="api_id")
     saved = []
     for data in payload:
         team = teams_by_api_id.get(data["team"])
         if team is None:
-            raise TeamNotFound(f"Team '{data['team']}' non presente a DB: importa prima i team.")
+            raise TeamNotFound(
+                f"Team '{data['team']}' non presente a DB: importa prima i team."
+            )
         saved.append(save_driver(season=season, data=data, team=team))
     return saved
 
 
-    
 def resolve_fastf1_driver(*, season: int, data: dict) -> Driver:
     queryset = Driver.objects.filter(season=season)
 

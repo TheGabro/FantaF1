@@ -4,16 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0020_alter_driver_options_rename_name_driver_first_name_and_more'),
+        (
+            "fantaApp",
+            "0020_alter_driver_options_rename_name_driver_first_name_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='circuit',
-            name='api_id',
-            field=models.CharField(default='primo', max_length=50),
+            model_name="circuit",
+            name="api_id",
+            field=models.CharField(default="primo", max_length=50),
             preserve_default=False,
         ),
     ]

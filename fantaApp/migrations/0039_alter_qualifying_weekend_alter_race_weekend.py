@@ -5,20 +5,23 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0038_alter_playerqualifyingmultichoice_selection_slot_and_more'),
+        ("fantaApp", "0038_alter_playerqualifyingmultichoice_selection_slot_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='qualifying',
-            name='weekend',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.weekend'),
+            model_name="qualifying",
+            name="weekend",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="fantaApp.weekend"
+            ),
         ),
         migrations.AlterField(
-            model_name='race',
-            name='weekend',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.weekend'),
+            model_name="race",
+            name="weekend",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="fantaApp.weekend"
+            ),
         ),
     ]

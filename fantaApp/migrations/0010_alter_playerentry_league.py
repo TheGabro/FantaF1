@@ -5,15 +5,18 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0009_championship_active_championship_is_private_and_more'),
+        ("fantaApp", "0009_championship_active_championship_is_private_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerentry',
-            name='league',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='participants', to='fantaApp.league'),
+            model_name="playerentry",
+            name="league",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="participants",
+                to="fantaApp.league",
+            ),
         ),
     ]

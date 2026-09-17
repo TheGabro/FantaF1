@@ -6,27 +6,26 @@ import uuid
 
 
 class CustomUserManager(BaseUserManager):
-
     def create_user(self, username, email, password=None, **extra_fields):
         if not username:
-            raise ValueError('The Username must be set')
-        
-        if not email:
-            raise ValueError('The Email must be set') 
-        
-        email = self.normalize_email(email)
-        user_type = extra_fields.get('user_type', 'user')
-        extra_fields.setdefault('user_type', user_type)
+            raise ValueError("The Username must be set")
 
-        if user_type == 'admin':
-            extra_fields['is_staff'] = True
-            extra_fields['is_superuser'] = True
-        elif user_type == 'staff':
-            extra_fields['is_staff'] = True
-            extra_fields['is_superuser'] = False
+        if not email:
+            raise ValueError("The Email must be set")
+
+        email = self.normalize_email(email)
+        user_type = extra_fields.get("user_type", "user")
+        extra_fields.setdefault("user_type", user_type)
+
+        if user_type == "admin":
+            extra_fields["is_staff"] = True
+            extra_fields["is_superuser"] = True
+        elif user_type == "staff":
+            extra_fields["is_staff"] = True
+            extra_fields["is_superuser"] = False
         else:
-            extra_fields['is_staff'] = False
-            extra_fields['is_superuser'] = False
+            extra_fields["is_staff"] = False
+            extra_fields["is_superuser"] = False
 
         user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
@@ -34,35 +33,33 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('user_type', 'admin')
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("user_type", "admin")
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
 
         return self.create_user(username, email, password, **extra_fields)
 
     def create_staffuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', False)
-        extra_fields.setdefault('user_type', 'staff')
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", False)
+        extra_fields.setdefault("user_type", "staff")
         return self.create_user(username, email, password, **extra_fields)
 
+
 class CustomUser(AbstractUser):
-   
     class UserType(models.TextChoices):
-        USER = 'user', 'User'
-        PREMIUM = 'premium', 'Premium'
-        STAFF = 'staff', 'Staff'
-        ADMIN = 'admin', 'Admin'
+        USER = "user", "User"
+        PREMIUM = "premium", "Premium"
+        STAFF = "staff", "Staff"
+        ADMIN = "admin", "Admin"
 
     user_type = models.CharField(
-        max_length=10,
-        choices=UserType.choices,
-        default=UserType.USER
+        max_length=10, choices=UserType.choices, default=UserType.USER
     )
     email = models.EmailField(unique=True, blank=False, null=False)
     birthday = models.DateField(null=True, blank=True)
@@ -74,23 +71,23 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     def is_at_least(self, level: str) -> bool:
-        hierarchy = ['user', 'premium', 'staff', 'admin']
+        hierarchy = ["user", "premium", "staff", "admin"]
         return hierarchy.index(self.user_type) >= hierarchy.index(level)
 
     def __str__(self):
         return f"{self.username} ({self.user_type})"
-    
 
     from django.db import models
+
 
 class Driver(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     number = models.PositiveSmallIntegerField(null=True, blank=True)
     short_name = models.CharField(max_length=3)
-    team = models.ForeignKey('Team', on_delete=models.CASCADE)
+    team = models.ForeignKey("Team", on_delete=models.CASCADE)
     season = models.PositiveSmallIntegerField()
-    api_id = models.CharField(max_length=50,unique= True)
+    api_id = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -99,16 +96,22 @@ class Driver(models.Model):
 
     def __str__(self):
         driver_number = self.number if self.number is not None else "?"
-        return f"{self.first_name} {self.last_name} ({driver_number}) - {self.short_name}"
-    
+        return (
+            f"{self.first_name} {self.last_name} ({driver_number}) - {self.short_name}"
+        )
+
     class Meta:
-        ordering = ['team__name', 'first_name'] #serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
-        unique_together = ('number', 'season')
-    
+        ordering = [
+            "team__name",
+            "first_name",
+        ]  # serve a far tornare sempre i piloti in ordine alfabetico, raggruppati per squadra
+        unique_together = ("number", "season")
+
+
 class Team(models.Model):
     name = models.CharField(max_length=50)
     short_name = models.CharField(max_length=3)
-    api_id = models.CharField(max_length=50,unique= True)
+    api_id = models.CharField(max_length=50, unique=True)
     nationality = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -117,15 +120,16 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     class Meta:
-        ordering = ['name'] #serve a far tornare sempre i piloti in ordine alfabetico
+        ordering = ["name"]  # serve a far tornare sempre i piloti in ordine alfabetico
+
 
 class Circuit(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=50)
     location = models.CharField(max_length=100)
-    api_id =  models.CharField(max_length=50, unique= True)
+    api_id = models.CharField(max_length=50, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -134,19 +138,19 @@ class Circuit(models.Model):
         return self.name
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
+
 
 class Weekend(models.Model):
-    WEEKEND_TYPES = [
-        ('regular', 'Regular Weekend'),
-        ('sprint', 'Sprint Weekend')
-    ]
+    WEEKEND_TYPES = [("regular", "Regular Weekend"), ("sprint", "Sprint Weekend")]
 
     circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE)
     event_name = models.CharField(max_length=100)
     round_number = models.PositiveSmallIntegerField(null=False)
     season = models.PositiveSmallIntegerField(null=False)
-    weekend_type = models.CharField(max_length=20, choices = WEEKEND_TYPES, default='regular')
+    weekend_type = models.CharField(
+        max_length=20, choices=WEEKEND_TYPES, default="regular"
+    )
     fp1_start = models.DateTimeField(null=True, blank=True)
     fp2_start = models.DateTimeField(null=True, blank=True)
     fp3_start = models.DateTimeField(null=True, blank=True)
@@ -162,13 +166,20 @@ class Weekend(models.Model):
         return f"{self.event_name} - {self.season} (Round:{self.round_number})"
 
     class Meta:
-        ordering = ['season', 'round_number']
-        unique_together = ('season', 'round_number')
+        ordering = ["season", "round_number"]
+        unique_together = ("season", "round_number")
+
 
 class WeekendParticipant(models.Model):
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='participants')
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='driver_participations')
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='team_participations')
+    weekend = models.ForeignKey(
+        Weekend, on_delete=models.CASCADE, related_name="participants"
+    )
+    driver = models.ForeignKey(
+        Driver, on_delete=models.CASCADE, related_name="driver_participations"
+    )
+    team = models.ForeignKey(
+        Team, on_delete=models.CASCADE, related_name="team_participations"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -176,24 +187,23 @@ class WeekendParticipant(models.Model):
         return f"{self.weekend} - {self.driver.short_name} ({self.team.short_name})"
 
     class Meta:
-        unique_together = ('weekend', 'driver')
-        ordering = ['weekend__round_number', 'driver__short_name']
+        unique_together = ("weekend", "driver")
+        ordering = ["weekend__round_number", "driver__short_name"]
 
 
 class Event(models.Model):
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE,related_name='%(class)ss' )
-    
+    weekend = models.ForeignKey(
+        Weekend, on_delete=models.CASCADE, related_name="%(class)ss"
+    )
+
     class Meta:
         abstract = True
 
+
 class Race(Event):
-    TYPES = [
-        ('regular', 'Regular Race'),
-        ('sprint', 'Sprint Race')
-    ]
+    TYPES = [("regular", "Regular Race"), ("sprint", "Sprint Race")]
 
-    type = models.CharField(max_length=20, choices = TYPES, default='regular')
-
+    type = models.CharField(max_length=20, choices=TYPES, default="regular")
 
     def __str__(self):
         try:
@@ -202,19 +212,19 @@ class Race(Event):
             # Defensive fallback for dangling FK rows in non-constrained DBs.
             weekend_label = f"Weekend #{self.weekend_id}"
         return f"{weekend_label} - {self.type}"
-    
+
     class Meta:
-        ordering = ['weekend__round_number', '-type']
-        unique_together = ('weekend', 'type')
-    
+        ordering = ["weekend__round_number", "-type"]
+        unique_together = ("weekend", "type")
+
+
 class Qualifying(Event):
     TYPES = [
-        ('regular', 'Regular Race Qualifying'),
-        ('sprint', 'Sprint Race Qualifying')
+        ("regular", "Regular Race Qualifying"),
+        ("sprint", "Sprint Race Qualifying"),
     ]
 
-    type = models.CharField(max_length=20, choices = TYPES, default='regular')
-
+    type = models.CharField(max_length=20, choices=TYPES, default="regular")
 
     def __str__(self):
         try:
@@ -223,22 +233,23 @@ class Qualifying(Event):
             # Defensive fallback for dangling FK rows in non-constrained DBs.
             weekend_label = f"Weekend #{self.weekend_id}"
         return f"{weekend_label} - {self.type}"
-    
+
     class Meta:
-        ordering = ['weekend__round_number', '-type']
-        unique_together = ('weekend', 'type')
+        ordering = ["weekend__round_number", "-type"]
+        unique_together = ("weekend", "type")
+
 
 class RaceResult(models.Model):
     STATUS_CHOICES = [
-        ('Finished', 'Finished'),
-        ('Retired', 'Did Not Finish'),
-        ('Lapped', 'Lapped'),
-        ('Disqualified', 'Disqualified'),
-        ('Did not start', 'DNS'),
+        ("Finished", "Finished"),
+        ("Retired", "Did Not Finish"),
+        ("Lapped", "Lapped"),
+        ("Disqualified", "Disqualified"),
+        ("Did not start", "DNS"),
     ]
 
-    race = models.ForeignKey('Race', on_delete=models.CASCADE, related_name='entries')
-    driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
+    race = models.ForeignKey("Race", on_delete=models.CASCADE, related_name="entries")
+    driver = models.ForeignKey("Driver", on_delete=models.CASCADE)
     position = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     starting_grid = models.IntegerField(null=True, blank=True)
@@ -250,12 +261,15 @@ class RaceResult(models.Model):
         return f"{self.race} - {self.driver.short_name} (P{self.position})"
 
     class Meta:
-        unique_together = ('race', 'driver')
-        ordering = ['race', 'position']
+        unique_together = ("race", "driver")
+        ordering = ["race", "position"]
+
 
 class QualifyingResult(models.Model):
-    qualifying = models.ForeignKey('Qualifying', on_delete=models.CASCADE, related_name='qualifying_entries')
-    driver = models.ForeignKey('Driver', on_delete=models.CASCADE)
+    qualifying = models.ForeignKey(
+        "Qualifying", on_delete=models.CASCADE, related_name="qualifying_entries"
+    )
+    driver = models.ForeignKey("Driver", on_delete=models.CASCADE)
 
     q1_position = models.PositiveSmallIntegerField(null=True, blank=True)
     q1_time = models.DurationField(null=True, blank=True)
@@ -273,13 +287,17 @@ class QualifyingResult(models.Model):
         return f"{self.qualifying} - {self.driver.short_name} ({self.position})"
 
     class Meta:
-        unique_together = ('qualifying', 'driver')
-        ordering = ['qualifying', 'position']
+        unique_together = ("qualifying", "driver")
+        ordering = ["qualifying", "position"]
 
 
 class DriverStanding(models.Model):
-    weekend = models.ForeignKey(Weekend, on_delete=models.CASCADE, related_name='driver_standings')
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, related_name='standings')
+    weekend = models.ForeignKey(
+        Weekend, on_delete=models.CASCADE, related_name="driver_standings"
+    )
+    driver = models.ForeignKey(
+        Driver, on_delete=models.CASCADE, related_name="standings"
+    )
     position = models.PositiveSmallIntegerField()
     points = models.PositiveIntegerField(default=0)
     wins = models.PositiveSmallIntegerField(default=0)
@@ -291,12 +309,13 @@ class DriverStanding(models.Model):
         return f"{self.weekend} - {self.driver.short_name} (P{self.position}, {self.points} pts)"
 
     class Meta:
-        unique_together = ('weekend', 'driver')
-        ordering = ['weekend__season', 'weekend__round_number', 'position']
+        unique_together = ("weekend", "driver")
+        ordering = ["weekend__season", "weekend__round_number", "position"]
         indexes = [
-            models.Index(fields=['weekend', 'position']),
-            models.Index(fields=['driver', 'weekend']),
+            models.Index(fields=["weekend", "position"]),
+            models.Index(fields=["driver", "weekend"]),
         ]
+
 
 class Championship(models.Model):
     name = models.CharField(max_length=100)
@@ -305,25 +324,27 @@ class Championship(models.Model):
     is_private = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-
     def clean(self):
         if not self.pk:
             return  # evita di validare se il campionato non è ancora stato salvato
 
         if not self.managers.exists():
             raise ValidationError("The championship must have at least one manager")
-        
+
         if not self.leagues.exists():
             raise ValidationError("The championship must have at least one league")
 
     class Meta:
-        unique_together = [('name', 'year')]
+        unique_together = [("name", "year")]
 
     def __str__(self):
         return f"{self.name} ({self.year})"
-    
+
+
 class League(models.Model):
-    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='leagues')
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, related_name="leagues"
+    )
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -333,43 +354,56 @@ class League(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.championship.name}"
-    
+
+
 class ChampionshipPlayer(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    championship = models.ForeignKey(Championship, on_delete=models.PROTECT, related_name='participants')
-    league = models.ForeignKey(League, on_delete=models.PROTECT, related_name='participants')
+    championship = models.ForeignKey(
+        Championship, on_delete=models.PROTECT, related_name="participants"
+    )
+    league = models.ForeignKey(
+        League, on_delete=models.PROTECT, related_name="participants"
+    )
     player_name = models.CharField(max_length=50)
     available_credit = models.IntegerField(default=2000)
     total_score = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        if ChampionshipPlayer.objects.filter(
-        championship=self.championship,
-        player_name=self.player_name
-        ).exclude(pk=self.pk).exists():
+        if (
+            ChampionshipPlayer.objects.filter(
+                championship=self.championship, player_name=self.player_name
+            )
+            .exclude(pk=self.pk)
+            .exists()
+        ):
             raise ValidationError("Player Name alredy taken in this championship")
 
     class Meta:
-        unique_together = [('user', 'championship'), ('player_name', 'championship')]
+        unique_together = [("user", "championship"), ("player_name", "championship")]
 
     def __str__(self):
         league = f" - {self.league.name}" if self.league else ""
         return f"{self.player_name} ({self.user.username}) in {self.championship.name}{league}"
-    
+
+
 class ChampionshipManager(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    championship = models.ForeignKey(Championship, on_delete=models.CASCADE, related_name='managers')
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, related_name="managers"
+    )
     appointed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'championship')
+        unique_together = ("user", "championship")
 
     def __str__(self):
         return f"{self.user.username} manager of {self.championship.name}"
-    
+
+
 class AbstractPlayerChoice(models.Model):
     """Base comune: tiene traccia di chi sceglie cosa."""
+
     player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
     driver = models.ForeignKey(Driver, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -378,32 +412,35 @@ class AbstractPlayerChoice(models.Model):
         abstract = True
         indexes = [models.Index(fields=["player", "driver"])]
 
+
 class PlayerQualifyingChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "qualifying")]
-        
+
+
 class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
-    
+
     SELECTION_SLOTS = [
-        ('q1_pass',  'Pass Q1'),
-        ('q2_pass',  'Pass Q2'),
-        ('q3_top3',  'Q3 - Top-3'),
+        ("q1_pass", "Pass Q1"),
+        ("q2_pass", "Pass Q2"),
+        ("q3_top3", "Q3 - Top-3"),
     ]
     selection_slot = models.CharField(max_length=8, choices=SELECTION_SLOTS)
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "qualifying", "driver")]
-        
+
+
 class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
-    
+
     SELECTION_SLOTS = [
-        ('sq1', 'Out in SQ1'),
-        ('sq2', 'Out in SQ2'),
-        ('sq3', 'SQ3 (6-10)'),
+        ("sq1", "Out in SQ1"),
+        ("sq2", "Out in SQ2"),
+        ("sq3", "SQ3 (6-10)"),
     ]
     selection_slot = models.CharField(
         max_length=3,
@@ -413,6 +450,7 @@ class PlayerSprintQualifyingChoice(AbstractPlayerChoice):
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "qualifying", "selection_slot")]
 
+
 class PlayerRaceChoice(AbstractPlayerChoice):
     race = models.ForeignKey(Race, on_delete=models.CASCADE)
     spent_amount = models.PositiveIntegerField()
@@ -421,6 +459,7 @@ class PlayerRaceChoice(AbstractPlayerChoice):
 
     class Meta(AbstractPlayerChoice.Meta):
         unique_together = [("player", "race", "driver")]
+
 
 class PlayerRaceResult(models.Model):
     player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
@@ -438,22 +477,22 @@ class PlayerRaceResult(models.Model):
         indexes = [
             models.Index(fields=["player", "-calculated_at"]),
             models.Index(fields=["race", "total_points"]),
-
         ]
 
     def __str__(self):
-        return f"{self.player.player_name} - {self.race.weekend}: {self.total_points} pts"
- 
+        return (
+            f"{self.player.player_name} - {self.race.weekend}: {self.total_points} pts"
+        )
+
+
 class Status(models.TextChoices):
     PENDING = "pending", "Pending"
     WAITING_FOR_RESULTS = "waiting_for_results", "Waiting for results"
     PROCESSED = "processed", "Processed"
-    ERROR = "error", "Error"   
-    
-class EventProcessingStatus(models.Model):
-    
+    ERROR = "error", "Error"
 
-    
+
+class EventProcessingStatus(models.Model):
     race = models.OneToOneField(
         Race,
         on_delete=models.CASCADE,
@@ -468,11 +507,11 @@ class EventProcessingStatus(models.Model):
     )
 
     status = models.CharField(
-            max_length=30,
-            choices=Status.choices,
-            default=Status.PENDING,
-        )
-    
+        max_length=30,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
     eligible_after = models.DateTimeField()
     attempts = models.PositiveSmallIntegerField(default=0)
     last_attempt_at = models.DateTimeField(null=True)
