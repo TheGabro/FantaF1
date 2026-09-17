@@ -7,13 +7,11 @@ MAX_WAITING_ATTEMPTS = 10
 
 
 def qualifying_ready(race) -> bool:
-    qualifying = (
-        Qualifying.objects.filter(weekend=race.weekend, type=race.type)
-        .select_related("processing_status")
-        .first()
-    )
-    return bool(qualifying) and qualifying.processing_status.status == Status.PROCESSED
-
+    return EventProcessingStatus.objects.filter(
+        qualifying__weekend=race.weekend,
+        qualifying__type=race.type,
+        status=Status.PROCESSED,
+    ).exists()
 
 def mark(event_status, *, status, now, error="") -> str:
     """Registra l'esito di un tentativo sull'EventProcessingStatus."""
