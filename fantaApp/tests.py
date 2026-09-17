@@ -13,6 +13,7 @@ from .models import (
     ChampionshipPlayer,
     Circuit,
     Driver,
+    EventProcessingStatus,
     League,
     PlayerQualifyingChoice,
     Qualifying,
@@ -21,10 +22,12 @@ from .models import (
     QualifyingResult,
     Race,
     RaceResult,
+    Status,
     Team,
     Weekend,
     PlayerRaceChoice,
 )
+from .services import event_processing as ep
 from .services import player_choices as pc
 from .services import bonuses
 from .services import costs
@@ -1012,3 +1015,85 @@ class PlayerScoringTests(TestCase):
         self.assertEqual(
             PlayerRaceResult.objects.filter(player=self.player_a).count(), 2
         )
+
+
+class EventProcessingServiceTests(TestCase):
+    def setUp(self):
+        self.now = timezone.now()
+        circuit = Circuit.objects.create(
+            name="Monza",
+            country="Italy",
+            location="Monza",
+            api_id="circuit-monza",
+        )
+        self.weekend = Weekend.objects.create(
+            circuit=circuit,
+            event_name="Italian GP",
+            round_number=14,
+            season=2026,
+            weekend_type="sprint",
+        )
+        self.sprint_qualifying = Qualifying.objects.create(weekend=self.weekend, type="sprint")
+        self.sprint_race = Race.objects.create(weekend=self.weekend, type="sprint")
+        self.qualifying = Qualifying.objects.create(weekend=self.weekend, type="regular")
+        self.race = Race.objects.create(weekend=self.weekend, type="regular")
+
+    def _status(self, *, event, status=Status.PENDING, hours_ago=1, attempts=0):
+        field = "race" if isinstance(event, Race) else "qualifying"
+        return EventProcessingStatus.objects.create(
+            **{field: event},
+            status=status,
+            eligible_after=self.now - timedelta(hours=hours_ago),
+            attempts=attempts,
+        )
+
+    def test_eligible_statuses_filters_by_status_and_date_in_chronological_order(self):
+        self._status(event=self.sprint_race, status=Status.PROCESSED, hours_ago=4)
+        race_status = self._status(event=self.race, status=Status.WAITING_FOR_RESULTS, hours_ago=2)
+        qualifying_status = self._status(event=self.qualifying, hours_ago=3)
+        self._status(event=self.sprint_qualifying, hours_ago=-1)
+
+        self.assertEqual(
+            list(ep.eligible_statuses(self.now)),
+            [qualifying_status, race_status],
+        )
+
+    def test_qualifying_ready_requires_processed_qualifying_of_same_type(self):
+        qualifying_status = self._status(event=self.qualifying)
+
+        self.assertFalse(ep.qualifying_ready(self.race))
+
+        qualifying_status.status = Status.PROCESSED
+        qualifying_status.save(update_fields=["status"])
+        self.assertTrue(ep.qualifying_ready(self.race))
+        self.assertFalse(ep.qualifying_ready(self.sprint_race))
+
+    def test_mark_waiting_turns_into_error_after_max_attempts(self):
+        event_status = self._status(event=self.race)
+
+        for attempt in range(1, ep.MAX_WAITING_ATTEMPTS):
+            result = ep.mark(event_status, status=Status.WAITING_FOR_RESULTS, now=self.now)
+            self.assertEqual(result, Status.WAITING_FOR_RESULTS)
+            self.assertEqual(event_status.attempts, attempt)
+
+        result = ep.mark(event_status, status=Status.WAITING_FOR_RESULTS, now=self.now)
+        event_status.refresh_from_db()
+        self.assertEqual(result, Status.ERROR)
+        self.assertEqual(event_status.status, Status.ERROR)
+        self.assertEqual(event_status.attempts, ep.MAX_WAITING_ATTEMPTS)
+        self.assertEqual(event_status.last_attempt_at, self.now)
+        self.assertNotEqual(event_status.last_error, "")
+
+    def test_mark_processed_and_error_ignore_attempt_rule(self):
+        event_status = self._status(event=self.qualifying, attempts=ep.MAX_WAITING_ATTEMPTS)
+
+        ep.mark(event_status, status=Status.ERROR, now=self.now, error="boom")
+        event_status.refresh_from_db()
+        self.assertEqual(event_status.status, Status.ERROR)
+        self.assertEqual(event_status.last_error, "boom")
+        self.assertEqual(event_status.attempts, ep.MAX_WAITING_ATTEMPTS + 1)
+
+        ep.mark(event_status, status=Status.PROCESSED, now=self.now)
+        event_status.refresh_from_db()
+        self.assertEqual(event_status.status, Status.PROCESSED)
+        self.assertEqual(event_status.last_error, "")
