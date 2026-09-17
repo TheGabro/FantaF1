@@ -1033,9 +1033,13 @@ class EventProcessingServiceTests(TestCase):
             season=2026,
             weekend_type="sprint",
         )
-        self.sprint_qualifying = Qualifying.objects.create(weekend=self.weekend, type="sprint")
+        self.sprint_qualifying = Qualifying.objects.create(
+            weekend=self.weekend, type="sprint"
+        )
         self.sprint_race = Race.objects.create(weekend=self.weekend, type="sprint")
-        self.qualifying = Qualifying.objects.create(weekend=self.weekend, type="regular")
+        self.qualifying = Qualifying.objects.create(
+            weekend=self.weekend, type="regular"
+        )
         self.race = Race.objects.create(weekend=self.weekend, type="regular")
 
     def _status(self, *, event, status=Status.PENDING, hours_ago=1, attempts=0):
@@ -1049,7 +1053,9 @@ class EventProcessingServiceTests(TestCase):
 
     def test_eligible_statuses_filters_by_status_and_date_in_chronological_order(self):
         self._status(event=self.sprint_race, status=Status.PROCESSED, hours_ago=4)
-        race_status = self._status(event=self.race, status=Status.WAITING_FOR_RESULTS, hours_ago=2)
+        race_status = self._status(
+            event=self.race, status=Status.WAITING_FOR_RESULTS, hours_ago=2
+        )
         qualifying_status = self._status(event=self.qualifying, hours_ago=3)
         self._status(event=self.sprint_qualifying, hours_ago=-1)
 
@@ -1072,7 +1078,9 @@ class EventProcessingServiceTests(TestCase):
         event_status = self._status(event=self.race)
 
         for attempt in range(1, ep.MAX_WAITING_ATTEMPTS):
-            result = ep.mark(event_status, status=Status.WAITING_FOR_RESULTS, now=self.now)
+            result = ep.mark(
+                event_status, status=Status.WAITING_FOR_RESULTS, now=self.now
+            )
             self.assertEqual(result, Status.WAITING_FOR_RESULTS)
             self.assertEqual(event_status.attempts, attempt)
 
@@ -1085,7 +1093,9 @@ class EventProcessingServiceTests(TestCase):
         self.assertNotEqual(event_status.last_error, "")
 
     def test_mark_processed_and_error_ignore_attempt_rule(self):
-        event_status = self._status(event=self.qualifying, attempts=ep.MAX_WAITING_ATTEMPTS)
+        event_status = self._status(
+            event=self.qualifying, attempts=ep.MAX_WAITING_ATTEMPTS
+        )
 
         ep.mark(event_status, status=Status.ERROR, now=self.now, error="boom")
         event_status.refresh_from_db()

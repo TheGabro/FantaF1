@@ -13,9 +13,13 @@ def qualifying_ready(race) -> bool:
         status=Status.PROCESSED,
     ).exists()
 
+
 def mark(event_status, *, status, now, error="") -> str:
     """Registra l'esito di un tentativo sull'EventProcessingStatus."""
-    if status == Status.WAITING_FOR_RESULTS and event_status.attempts +1 >= MAX_WAITING_ATTEMPTS:
+    if (
+        status == Status.WAITING_FOR_RESULTS
+        and event_status.attempts + 1 >= MAX_WAITING_ATTEMPTS
+    ):
         status = Status.ERROR
         error = "Max attempts reached, marking as ERROR"
     event_status.status = status
@@ -25,7 +29,7 @@ def mark(event_status, *, status, now, error="") -> str:
     event_status.save(
         update_fields=["status", "attempts", "last_attempt_at", "last_error"]
     )
-    
+
     return status
 
 

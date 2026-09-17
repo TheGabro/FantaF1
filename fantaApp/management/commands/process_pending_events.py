@@ -13,7 +13,7 @@ la qualifica e' finita in errore, e proseguire significherebbe calcolare
 punteggi su dati incompleti.
 """
 
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -49,10 +49,9 @@ class Command(BaseCommand):
             type=qualifying.type,
         )
 
-
     def handle(self, *args, **options):
         now = timezone.now()
-        
+
         eligible = eligible_statuses(now)
 
         processed = waiting = errored = skipped = 0
@@ -76,23 +75,12 @@ class Command(BaseCommand):
                     self._process_race(event_status.race)
                 else:
                     self._process_qualifying(event_status.qualifying)
-            except ResultsNotAvailable:
-                final_status = mark(event_status, status=Status.WAITING_FOR_RESULTS, now=now)
-                if final_status == Status.ERROR:
-                    errored += 1
-                    self.stdout.write(
-                        self.style.ERROR(
-                            f"✗ {event}: max attempts reached, marking as ERROR"
-                        )
-                    )
-                else:
-                    waiting += 1
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"… {event}: results not available, "
-                            f"marked as WAITING_FOR_RESULTS (attempts: {event_status.attempts})"
-                        )
-                    )
+            except CommandError as exc:
+                if exc.returncode != 3:
+                    raise
+                final_status = mark(
+                    event_status, status=Status.WAITING_FOR_RESULTS, now=now
+                )
             except Exception as exc:
                 mark(event_status, status=Status.ERROR, now=now, error=str(exc))
                 errored += 1

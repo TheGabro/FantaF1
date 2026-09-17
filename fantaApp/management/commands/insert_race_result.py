@@ -42,16 +42,14 @@ class Command(BaseCommand):
         r_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
+        race = Race.objects.get(weekend=weekend, type=r_type)
         try:
-            race = Race.objects.get(weekend=weekend, type=r_type)
+            results = list(get_race_result(season, round, r_type == "sprint"))
         except ResultsNotAvailable as exc:
             raise CommandError(str(exc), returncode=3)
-            
 
         race_objs: list[RaceResult] = []
-        for data in get_race_result(
-            season, round, True if r_type == "sprint" else False
-        ):
+        for data in results:
             fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
             race_objs.append(
                 RaceResult(

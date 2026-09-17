@@ -4,6 +4,7 @@ import logging
 
 logging.getLogger("fastf1").setLevel(logging.CRITICAL)
 
+
 class ResultsNotAvailableFastf1(Exception):
     """Sollevata quando la sessione richiesta non ha ancora risultati pubblicati dall'API."""
 
