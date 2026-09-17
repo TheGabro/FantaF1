@@ -1,11 +1,11 @@
 from django.utils.dateparse import parse_duration
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from fantaApp.models import Weekend, Qualifying, Driver, QualifyingResult
-from fantaApp.services.sources.jolpicaSource import get_qualifying_result
-from fantaApp.services.sources.fastf1Source import get_sprint_qualifying_result
+from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable, get_qualifying_result
+from fantaApp.services.sources.fastf1Source import ResultsNotAvailableFastf1, get_sprint_qualifying_result
 from fantaApp.services import drivers
 
 
@@ -54,7 +54,13 @@ class Command(BaseCommand):
         q_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
-        qualifying = Qualifying.objects.get(weekend=weekend, type=q_type)
+        try:
+            qualifying = Qualifying.objects.get(weekend=weekend, type=q_type)
+        except ResultsNotAvailable as exc:
+            raise CommandError(str(exc), returncode=3)
+        except ResultsNotAvailableFastf1 as exc:
+            raise CommandError(str(exc), returncode=3)
+        
         quali_objs: list[QualifyingResult] = []
         if q_type == "regular":
             self.stdout.write(self.style.SUCCESS("=== Import regular qualigfying ==="))

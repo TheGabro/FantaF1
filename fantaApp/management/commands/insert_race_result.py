@@ -1,10 +1,10 @@
 from django.utils.dateparse import parse_duration
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from fantaApp.models import Weekend, Race, Driver, RaceResult
-from fantaApp.services.sources.jolpicaSource import get_race_result
+from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable, get_race_result
 
 
 class Command(BaseCommand):
@@ -42,7 +42,11 @@ class Command(BaseCommand):
         r_type: str = options["type"]
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
-        race = Race.objects.get(weekend=weekend, type=r_type)
+        try:
+            race = Race.objects.get(weekend=weekend, type=r_type)
+        except ResultsNotAvailable as exc:
+            raise CommandError(str(exc), returncode=3)
+            
 
         race_objs: list[RaceResult] = []
         for data in get_race_result(
