@@ -7,7 +7,7 @@ from fantaApp.services import event_processing as ep
 
 
 class Command(BaseCommand):
-    help = "Stampa (JSON, una riga) il prossimo evento eligible, exit 99 se nessuno"
+    help = "Prints the next pending event of the specified type (qualifying or race) in JSON format."
 
     def add_arguments(self, parser):
         parser.add_argument("--event", choices=["qualifying", "race"], required=True)
