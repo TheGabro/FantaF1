@@ -2,12 +2,21 @@ name: airflow-fantaf1
 
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:3.3.1-python3.12
+  # Image custom: Airflow ufficiale + codice FantaF1 + requirements Django.
+  # Il build context e' la root del repo, cosi' il Dockerfile puo' copiare tutto il progetto.
+  build:
+    context: ..
+    dockerfile: airflow/Dockerfile
+  image: airflow-fantaf1:latest
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    # Variabili lette da FantaF1/settings.py quando i task lanciano manage.py.
     FANTAF1_DATABASE_URL: ${FANTAF1_DATABASE_URL}
+    DATABASE_URL: ${FANTAF1_DATABASE_URL}
+    SECRET_KEY: ${FANTAF1_SECRET_KEY}
+    DEBUG: "False"
     AIRFLOW_UID: ${AIRFLOW_UID}
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME}:admin
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/passwords.json
