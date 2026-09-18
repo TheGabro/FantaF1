@@ -28,17 +28,22 @@ class Command(BaseCommand):
     help = "Event processing: process pending events in chronological order"
 
     def _process_race(self, race):
+        season, round_number = race.weekend.season, race.weekend.round_number
         call_command(
-            "insert_race_result",
-            season=race.weekend.season,
-            round=race.weekend.round_number,
+            "consolidate_player_credits",
+            season=season,
+            round=round_number,
             type=race.type,
         )
         call_command(
-            "compute_race_score",
-            season=race.weekend.season,
-            round=race.weekend.round_number,
-            type=race.type,
+            "insert_race_result", season=season, round=round_number, type=race.type
+        )
+        if race.type == "regular":
+            call_command(
+                "insert_round_driver_standings", season=season, round=round_number
+            )
+        call_command(
+            "compute_race_score", season=season, round=round_number, type=race.type
         )
 
     def _process_qualifying(self, qualifying):
