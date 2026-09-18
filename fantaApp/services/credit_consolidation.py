@@ -21,7 +21,6 @@ def consolidate_race_credits_if_started(*, race) -> int:
     Returns:
         Numero di PlayerRaceChoice consolidate in questa chiamata.
 
-    # TODO Airflow: schedulare un sensore/poll basato sullo stesso timestamp
     # (race.weekend.race_start / sprint_start) usato da helper._event_has_started,
     # cosi' da consolidare i crediti appena l'orario ufficiale e' trascorso.
     """

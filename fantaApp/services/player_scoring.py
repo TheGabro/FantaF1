@@ -102,8 +102,6 @@ def compute_player_score_per_race(*, race) -> dict:
 
     Returns:
         dict con statistiche: {'race': str, 'players_updated': int, 'errors': list}
-
-    # TODO Airflow: chiamare questa funzione da un DAG schedulato DOPO insert_race_result.py
     """
     # Prendi tutti i PlayerRaceChoice per questa race, raggruppati per player
     choices_by_player_id = {}

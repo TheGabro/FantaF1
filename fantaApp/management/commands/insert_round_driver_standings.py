@@ -46,7 +46,7 @@ class Command(BaseCommand):
             driver = drivers_by_api_id.get(driver_api_id)
             if driver is None:
                 raise CommandError(
-                    f"Driver non trovato per api_id={driver_api_id} nella season={season}"
+                    f"Driver not found for api_id={driver_api_id} in season ={season}"
                 )
 
             _, created = DriverStanding.objects.update_or_create(
