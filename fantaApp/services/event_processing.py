@@ -34,7 +34,7 @@ def mark(event_status, *, status, now, error="") -> str:
 
 
 def eligible_events(now: timezone.datetime) -> QuerySet[EventProcessingStatus]:
-    """Restituisce gli EventProcessingStatus eligible in ordine cronologico."""
+    """return eligible EventProcessingStatus in chronological order."""
 
     eligible = (
         EventProcessingStatus.objects.select_related(

@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from fantaApp.models import EventProcessingStatus, Qualifying, Status
 from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable
-from fantaApp.services.event_processing import qualifying_ready, mark, eligible_statuses
+from fantaApp.services.event_processing import qualifying_ready, mark, eligible_events
 
 MAX_WAITING_ATTEMPTS = 10
 
@@ -52,7 +52,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
 
-        eligible = eligible_statuses(now)
+        eligible = eligible_events(now)
 
         processed = waiting = errored = skipped = 0
 
