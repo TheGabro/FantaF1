@@ -16,7 +16,7 @@ def run_manage(*args: str) -> subprocess.CompletedProcess:
 
 
 @dag(
-    schedule=None,              # manuale finché testiamo; il cron arriva allo Step 10
+    schedule="*/15 * * * *",
     start_date=datetime(2026, 1, 1),
     catchup=False,
     max_active_runs=1,
