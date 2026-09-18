@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0023_driver_season'),
+        ("fantaApp", "0023_driver_season"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='race',
-            name='modified_at',
+            model_name="race",
+            name="modified_at",
             field=models.DateTimeField(null=True),
         ),
     ]

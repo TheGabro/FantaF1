@@ -6,31 +6,51 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0006_championship_league_playerentry'),
+        ("fantaApp", "0006_championship_league_playerentry"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='customuser',
-            old_name='role',
-            new_name='type',
+            model_name="customuser",
+            old_name="role",
+            new_name="type",
         ),
         migrations.RemoveField(
-            model_name='playerentry',
-            name='is_manager',
+            model_name="playerentry",
+            name="is_manager",
         ),
         migrations.CreateModel(
-            name='ChampionshipManager',
+            name="ChampionshipManager",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('appointed_at', models.DateTimeField(auto_now_add=True)),
-                ('championship', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='managers', to='fantaApp.championship')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("appointed_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "championship",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="managers",
+                        to="fantaApp.championship",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('user', 'championship')},
+                "unique_together": {("user", "championship")},
             },
         ),
     ]

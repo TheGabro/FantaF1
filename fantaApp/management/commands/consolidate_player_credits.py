@@ -10,8 +10,9 @@ from django.core.management.base import BaseCommand
 from fantaApp.models import Race, Weekend
 from fantaApp.services.credit_consolidation import consolidate_race_credits
 
+
 class Command(BaseCommand):
-    help = "compute all players score for a single race"
+    help = "consolidate all players credits until a single specific race (sprint or regular)"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -29,7 +30,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="sprint o regular",
+            help="sprint/regular",
         )
 
     def handle(self, *args, **options):

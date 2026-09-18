@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0036_alter_race_options'),
+        ("fantaApp", "0036_alter_race_options"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='qualifying',
-            options={'ordering': ['weekend__round_number', '-type']},
+            name="qualifying",
+            options={"ordering": ["weekend__round_number", "-type"]},
         ),
     ]

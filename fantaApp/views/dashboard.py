@@ -1,31 +1,40 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
-from ..models import League, ChampionshipManager, ChampionshipPlayer, Championship, Weekend
+from ..models import (
+    League,
+    ChampionshipManager,
+    ChampionshipPlayer,
+    Championship,
+    Weekend,
+)
 from ..services import player_choices as pc
 from ..services import costs
+
 
 @login_required
 def user_dashboard(request):
     user = request.user
 
-    championship = ChampionshipPlayer.objects.filter(
-        user=user
-    ).select_related('championship', 'league').order_by('championship__active','-championship__year')
+    championship = (
+        ChampionshipPlayer.objects.filter(user=user)
+        .select_related("championship", "league")
+        .order_by("championship__active", "-championship__year")
+    )
 
     context = {
         "user": user,
         "championship": championship,
         "is_admin": user.user_type == "admin",
         "is_staff": user.user_type == "staff",
-        "is_premium": user.user_type == "premium"
+        "is_premium": user.user_type == "premium",
     }
     return render(request, "fantaApp/user_dashboard.html", context)
 
 
 @login_required
 def create_championship(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = creations.ChampionshipForm(request.POST)
         formset = creations.LeagueFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
@@ -39,65 +48,69 @@ def create_championship(request):
                 league.save()
             # If the user did not specify any league, create a default one
             if not leagues:
-                League.objects.create(
-                    championship=championship,
-                    name=f"Lega Unica"
-                )
-            
+                League.objects.create(championship=championship, name=f"Lega Unica")
+
             ChampionshipManager.objects.get_or_create(
-                user=request.user,
-                championship=championship
+                user=request.user, championship=championship
             )
 
-
-            return redirect('user_dashboard')
+            return redirect("user_dashboard")
     else:
         form = creations.ChampionshipForm()
         formset = creations.LeagueFormSet()
 
-    return render(request, 'fantaApp/create_championship.html', {
-        'form': form,
-        'formset': formset
-    })
+    return render(
+        request, "fantaApp/create_championship.html", {"form": form, "formset": formset}
+    )
 
 
 @login_required
 def championship_dashboard(request, championship_id):
     championship = get_object_or_404(Championship, pk=championship_id)
 
-    current_championship_player = ChampionshipPlayer.objects.filter(
-        user=request.user, championship=championship).select_related('league').first()
+    current_championship_player = (
+        ChampionshipPlayer.objects.filter(user=request.user, championship=championship)
+        .select_related("league")
+        .first()
+    )
 
     reserved_credit = 0
     spendable_credit = 0
     if current_championship_player:
-        reserved_credit = costs.get_player_reserved_credit(player=current_championship_player)
-        spendable_credit = costs.get_player_spendable_credit(player=current_championship_player)
-    
+        reserved_credit = costs.get_player_reserved_credit(
+            player=current_championship_player
+        )
+        spendable_credit = costs.get_player_spendable_credit(
+            player=current_championship_player
+        )
+
     standing_per_league = ChampionshipPlayer.objects.none()
     if current_championship_player:
-        standing_per_league = ChampionshipPlayer.objects.filter(
-            championship=championship,
-            league=current_championship_player.league,
-        ).select_related('league').order_by('-total_score')
-    
+        standing_per_league = (
+            ChampionshipPlayer.objects.filter(
+                championship=championship,
+                league=current_championship_player.league,
+            )
+            .select_related("league")
+            .order_by("-total_score")
+        )
+
     # Classifica generale (tutte le leghe insieme)
-    general_standings = ChampionshipPlayer.objects.filter(
-        championship=championship
-    ).select_related('league').order_by('-total_score')
+    general_standings = (
+        ChampionshipPlayer.objects.filter(championship=championship)
+        .select_related("league")
+        .order_by("-total_score")
+    )
 
     user_managers = ChampionshipManager.objects.filter(
         championship=championship
-    ).select_related('user') 
+    ).select_related("user")
 
     managers = ChampionshipPlayer.objects.filter(
-        championship=championship,
-        user__in=[m.user for m in user_managers]
-    ).select_related('league')
-    
+        championship=championship, user__in=[m.user for m in user_managers]
+    ).select_related("league")
+
     weekends = Weekend.objects.filter(season=championship.year).order_by("round_number")
-
-
 
     context = {
         "championship": championship,
@@ -107,7 +120,7 @@ def championship_dashboard(request, championship_id):
         "standing_per_league": standing_per_league,
         "general_standings": general_standings,
         "managers": managers,
-        "weekends" : weekends
+        "weekends": weekends,
     }
 
     return render(request, "fantaApp/championship_dashboard.html", context)

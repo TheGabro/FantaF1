@@ -32,4 +32,6 @@ frontend/bin/
 frontend/dev_db.sqlite3
 # folders
 docs/
+airflow/logs/
+airflow/auth/
 .claude/

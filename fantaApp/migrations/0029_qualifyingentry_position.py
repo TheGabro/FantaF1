@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0028_remove_raceentry_time'),
+        ("fantaApp", "0028_remove_raceentry_time"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='qualifyingentry',
-            name='position',
+            model_name="qualifyingentry",
+            name="position",
             field=models.PositiveSmallIntegerField(blank=True, null=True),
         ),
     ]

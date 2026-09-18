@@ -43,9 +43,15 @@ class Command(BaseCommand):
         stats = compute_player_score_per_race(race=race)
 
         self.stdout.write(self.style.SUCCESS(f"Race: {stats['race']}"))
-        self.stdout.write(self.style.SUCCESS(f"Giocatori aggiornati: {stats['players_updated']}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Giocatori aggiornati: {stats['players_updated']}")
+        )
 
         if stats["errors"]:
-            self.stdout.write(self.style.WARNING(f"Errori riscontrati: {len(stats['errors'])}"))
+            self.stdout.write(
+                self.style.WARNING(f"Errori riscontrati: {len(stats['errors'])}")
+            )
             for err in stats["errors"]:
-                self.stderr.write(f"  • {err['player']} - {err['race']}: {err['error']}")
+                self.stderr.write(
+                    f"  • {err['player']} - {err['race']}: {err['error']}"
+                )

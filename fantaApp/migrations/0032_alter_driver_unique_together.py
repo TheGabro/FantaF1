@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0031_alter_weekend_weekend_type'),
+        ("fantaApp", "0031_alter_weekend_weekend_type"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='driver',
-            unique_together={('number', 'season')},
+            name="driver",
+            unique_together={("number", "season")},
         ),
     ]

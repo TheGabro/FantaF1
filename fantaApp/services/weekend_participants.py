@@ -4,6 +4,7 @@ from fantaApp.models import Driver, Weekend, WeekendParticipant
 
 logger = logging.getLogger(__name__)
 
+
 def sync_weekend_participants(*, season: int) -> int:
     """Garantisce un WeekendParticipant per ogni weekend della stagione.
     Se la gara e' gia' stata disputata, usa i piloti che hanno effettivamente
@@ -39,4 +40,3 @@ def sync_weekend_participants(*, season: int) -> int:
                 created_count += 1 if created else 0
 
     return created_count
-

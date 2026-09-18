@@ -4,38 +4,46 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0026_alter_qualifingentry_q1_position_and_more'),
+        ("fantaApp", "0026_alter_qualifingentry_q1_position_and_more"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='QualifingEntry',
-            new_name='QualifyingEntry',
+            old_name="QualifingEntry",
+            new_name="QualifyingEntry",
         ),
         migrations.AddField(
-            model_name='raceentry',
-            name='fast_lap',
+            model_name="raceentry",
+            name="fast_lap",
             field=models.DurationField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='raceentry',
-            name='time',
+            model_name="raceentry",
+            name="time",
             field=models.DurationField(blank=True, null=True),
         ),
         migrations.RemoveField(
-            model_name='raceentry',
-            name='best_lap',
+            model_name="raceentry",
+            name="best_lap",
         ),
         migrations.AddField(
-            model_name='raceentry',
-            name='best_lap',
+            model_name="raceentry",
+            name="best_lap",
             field=models.SmallIntegerField(blank=True, null=True),
-        ),      
+        ),
         migrations.AlterField(
-            model_name='raceentry',
-            name='status',
-            field=models.CharField(choices=[('Finished', 'Finished'), ('Retired', 'Did Not Finish'), ('Lapped', 'Lapped'), ('Disqualified', 'Disqualified'), ('Did not start', 'DNS')], max_length=20),
+            model_name="raceentry",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("Finished", "Finished"),
+                    ("Retired", "Did Not Finish"),
+                    ("Lapped", "Lapped"),
+                    ("Disqualified", "Disqualified"),
+                    ("Did not start", "DNS"),
+                ],
+                max_length=20,
+            ),
         ),
     ]

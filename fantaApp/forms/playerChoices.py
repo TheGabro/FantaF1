@@ -1,6 +1,7 @@
 from django import forms
 from ..models import Driver
 
+
 class SprintQualifyingForm(forms.Form):
     driver_sq1 = forms.ModelChoiceField(
         queryset=Driver.objects.none(),
@@ -42,7 +43,8 @@ class SprintQualifyingForm(forms.Form):
                 "Non puoi selezionare lo stesso pilota in più slot."
             )
         return cleaned
-    
+
+
 class RegularQualifyingForm(forms.Form):
     driver_rq = forms.ModelChoiceField(
         queryset=Driver.objects.none(),

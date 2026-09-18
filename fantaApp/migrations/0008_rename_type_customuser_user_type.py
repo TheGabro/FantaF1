@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0007_rename_role_customuser_type_and_more'),
+        ("fantaApp", "0007_rename_role_customuser_type_and_more"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='customuser',
-            old_name='type',
-            new_name='user_type',
+            model_name="customuser",
+            old_name="type",
+            new_name="user_type",
         ),
     ]

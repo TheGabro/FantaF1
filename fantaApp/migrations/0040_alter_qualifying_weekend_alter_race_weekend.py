@@ -5,20 +5,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0039_alter_qualifying_weekend_alter_race_weekend'),
+        ("fantaApp", "0039_alter_qualifying_weekend_alter_race_weekend"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='qualifying',
-            name='weekend',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)ss', to='fantaApp.weekend'),
+            model_name="qualifying",
+            name="weekend",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="%(class)ss",
+                to="fantaApp.weekend",
+            ),
         ),
         migrations.AlterField(
-            model_name='race',
-            name='weekend',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)ss', to='fantaApp.weekend'),
+            model_name="race",
+            name="weekend",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="%(class)ss",
+                to="fantaApp.weekend",
+            ),
         ),
     ]

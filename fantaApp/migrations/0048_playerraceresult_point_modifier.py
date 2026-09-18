@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0047_playerraceresult_and_more'),
+        ("fantaApp", "0047_playerraceresult_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='playerraceresult',
-            name='point_modifier',
+            model_name="playerraceresult",
+            name="point_modifier",
             field=models.PositiveIntegerField(default=0),
         ),
     ]
