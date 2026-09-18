@@ -12,7 +12,7 @@ STATUS_BY_NAME = {
 
 
 class Command(BaseCommand):
-    help = "Marks the specified event as completed or not completed."
+    help = "Update status of an EventProcessingStatus instance (Used by Airflow DAG)"
 
     def add_arguments(self, parser):
         parser.add_argument("--status-id", type=int, required=True)
