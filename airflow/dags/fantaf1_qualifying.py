@@ -16,7 +16,7 @@ def run_manage(*args: str) -> subprocess.CompletedProcess:
 
 
 @dag(
-    schedule="*/15 * * * *",
+    schedule="5-59/15 * * * 5,6",
     start_date=datetime(2026, 1, 1),
     catchup=False,
     max_active_runs=1,
