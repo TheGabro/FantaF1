@@ -52,7 +52,7 @@ def fantaf1_qualifying():
             # in questo caso insert_result
             run_manage(
                 "mark_event",
-                "--status-id", ev["status_id"],
+                "--status-id", str(ev["status_id"]),
                 "--status", "waiting",
             )
             raise AirflowSkipException("Qualifying result not ready yet")
@@ -67,7 +67,7 @@ def fantaf1_qualifying():
         ).check_returncode()   
 
     @task(trigger_rule="one_failed")
-    def mark_error(evdict, run_id: str | None = None):
+    def mark_error(ev:dict, run_id: str | None = None):
         run_manage(
             "mark_event",
             "--status-id", str(ev["status_id"]),
