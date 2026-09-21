@@ -51,11 +51,14 @@ services:
       retries: 5
     restart: unless-stopped
 
-  airflow-init:
+    airflow-init:
     <<: *airflow-common
     container_name: airflow-fantaf1-init
-    entrypoint: /bin/bash
+    # Niente entrypoint custom: quello ufficiale dell'immagine imposta HOME e
+    # registra l'utente quando il container gira con un UID arbitrario (user: 1000:0).
+    # Senza, Python non trova i pacchetti installati in /home/airflow/.local.
     command:
+      - bash
       - -c
       - |
         airflow db migrate
