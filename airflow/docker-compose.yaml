@@ -8,6 +8,7 @@ x-airflow-common:
     context: ..
     dockerfile: airflow/Dockerfile
   image: airflow-fantaf1:latest
+  user: "${AIRFLOW_UID:-50000}:0"
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
@@ -48,6 +49,7 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
       interval: 5s
       retries: 5
+    restart: unless-stopped
 
   airflow-init:
     <<: *airflow-common
@@ -64,12 +66,13 @@ services:
     container_name: airflow-fantaf1-webserver
     command: api-server
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    restart: unless-stopped
 
   airflow-scheduler:
     <<: *airflow-common
@@ -80,6 +83,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    restart: unless-stopped
 
   airflow-dag-processor:
     <<: *airflow-common
@@ -90,6 +94,7 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   postgres-db-volume:
