@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0010_alter_playerentry_league'),
+        ("fantaApp", "0010_alter_playerentry_league"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='PlayerEntry',
-            new_name='ChampionshipPlayer',
+            old_name="PlayerEntry",
+            new_name="ChampionshipPlayer",
         ),
     ]

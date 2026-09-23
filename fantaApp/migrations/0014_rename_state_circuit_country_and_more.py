@@ -4,20 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0013_raceresult_remove_circuit_continent_circuit_location_and_more'),
+        (
+            "fantaApp",
+            "0013_raceresult_remove_circuit_continent_circuit_location_and_more",
+        ),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='circuit',
-            old_name='state',
-            new_name='country',
+            model_name="circuit",
+            old_name="state",
+            new_name="country",
         ),
         migrations.AddField(
-            model_name='race',
-            name='spinr_qualifing_start',
+            model_name="race",
+            name="spinr_qualifing_start",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

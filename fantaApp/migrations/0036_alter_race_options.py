@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0035_rename_raceentry_raceresult'),
+        ("fantaApp", "0035_rename_raceentry_raceresult"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='race',
-            options={'ordering': ['weekend__round_number', '-type']},
+            name="race",
+            options={"ordering": ["weekend__round_number", "-type"]},
         ),
     ]

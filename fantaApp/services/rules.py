@@ -2,6 +2,7 @@
 Costanti e tabelle di gioco per FantaF1.
 Questo file contiene SOLO le costanti - la logica di calcolo è in bonuses.py e costs.py.
 """
+
 from decimal import Decimal
 
 
@@ -124,10 +125,7 @@ MULTI_CHOICE_SLOT_SIZES = {
 # ============================================================================
 
 SPRINT_BONUS_RULES = {
-    "none": {
-        "credit_discount": 0,
-        "points_modifier": 0
-    },
+    "none": {"credit_discount": 0, "points_modifier": 0},
     "made": {
         "credit_discount": 10,
         "points_modifier": 0,
@@ -147,9 +145,6 @@ SPRINT_BONUS_RULES = {
 }
 
 
-
-
-
 # ============================================================================
 # Bonus qualifica regular (weekend non-sprint)
 # Si applica alla gara regular del weekend non-sprint
@@ -159,26 +154,120 @@ SPRINT_BONUS_RULES = {
 # ============================================================================
 
 REGULAR_QUALIFYING_BONUS_BY_POSITION = {
-    22: {"credit_change": 30, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    21: {"credit_change": 20, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    20: {"credit_change": 20, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    19: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    18: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    17: {"credit_change": 10, "qualifying_points": 0, "points_multiplier": Decimal("1")},
-    16: {"credit_change": 0, "qualifying_points": 10, "points_multiplier": Decimal("1")},
-    15: {"credit_change": 0, "qualifying_points": 20, "points_multiplier": Decimal("1")},
-    14: {"credit_change": -5, "qualifying_points": 30, "points_multiplier": Decimal("1")},
-    13: {"credit_change": -5, "qualifying_points": 40, "points_multiplier": Decimal("1")},
-    12: {"credit_change": -10, "qualifying_points": 60, "points_multiplier": Decimal("1")},
-    11: {"credit_change": -10, "qualifying_points": 80, "points_multiplier": Decimal("1")},
-    10: {"credit_change": -15, "qualifying_points": 100, "points_multiplier": Decimal("1")},
-    9: {"credit_change": -15, "qualifying_points": 200, "points_multiplier": Decimal("1")},
-    8: {"credit_change": -20, "qualifying_points": 300, "points_multiplier": Decimal("1")},
-    7: {"credit_change": -20, "qualifying_points": 400, "points_multiplier": Decimal("1.1")},
-    6: {"credit_change": -25, "qualifying_points": 500, "points_multiplier": Decimal("1.2")},
-    5: {"credit_change": -20, "qualifying_points": 600, "points_multiplier": Decimal("1.3")},
-    4: {"credit_change": -15, "qualifying_points": 700, "points_multiplier": Decimal("1.4")},
-    3: {"credit_change": -10, "qualifying_points": 800, "points_multiplier": Decimal("1.5")},
-    2: {"credit_change": -5, "qualifying_points": 900, "points_multiplier": Decimal("1.7")},
-    1: {"credit_change": 0, "qualifying_points": 1000, "points_multiplier": Decimal("2")},
+    22: {
+        "credit_change": 30,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    21: {
+        "credit_change": 20,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    20: {
+        "credit_change": 20,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    19: {
+        "credit_change": 10,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    18: {
+        "credit_change": 10,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    17: {
+        "credit_change": 10,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    },
+    16: {
+        "credit_change": 0,
+        "qualifying_points": 10,
+        "points_multiplier": Decimal("1"),
+    },
+    15: {
+        "credit_change": 0,
+        "qualifying_points": 20,
+        "points_multiplier": Decimal("1"),
+    },
+    14: {
+        "credit_change": -5,
+        "qualifying_points": 30,
+        "points_multiplier": Decimal("1"),
+    },
+    13: {
+        "credit_change": -5,
+        "qualifying_points": 40,
+        "points_multiplier": Decimal("1"),
+    },
+    12: {
+        "credit_change": -10,
+        "qualifying_points": 60,
+        "points_multiplier": Decimal("1"),
+    },
+    11: {
+        "credit_change": -10,
+        "qualifying_points": 80,
+        "points_multiplier": Decimal("1"),
+    },
+    10: {
+        "credit_change": -15,
+        "qualifying_points": 100,
+        "points_multiplier": Decimal("1"),
+    },
+    9: {
+        "credit_change": -15,
+        "qualifying_points": 200,
+        "points_multiplier": Decimal("1"),
+    },
+    8: {
+        "credit_change": -20,
+        "qualifying_points": 300,
+        "points_multiplier": Decimal("1"),
+    },
+    7: {
+        "credit_change": -20,
+        "qualifying_points": 400,
+        "points_multiplier": Decimal("1.1"),
+    },
+    6: {
+        "credit_change": -25,
+        "qualifying_points": 500,
+        "points_multiplier": Decimal("1.2"),
+    },
+    5: {
+        "credit_change": -20,
+        "qualifying_points": 600,
+        "points_multiplier": Decimal("1.3"),
+    },
+    4: {
+        "credit_change": -15,
+        "qualifying_points": 700,
+        "points_multiplier": Decimal("1.4"),
+    },
+    3: {
+        "credit_change": -10,
+        "qualifying_points": 800,
+        "points_multiplier": Decimal("1.5"),
+    },
+    2: {
+        "credit_change": -5,
+        "qualifying_points": 900,
+        "points_multiplier": Decimal("1.7"),
+    },
+    1: {
+        "credit_change": 0,
+        "qualifying_points": 1000,
+        "points_multiplier": Decimal("2"),
+    },
 }
+
+# ============================================================================
+# Limite scelte stesso team (qualifica regular)
+# ============================================================================
+
+REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM = 2

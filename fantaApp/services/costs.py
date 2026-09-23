@@ -2,6 +2,7 @@
 Logica di calcolo costi per piloti e gare.
 Le costanti/tabelle sono definite in rules.py.
 """
+
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 
@@ -18,18 +19,20 @@ from . import rules
 # Calcolo costi base dalla griglia e classifica
 # ============================================================================
 
+
 def get_cost_from_grid(mapping: dict, grid_position: int) -> int:
     """Restituisce il costo base dalla posizione in griglia."""
     if not grid_position or grid_position < 1:
-        raise ValidationError("Posizione di griglia non valida per calcolare il costo del pilota.")
+        raise ValidationError(
+            "Posizione di griglia non valida per calcolare il costo del pilota."
+        )
     return mapping.get(grid_position, 0)
 
 
 def get_cost_from_standings_position(*, driver: Driver, weekend: Weekend) -> int:
     """Restituisce il costo aggiuntivo dalla posizione in classifica piloti."""
     standing = (
-        driver.standings
-        .filter(
+        driver.standings.filter(
             weekend__season=weekend.season,
             weekend__round_number__lt=weekend.round_number,
         )
@@ -45,9 +48,14 @@ def get_cost_from_standings_position(*, driver: Driver, weekend: Weekend) -> int
 # Calcolo costi gara regular
 # ============================================================================
 
-def get_regular_race_cost_breakdown(*, grid_position: int, driver: Driver, weekend: Weekend) -> dict:
+
+def get_regular_race_cost_breakdown(
+    *, grid_position: int, driver: Driver, weekend: Weekend
+) -> dict:
     """Restituisce il breakdown del costo per la gara regular."""
-    grid_cost = get_cost_from_grid(rules.REGULAR_RACE_COST_BY_GRID_POSITION, grid_position)
+    grid_cost = get_cost_from_grid(
+        rules.REGULAR_RACE_COST_BY_GRID_POSITION, grid_position
+    )
     standings_cost = get_cost_from_standings_position(driver=driver, weekend=weekend)
     return {
         "grid_cost": grid_cost,
@@ -56,7 +64,9 @@ def get_regular_race_cost_breakdown(*, grid_position: int, driver: Driver, weeke
     }
 
 
-def get_regular_race_cost(*, grid_position: int, driver: Driver, weekend: Weekend) -> int:
+def get_regular_race_cost(
+    *, grid_position: int, driver: Driver, weekend: Weekend
+) -> int:
     """Restituisce il costo totale per la gara regular."""
     return get_regular_race_cost_breakdown(
         grid_position=grid_position,
@@ -66,7 +76,9 @@ def get_regular_race_cost(*, grid_position: int, driver: Driver, weekend: Weeken
 
 
 # Alias per retrocompatibilità
-def get_regular_race_driver_cost_breakdown(grid_position: int, driver: Driver, weekend: Weekend) -> dict:
+def get_regular_race_driver_cost_breakdown(
+    grid_position: int, driver: Driver, weekend: Weekend
+) -> dict:
     """Alias per get_regular_race_cost_breakdown."""
     return get_regular_race_cost_breakdown(
         grid_position=grid_position,
@@ -78,6 +90,7 @@ def get_regular_race_driver_cost_breakdown(grid_position: int, driver: Driver, w
 # ============================================================================
 # Calcolo costi gara sprint
 # ============================================================================
+
 
 def get_sprint_race_cost(grid_position: int) -> int:
     """Restituisce il costo per la gara sprint dalla posizione in griglia."""
@@ -94,6 +107,7 @@ def get_sprint_race_driver_cost(grid_position: int) -> int:
 # Sconto pupillo
 # ============================================================================
 
+
 def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
     """
     Calcola lo sconto pupillo per un pilota.
@@ -105,7 +119,9 @@ def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
     consecutive_weekends = 0
     current_round = race.weekend.round_number - 1
 
-    while current_round >= 1 and consecutive_weekends < (rules.PUPILLO_MAX_DISCOUNT // rules.PUPILLO_DISCOUNT_STEP):
+    while current_round >= 1 and consecutive_weekends < (
+        rules.PUPILLO_MAX_DISCOUNT // rules.PUPILLO_DISCOUNT_STEP
+    ):
         previous_pupillo = PlayerRaceChoice.objects.filter(
             player=player,
             race__type="regular",
@@ -120,12 +136,15 @@ def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
         consecutive_weekends += 1
         current_round -= 1
 
-    return min(consecutive_weekends * rules.PUPILLO_DISCOUNT_STEP, rules.PUPILLO_MAX_DISCOUNT)
+    return min(
+        consecutive_weekends * rules.PUPILLO_DISCOUNT_STEP, rules.PUPILLO_MAX_DISCOUNT
+    )
 
 
 # ============================================================================
 # Opzioni pilota per la scelta gara
 # ============================================================================
+
 
 def get_race_driver_options(*, race, player=None) -> list:
     """
@@ -134,8 +153,7 @@ def get_race_driver_options(*, race, player=None) -> list:
     """
     options = []
     for result in (
-        QualifyingResult.objects
-        .filter(
+        QualifyingResult.objects.filter(
             qualifying__weekend=race.weekend,
             qualifying__type=race.type,
         )
@@ -193,6 +211,7 @@ def get_sprint_race_driver_options(*, race) -> list:
 # Gestione crediti player
 # ============================================================================
 
+
 def get_player_reserved_credit(*, player, exclude_race=None) -> int:
     """
     Restituisce i crediti già prenotati dal player per gare non ancora concluse.
@@ -214,6 +233,7 @@ def get_player_spendable_credit(*, player, exclude_race=None) -> int:
     Restituisce i crediti effettivamente spendibili dal player.
     """
     return max(
-        player.available_credit - get_player_reserved_credit(player=player, exclude_race=exclude_race),
+        player.available_credit
+        - get_player_reserved_credit(player=player, exclude_race=exclude_race),
         0,
     )

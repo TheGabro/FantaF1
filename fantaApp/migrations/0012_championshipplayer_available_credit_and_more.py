@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0011_rename_playerentry_championshipplayer'),
+        ("fantaApp", "0011_rename_playerentry_championshipplayer"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='championshipplayer',
-            name='available_credit',
+            model_name="championshipplayer",
+            name="available_credit",
             field=models.IntegerField(default=2000),
         ),
         migrations.AddField(
-            model_name='championshipplayer',
-            name='total_score',
+            model_name="championshipplayer",
+            name="total_score",
             field=models.IntegerField(default=0),
         ),
     ]

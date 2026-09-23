@@ -1,0 +1,103 @@
+name: airflow-fantaf1
+
+x-airflow-common:
+  &airflow-common
+  # Image custom: Airflow ufficiale + codice FantaF1 + requirements Django.
+  # Il build context e' la root del repo, cosi' il Dockerfile puo' copiare tutto il progetto.
+  build:
+    context: ..
+    dockerfile: airflow/Dockerfile
+  image: airflow-fantaf1:latest
+  user: "${AIRFLOW_UID:-50000}:0"
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    # Variabili lette da FantaF1/settings.py quando i task lanciano manage.py.
+    FANTAF1_DATABASE_URL: ${FANTAF1_DATABASE_URL}
+    DATABASE_URL: ${FANTAF1_DATABASE_URL}
+    SECRET_KEY: ${FANTAF1_SECRET_KEY}
+    DEBUG: "False"
+    AIRFLOW_UID: ${AIRFLOW_UID}
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME}:admin
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/passwords.json
+    # I task non parlano piu' col DB dei metadati: passano dall'Execution API
+    # esposta dall'api-server. Senza questo, il worker cerca su localhost e fallisce.
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-webserver:8080/execution/
+    # Stesso segreto in tutti i container, altrimenti InvalidSignatureError.
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./config:/opt/airflow/config
+    - ./auth:/opt/airflow/auth
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 5s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-fantaf1-init
+    # Niente entrypoint custom: quello ufficiale dell'immagine imposta HOME e
+    # registra l'utente quando il container gira con un UID arbitrario (user: 1000:0).
+    # Senza, Python non trova i pacchetti installati in /home/airflow/.local.
+    command:
+      - bash
+      - -c
+      - |
+        airflow db migrate
+        printf '{"%s": "%s"}' "${AIRFLOW_ADMIN_USERNAME}" "${AIRFLOW_ADMIN_PASSWORD}" > /opt/airflow/auth/passwords.json
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-fantaf1-webserver
+    command: api-server
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-fantaf1-scheduler
+    command: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    container_name: airflow-fantaf1-dag-processor
+    command: dag-processor
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres-db-volume:

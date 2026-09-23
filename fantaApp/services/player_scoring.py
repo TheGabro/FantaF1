@@ -2,6 +2,7 @@
 Logica di calcolo punti FantaF1 per le gare.
 Le funzioni qui sono pensate per essere chiamate da task schedulati (Airflow/management command).
 """
+
 from django.db import transaction
 
 from ..models import PlayerRaceChoice, PlayerRaceResult, RaceResult
@@ -46,9 +47,9 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
         ValueError: Se il giocatore non ha fatto scelte per questa gara.
     """
     choices = list(
-        PlayerRaceChoice.objects
-        .filter(player=player, race=race)
-        .select_related("driver")
+        PlayerRaceChoice.objects.filter(player=player, race=race).select_related(
+            "driver"
+        )
     )
 
     if not choices:
@@ -90,60 +91,57 @@ def compute_race_points(*, player, race) -> PlayerRaceResult:
 def compute_player_score_per_race(*, race) -> dict:
     """
     Calcola i punti per TUTTI i giocatori di TUTTI i campionati per una singola race.
-    
+
     Chiamata dalla pipeline dopo aver importato i RaceResult ufficiali F1.
     Aggiorna automaticamente ChampionshipPlayer.total_score per ogni giocatore che ha fatto scelte.
-    
+
     Una sola pass sul DB: molto efficiente.
-    
+
     Args:
         race: L'istanza Race per cui calcolare i punti
-    
+
     Returns:
         dict con statistiche: {'race': str, 'players_updated': int, 'errors': list}
-    
-    # TODO Airflow: chiamare questa funzione da un DAG schedulato DOPO insert_race_result.py
     """
     # Prendi tutti i PlayerRaceChoice per questa race, raggruppati per player
     choices_by_player_id = {}
-    for choice in (
-        PlayerRaceChoice.objects
-        .filter(race=race)
-        .select_related("player", "driver")
+    for choice in PlayerRaceChoice.objects.filter(race=race).select_related(
+        "player", "driver"
     ):
         player_id = choice.player_id
         if player_id not in choices_by_player_id:
             choices_by_player_id[player_id] = []
         choices_by_player_id[player_id].append(choice)
-    
+
     errors = []
     players_updated = 0
-    
+
     # Calcola punti per ogni giocatore che ha fatto scelte
     for player_id, choices in choices_by_player_id.items():
         player = choices[0].player  # Tutti hanno lo stesso player
-        
+
         try:
             # Calcola e salva i punti per questa gara
             compute_race_points(player=player, race=race)
-            
+
             # total_score = somma dei PlayerRaceResult di questo ChampionshipPlayer
             # (gia' scoping al singolo campionato: ChampionshipPlayer e' per-campionato)
             total = sum(
-                r.total_points
-                for r in PlayerRaceResult.objects.filter(player=player)
+                r.total_points for r in PlayerRaceResult.objects.filter(player=player)
             )
             player.total_score = int(total)
             player.save(update_fields=["total_score"])
-            
+
             players_updated += 1
         except Exception as e:
-            errors.append({
-                "player": player.player_name,
-                "race": str(race),
-                "error": str(e),
-            })
-    
+            errors.append(
+                {
+                    "player": player.player_name,
+                    "race": str(race),
+                    "error": str(e),
+                }
+            )
+
     return {
         "race": str(race),
         "players_updated": players_updated,

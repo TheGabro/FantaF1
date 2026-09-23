@@ -4,25 +4,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0001_initial'),
+        ("fantaApp", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelManagers(
-            name='customuser',
-            managers=[
-            ],
+            name="customuser",
+            managers=[],
         ),
         migrations.AlterField(
-            model_name='customuser',
-            name='modified_at',
+            model_name="customuser",
+            name="modified_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='customuser',
-            name='type',
-            field=models.CharField(choices=[('admin', 'Admin'), ('staff', 'Staff'), ('user', 'User'), ('premium', 'Premium User')], default='user', max_length=10),
+            model_name="customuser",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("admin", "Admin"),
+                    ("staff", "Staff"),
+                    ("user", "User"),
+                    ("premium", "Premium User"),
+                ],
+                default="user",
+                max_length=10,
+            ),
         ),
     ]

@@ -4,23 +4,22 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0024_alter_race_modified_at'),
+        ("fantaApp", "0024_alter_race_modified_at"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='race',
-            options={'ordering': ['season', 'round_number']},
+            name="race",
+            options={"ordering": ["season", "round_number"]},
         ),
         migrations.RenameField(
-            model_name='race',
-            old_name='year',
-            new_name='season',
+            model_name="race",
+            old_name="year",
+            new_name="season",
         ),
         migrations.AlterUniqueTogether(
-            name='race',
-            unique_together={('circuit', 'season', 'round_number')},
+            name="race",
+            unique_together={("circuit", "season", "round_number")},
         ),
     ]

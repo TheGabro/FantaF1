@@ -4,24 +4,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0002_alter_customuser_managers_and_more'),
+        ("fantaApp", "0002_alter_customuser_managers_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='customuser',
-            name='type',
+            model_name="customuser",
+            name="type",
         ),
         migrations.AddField(
-            model_name='customuser',
-            name='role',
-            field=models.CharField(choices=[('user', 'User'), ('premium', 'Premium'), ('staff', 'Staff'), ('admin', 'Admin')], default='user', max_length=10),
+            model_name="customuser",
+            name="role",
+            field=models.CharField(
+                choices=[
+                    ("user", "User"),
+                    ("premium", "Premium"),
+                    ("staff", "Staff"),
+                    ("admin", "Admin"),
+                ],
+                default="user",
+                max_length=10,
+            ),
         ),
         migrations.AlterField(
-            model_name='customuser',
-            name='birthday',
+            model_name="customuser",
+            name="birthday",
             field=models.DateField(blank=True, null=True),
         ),
     ]

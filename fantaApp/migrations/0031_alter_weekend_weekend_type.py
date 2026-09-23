@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0030_qualifying_alter_qualifyingentry_options_and_more'),
+        ("fantaApp", "0030_qualifying_alter_qualifyingentry_options_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='weekend',
-            name='weekend_type',
-            field=models.CharField(choices=[('regular', 'Regular Weekend'), ('sprint', 'Sprint Weekend')], default='regular', max_length=20),
+            model_name="weekend",
+            name="weekend_type",
+            field=models.CharField(
+                choices=[("regular", "Regular Weekend"), ("sprint", "Sprint Weekend")],
+                default="regular",
+                max_length=20,
+            ),
         ),
     ]

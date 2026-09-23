@@ -5,59 +5,76 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0046_driverstanding'),
+        ("fantaApp", "0046_driverstanding"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlayerRaceResult',
+            name="PlayerRaceResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('credit_spent', models.PositiveIntegerField()),
-                ('fia_points', models.PositiveIntegerField()),
-                ('point_multiplier', models.FloatField(default=1.0)),
-                ('total_points', models.FloatField()),
-                ('calculated_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("credit_spent", models.PositiveIntegerField()),
+                ("fia_points", models.PositiveIntegerField()),
+                ("point_multiplier", models.FloatField(default=1.0)),
+                ("total_points", models.FloatField()),
+                ("calculated_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
         migrations.RenameIndex(
-            model_name='driverstanding',
-            new_name='fantaApp_dr_weekend_d17330_idx',
-            old_name='fantaapp_dr_weekend_1af42e_idx',
+            model_name="driverstanding",
+            new_name="fantaApp_dr_weekend_d17330_idx",
+            old_name="fantaapp_dr_weekend_1af42e_idx",
         ),
         migrations.RenameIndex(
-            model_name='driverstanding',
-            new_name='fantaApp_dr_driver__69f42e_idx',
-            old_name='fantaapp_dr_driver__9da36a_idx',
+            model_name="driverstanding",
+            new_name="fantaApp_dr_driver__69f42e_idx",
+            old_name="fantaapp_dr_driver__9da36a_idx",
         ),
         migrations.AlterField(
-            model_name='weekend',
-            name='modified_at',
+            model_name="weekend",
+            name="modified_at",
             field=models.DateTimeField(auto_now=True),
         ),
         migrations.AddField(
-            model_name='playerraceresult',
-            name='player',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.championshipplayer'),
+            model_name="playerraceresult",
+            name="player",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="fantaApp.championshipplayer",
+            ),
         ),
         migrations.AddField(
-            model_name='playerraceresult',
-            name='race',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='fantaApp.race'),
+            model_name="playerraceresult",
+            name="race",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="fantaApp.race"
+            ),
         ),
         migrations.AddIndex(
-            model_name='playerraceresult',
-            index=models.Index(fields=['player', '-calculated_at'], name='fantaApp_pl_player__46c290_idx'),
+            model_name="playerraceresult",
+            index=models.Index(
+                fields=["player", "-calculated_at"],
+                name="fantaApp_pl_player__46c290_idx",
+            ),
         ),
         migrations.AddIndex(
-            model_name='playerraceresult',
-            index=models.Index(fields=['race', 'total_points'], name='fantaApp_pl_race_id_efbbb3_idx'),
+            model_name="playerraceresult",
+            index=models.Index(
+                fields=["race", "total_points"], name="fantaApp_pl_race_id_efbbb3_idx"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='playerraceresult',
-            unique_together={('player', 'race')},
+            name="playerraceresult",
+            unique_together={("player", "race")},
         ),
     ]
