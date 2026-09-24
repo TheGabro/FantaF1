@@ -58,7 +58,7 @@ def set_seat(
     """
 
     if replaces is not None and replaces.pk == driver.pk:
-        raise ValueError("Driver cannot substitute him self")
+        raise ValueError("Driver cannot substitute himself")
 
     weekends = Weekend.objects.filter(
         season=season, round_number__gte=from_round
@@ -79,15 +79,15 @@ def set_seat(
         )
 
         label = f"R{weekend.round_number}: {driver.short_name}"
-        
+                
         if existing is not None:
             if existing.team_id != team.pk:
                 changes.append(
-                    f"R{weekend.round_number}: Driver {driver.short_name} moved to {team.short_name}"
+                    f"{label} moved to {team.short_name.strip()}"
                 )
         else:
             changes.append(
-                f"R{label} added in {team.short_name}"
+                f"{label} added in {team.short_name.strip()}"
             )
 
         if replaces:
@@ -96,17 +96,12 @@ def set_seat(
             ).delete()
 
             if deleted:
-                changes.append(
-                    changes.append(f"R{weekend.round_number}: {replaces.short_name} removed")
-                )
+                changes.append(f"R{weekend.round_number}: {replaces.short_name} removed")
 
     # TO-CHANGE after new version, team will no longer exists
-    try:
-        driver.team = team
-        driver.active = True
-        driver.save(update_fields=["team", "active"])
-    except:
-        raise Exception
+    driver.team = team
+    driver.active = True
+    driver.save(update_fields=["team", "active"])
 
     if replaces is not None:
         replaces.active = False
