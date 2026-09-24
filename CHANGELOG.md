@@ -6,6 +6,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ### Added
 - Comando interattivo `set_seat`: sposta un pilota in un altro team dal round indicato in poi, con l'eventuale pilota sostituito (`WeekendParticipant`).
+- Attribuzione della fonte dati (Jolpica F1 API, CC BY-NC-SA 4.0) nel footer.
 
 ## [0.3.1] - 2026-09-23
 
