@@ -1,0 +1,29 @@
+{% extends "fantaApp/championship_section_base.html" %}
+
+{% block title %}Calendario {{ championship.year }} — {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block section_content %}
+<section>
+  <div class="mb-4 flex items-center justify-between gap-3">
+    <h2 class="text-sm font-bold uppercase tracking-wide text-muted">Calendario stagione {{ championship.year }}</h2>
+    <span class="badge-muted">{{ weekends|length }} weekend</span>
+  </div>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for w in weekends %}
+      <a href="{% url 'weekend_details' championship.id w.id %}"
+         class="card group flex items-center gap-4 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
+        <span class="pos-badge shrink-0 !h-10 !w-10 text-sm">R{{ w.round_number }}</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate font-bold leading-tight group-hover:text-accent">{{ w.event_name }}</h3>
+          <p class="truncate text-xs text-muted">
+            {{ w.circuit.name }}{% if w.race_start %} · {{ w.race_start|date:"j M" }}{% endif %}
+          </p>
+        </div>
+        {% if w.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
+      </a>
+    {% empty %}
+      <p class="text-sm text-muted sm:col-span-2 lg:col-span-3">Nessun weekend disponibile per la stagione {{ championship.year }}.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

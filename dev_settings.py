@@ -17,4 +17,12 @@ _DEV_DB = _ROOT / "frontend" / "dev_db.sqlite3"
 if not _DEV_DB.exists():
     shutil.copyfile(_ROOT / "db.sqlite3", _DEV_DB)
 
-DATABASES["default"]["NAME"] = _DEV_DB  # noqa: F405
+# Si ridefinisce l'intera entry, non solo NAME: se .env contiene DATABASE_URL le
+# impostazioni base puntano a Postgres, e sostituire il solo NAME lascerebbe
+# l'anteprima collegata al database remoto.
+DATABASES = {  # noqa: F405
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": _DEV_DB,
+    }
+}

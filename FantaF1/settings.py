@@ -34,6 +34,10 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_
 # Viene popolato dinamicamente sotto con il dominio Render.
 CSRF_TRUSTED_ORIGINS = []
 
+# CSRF_FAILURE_VIEW: al posto della pagina 403 di Django (illeggibile per
+# l'utente finale) si rimanda al form con un toast di avviso.
+CSRF_FAILURE_VIEW = 'fantaApp.views.errors.csrf_failure'
+
 # --- Configurazione Render ---
 # Render imposta automaticamente RENDER_EXTERNAL_HOSTNAME con il dominio pubblico
 # del servizio (es. fantaf1.onrender.com). Se presente, lo aggiungiamo ad
@@ -182,4 +186,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'fantaApp.CustomUser'
 
-LOGIN_URL = '/login/' 
+# Nome della rotta, non il percorso: l'URL reale è /auth/login/ e il valore
+# precedente ('/login/') rispondeva 404 a ogni redirect di @login_required.
+LOGIN_URL = 'login' 

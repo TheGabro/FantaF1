@@ -16,6 +16,8 @@
 
     <form method="post" class="space-y-4">
       {% csrf_token %}
+      {# Destinazione di ritorno (es. un invito): viene ripassata al login dopo la registrazione. #}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
       {% for field in form_register %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
@@ -30,7 +32,8 @@
 
   <p class="mt-4 text-center text-sm text-muted">
     Hai già un account?
-    <a href="{% url 'login' %}" class="font-semibold text-accent hover:underline">Accedi</a>
+    <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}"
+       class="font-semibold text-accent hover:underline">Accedi</a>
   </p>
 </div>
 {% endblock %}

@@ -78,18 +78,53 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
 class ChampionshipForm(forms.ModelForm):
     year = forms.IntegerField(widget=forms.HiddenInput(), initial=CURRENT_YEAR)
 
+    join_as_player = forms.BooleanField(
+        label="Partecipo anch'io come giocatore",
+        required=False,
+        initial=True,
+    )
+    player_name = forms.CharField(
+        label="Il tuo nome giocatore",
+        max_length=50,
+        required=False,
+    )
+    # Le leghe nascono nella stessa richiesta: al render non esistono ancora e
+    # una tendina legata al database è impossibile. Si sceglie per posizione e
+    # le opzioni le popola il JavaScript dai nomi lega digitati; la view valida
+    # l'indice contro le leghe davvero create.
+    player_league_index = forms.IntegerField(
+        label="La tua lega",
+        required=False,
+        min_value=0,
+        widget=forms.Select(choices=[]),
+    )
+
     class Meta:
         model = Championship
         fields = ["name", "year"]
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if user is not None:
+            self.fields["player_name"].initial = user.username
+
     def clean(self):
         cleaned_data = super().clean()
-        name = self.cleaned_data.get("name")
-        year = self.cleaned_data.get("year")
+        name = cleaned_data.get("name")
+        year = cleaned_data.get("year")
         if Championship.objects.filter(name=name, year=year).exists():
             raise ValidationError(
                 "Questo nome per il campionato è già in uso quest'anno"
             )
+
+        # Nome giocatore lasciato vuoto: si usa lo username. Il campionato è
+        # appena nato, quindi nessun altro nome può ancora essere occupato.
+        if cleaned_data.get("join_as_player") and not cleaned_data.get("player_name"):
+            if self.user is None:
+                raise ValidationError("Indica il nome con cui vuoi giocare.")
+            cleaned_data["player_name"] = self.user.username
+
         return cleaned_data
 
 
@@ -109,27 +144,50 @@ LeagueFormSet = inlineformset_factory(
 
 
 class ChampionshipPlayerForm(forms.ModelForm):
-    championship = forms.ModelChoiceField(
-        queryset=Championship.objects.all().order_by("-year", "name"),
-        label="Campionato",
-    )
+    """Iscrizione a un campionato esistente.
+
+    Il campionato non è un campo del form: lo fissa la view leggendolo dall'URL.
+    Esporlo come tendina permetteva di iscriversi a un campionato diverso da
+    quello aperto, e di scegliere una lega appartenente a un altro campionato.
+    """
 
     class Meta:
         model = ChampionshipPlayer
-        fields = ["championship", "player_name", "league"]
+        fields = ["player_name", "league"]
+        labels = {
+            "player_name": "Il tuo nome giocatore",
+            "league": "Lega",
+        }
 
-    def clean(self):
-        cleaned_data = super().clean()
-        championship = cleaned_data.get("championship")
-        player_name = cleaned_data.get("player_name")
+    def __init__(self, *args, championship=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.championship = championship
+        # Va messo sull'istanza subito: la validazione del ModelForm chiama
+        # ChampionshipPlayer.clean(), che legge self.championship e senza questo
+        # solleva RelatedObjectDoesNotExist invece di validare.
+        self.instance.championship = championship
 
-        if championship and player_name:
-            exists = ChampionshipPlayer.objects.filter(
-                championship=championship, player_name=player_name
+        leagues = (
+            League.objects.filter(championship=championship).order_by("id")
+            if championship is not None
+            else League.objects.none()
+        )
+        self.fields["league"].queryset = leagues
+        self.fields["league"].empty_label = None
+        # Con una lega sola non c'è niente da scegliere: si preseleziona.
+        if len(leagues) == 1:
+            self.fields["league"].initial = leagues[0]
+
+    def clean_player_name(self):
+        player_name = self.cleaned_data["player_name"]
+        if (
+            self.championship is not None
+            and ChampionshipPlayer.objects.filter(
+                championship=self.championship,
+                player_name=player_name,
             ).exists()
-            if exists:
-                raise ValidationError(
-                    "Questo nome giocatore è già stato usato in questo campionato."
-                )
-
-        return cleaned_data
+        ):
+            raise ValidationError(
+                "Questo nome giocatore è già stato usato in questo campionato."
+            )
+        return player_name

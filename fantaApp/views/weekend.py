@@ -156,6 +156,31 @@ def _base_context(request, championship_id: int, weekend_id: int):
     return championship, weekend, player
 
 
+def _grid_preview_options(weekend):
+    """
+    Piloti da mostrare quando la griglia non è ancora stata importata.
+
+    Stessi campi delle opzioni vere (costruite da costs.get_race_driver_options
+    sui QualifyingResult), ma con posizione e costi a None: senza griglia non c'è
+    nessun prezzo da calcolare. Serve solo a non lasciare la pagina vuota — la
+    scelta resta bloccata, qui e nel POST.
+    """
+    return [
+        {
+            "driver": driver,
+            "grid_position": None,
+            "cost": None,
+            "grid_cost": None,
+            "standings_cost": None,
+        }
+        for driver in (
+            Driver.objects.filter(driver_participations__weekend=weekend)
+            .select_related("team")
+            .order_by("team__name", "number")
+        )
+    ]
+
+
 # ───────────────────────────────────────────────────────────────────────────────
 #  1) Sprint‑Qualifying
 # ───────────────────────────────────────────────────────────────────────────────
@@ -358,18 +383,22 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     )
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
+    grid_available = bool(driver_options)
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": race,
-        "driver_options": driver_options,
+        # Senza griglia si mostrano comunque i piloti, in sola anteprima
+        "driver_options": driver_options or _grid_preview_options(weekend),
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
         "event_started": event_started,
-        "grid_available": bool(driver_options),
+        "grid_available": grid_available,
+        # Unica condizione che abilita form, bottoni e salvataggio
+        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/sprint_race_choice.html", context)
 
@@ -502,11 +531,13 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     )
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
+    grid_available = bool(driver_options)
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": race,
-        "driver_options": driver_options,
+        # Senza griglia si mostrano comunque i piloti, in sola anteprima
+        "driver_options": driver_options or _grid_preview_options(weekend),
         "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
@@ -515,7 +546,9 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
         "event_started": event_started,
-        "grid_available": bool(driver_options),
+        "grid_available": grid_available,
+        # Unica condizione che abilita form, bottoni e salvataggio
+        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/regular_race_choice.html", context)
 
@@ -645,15 +678,22 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     # blocco modifiche se l'evento è già iniziato (solo UI)
     event_started = helper._event_has_started(qualifying)
 
-    drivers_taken = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            qualifying__weekend__season=weekend.season,
-            qualifying__type="regular",
+    # Piloti già spesi in un'altra qualifica regular della stagione: restano in
+    # griglia ma bloccati, con il GP in cui sono stati usati.
+    locked_events_by_driver_id = {
+        choice.driver_id: choice.qualifying.weekend.event_name
+        for choice in (
+            PlayerQualifyingChoice.objects.filter(
+                player=player,
+                qualifying__weekend__season=weekend.season,
+                qualifying__type="regular",
+            )
+            .exclude(
+                qualifying=qualifying
+            )  # permette eventuale modifica della stessa gara
+            .select_related("qualifying__weekend")
         )
-        .exclude(qualifying=qualifying)  # permette eventuale modifica della stessa gara
-        .values_list("driver_id", flat=True)
-    )
+    }
 
     teams_maxed_out = (
         PlayerQualifyingChoice.objects.filter(
@@ -669,6 +709,15 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     )
 
     if request.method == "POST" and not event_started:
+        if request.POST.get("action") == "delete":
+            PlayerQualifyingChoice.objects.filter(
+                player=player, qualifying=qualifying
+            ).delete()
+            messages.success(
+                request, "Scelta cestinata: puoi selezionare un altro pilota."
+            )
+            return redirect(request.path)
+
         driver_id = request.POST.get("driver")
         if not driver_id:
             messages.error(request, "Devi selezionare un pilota.")
@@ -684,10 +733,16 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
                 driver_participations__weekend=weekend,
                 id=driver_id,
             )
-            .exclude(id__in=drivers_taken)
+            .exclude(id__in=locked_events_by_driver_id.keys())
             .exclude(team_id__in=teams_maxed_out)
             .first()
         )
+
+        if driver is None:
+            messages.error(
+                request, "Pilota non valido o già usato in un'altra qualifica."
+            )
+            return redirect(request.path)
 
         try:
             pc.choose_regular_quali_driver(
@@ -700,25 +755,47 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             messages.error(request, e.message)
         return redirect(request.path)
 
-    drivers_available = (
-        Driver.objects.filter(driver_participations__weekend=weekend)
-        .exclude(id__in=drivers_taken)
-        .exclude(team_id__in=teams_maxed_out)
-        .order_by("team__name", "first_name", "last_name")
+    existing = (
+        PlayerQualifyingChoice.objects.filter(
+            player=player,
+            qualifying=qualifying,
+        )
+        .select_related("driver", "driver__team")
+        .first()
     )
 
-    existing = PlayerQualifyingChoice.objects.filter(
-        player=player,
-        qualifying=qualifying,
-    ).first()
+    # Solo i piloti in pista in questo weekend (WeekendParticipant): il roster
+    # tiene già conto di riserve e sostituzioni.
+    drivers_available = list(
+        Driver.objects.filter(driver_participations__weekend=weekend)
+        .select_related("team")
+        .order_by("team__name", "number")
+    )
+    # I piloti non sceglibili restano in griglia ma bloccati, con il motivo.
+    maxed_team_ids = set(teams_maxed_out)
+    max_picks_per_team = rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM
+    selected_driver_id = existing.driver_id if existing else None
+    for driver in drivers_available:
+        driver.is_selected = driver.id == selected_driver_id
+        locked_event = locked_events_by_driver_id.get(driver.id)
+        if locked_event:
+            driver.locked_reason = f"già usato · {locked_event}"
+        elif driver.team_id in maxed_team_ids:
+            driver.locked_reason = f"scuderia già scelta {max_picks_per_team} volte"
+        else:
+            driver.locked_reason = None
 
     context = {
         "championship": champ,
         "weekend": weekend,
         "event": qualifying,
         "existing": existing,
-        "drivers": drivers_available,  # per i select ancora vuoti
+        "drivers": drivers_available,  # griglia raggruppata per scuderia
         "event_started": event_started,
+        # La griglia si spegne quando la scelta è già fatta (serve il cestino)
+        # o quando la qualifica è iniziata.
+        "picker_locked": bool(existing) or event_started,
+        "max_picks_per_team": max_picks_per_team,
     }
     return render(request, "fantaApp/regular_race_qualifying_choice.html", context)
 

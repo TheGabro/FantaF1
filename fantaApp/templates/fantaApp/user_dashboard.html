@@ -59,15 +59,36 @@
       <p class="text-4xl">🏁</p>
       <h3 class="mt-2 text-lg font-bold">Non sei ancora iscritto a nessun campionato</h3>
       <p class="mx-auto mt-1 max-w-md text-sm text-muted">
-        Crea il tuo campionato e invita i tuoi amici, oppure chiedi a un organizzatore di iscriverti al suo.
+        Crea il tuo campionato e invita i tuoi amici, oppure entra in uno esistente
+        col link che ti hanno mandato.
       </p>
       <a href="{% url 'create_championship' %}" class="btn-primary mt-4">Crea un campionato</a>
     </div>
   {% endfor %}
 </div>
 
+{# Serve a chi apre il sito dal segnalibro invece che dal link ricevuto in chat. #}
+<section class="card-pad mt-6">
+  <h2 class="text-base font-bold">Hai un codice invito?</h2>
+  <p class="mt-1 text-sm text-muted">
+    Incolla il link che ti hanno mandato (o solo il codice finale) per entrare nel campionato.
+  </p>
+  <form method="post" action="{% url 'invite_redeem' %}" class="mt-3 flex flex-col gap-2 sm:flex-row">
+    {% csrf_token %}
+    <input
+      type="text"
+      name="invite_code"
+      class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+      placeholder="https://…/campionati/invito/…"
+      aria-label="Codice o link di invito"
+      required
+    />
+    <button type="submit" class="btn-secondary shrink-0">Entra</button>
+  </form>
+</section>
+
 {# Campionati in cui l'utente è manager: letti dal template perché la view non li passa. #}
-{# Nota: qui compaiono anche se non si è iscritti come giocatori (iscrizione oggi possibile solo da admin). #}
+{# Nota: qui compaiono anche se non si è iscritti come giocatori (si può gestire senza giocare). #}
 {% if user.championshipmanager_set.all %}
   <h2 class="mb-4 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
