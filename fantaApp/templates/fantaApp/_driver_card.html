@@ -1,0 +1,30 @@
+{% comment %}
+Card pilota: banda scuderia a sinistra (numero + sigla), foto a destra,
+nome sotto. Solo <span>, così può stare dentro un <button>.
+
+Contesto atteso:
+  driver        istanza Driver (con .team)
+  card_selected (opz.) true se è il pilota scelto
+  card_locked   (opz.) motivo per cui il pilota non è sceglibile
+Il colore arriva da --team, che eredita dalla classe .team-xxx del pannello.
+{% endcomment %}
+<span class="driver-card{% if card_selected %} is-selected{% endif %}{% if card_locked %} is-locked{% endif %}">
+  <span class="driver-card-number">{{ driver.number|default_if_none:"" }}</span>
+  <span class="driver-card-code">{{ driver.short_name }}</span>
+  <span class="driver-card-photo">
+    {# Segnaposto: al posto di questo svg andrà la foto del pilota #}
+    <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+      <circle cx="32" cy="21" r="12" />
+      <path d="M8 64c0-12.2 10.7-22 24-22s24 9.8 24 22z" />
+    </svg>
+  </span>
+  {% if card_locked %}
+    <span class="driver-lock">
+      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4m-1 0h10a2 2 0 012 2v6a2 2 0 01-2 2H7a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+      </svg>
+    </span>
+  {% endif %}
+</span>
+<span class="driver-name">{{ driver.first_name }} <span class="driver-name-last">{{ driver.last_name }}</span></span>
+{% if card_locked %}<span class="driver-name-note">{{ card_locked }}</span>{% endif %}

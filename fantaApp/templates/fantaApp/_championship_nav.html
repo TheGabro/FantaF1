@@ -1,0 +1,33 @@
+{% comment %}
+  Navigazione a due livelli della dashboard campionato: tab principali (Gioca,
+  Classifiche, Info) e, sotto, i sotto-tab del gruppo attivo.
+  La struttura arriva da CHAMPIONSHIP_NAV in views/dashboard.py: per aggiungere
+  una sezione si tocca quella, non questo file.
+  Richiede in context: championship, nav_groups, active_group, nav_subsections,
+  active_section.
+{% endcomment %}
+<div class="mb-6 space-y-2">
+<nav class="championship-tabs" aria-label="Sezioni del campionato">
+  {% for group in nav_groups %}
+    {% with first=group.sections.0 %}
+      <a href="{% url first.url_name championship.id %}"
+         class="championship-tab {% if active_group == group.group %}championship-tab-active{% endif %}"
+         {% if active_group == group.group %}aria-current="page"{% endif %}>
+        {{ group.label }}
+      </a>
+    {% endwith %}
+  {% endfor %}
+</nav>
+
+{% if nav_subsections %}
+  <nav class="championship-subtabs" aria-label="{{ active_group }}">
+    {% for section in nav_subsections %}
+      <a href="{% url section.url_name championship.id %}"
+         class="championship-subtab {% if active_section == section.section %}championship-subtab-active{% endif %}"
+         {% if active_section == section.section %}aria-current="page"{% endif %}>
+        {{ section.label }}
+      </a>
+    {% endfor %}
+  </nav>
+{% endif %}
+</div>

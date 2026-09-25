@@ -6,31 +6,64 @@
 <section class="py-10 sm:py-16">
   <p class="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
 
-  {% if user.is_authenticated %}
-    <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
-      Bentornato, {{ user.username }}
-    </h1>
-    <p class="mt-4 max-w-xl text-lg text-muted">
-      I tuoi campionati ti aspettano: controlla i crediti, fai le tue scelte per il prossimo weekend e scala la classifica.
-    </p>
-    <div class="mt-8 flex flex-wrap gap-3">
-      <a href="{% url 'user_dashboard' %}" class="btn-primary">I miei campionati</a>
-      <a href="{% url 'create_championship' %}" class="btn-secondary">Crea un campionato</a>
+  {# Vetrina per i soli utenti anonimi: chi e' autenticato viene mandato in dashboard dalla view. #}
+  <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
+    Sfida i tuoi amici<br />a ogni <span class="text-accent">weekend di gara</span>
+  </h1>
+  <p class="mt-4 max-w-xl text-lg text-muted">
+    Gestisci i tuoi crediti, scegli i piloti giusti dalla griglia, pronostica le qualifiche
+    e conquista la vetta del tuo campionato Fanta F1.
+  </p>
+  <div class="mt-8 grid gap-4 sm:grid-cols-2">
+    <div class="card-pad flex flex-col">
+      <span class="badge-accent w-fit">Nuovo giocatore</span>
+      <h2 class="mt-3 text-xl font-black uppercase italic">Crea il tuo account</h2>
+      <p class="mt-2 text-sm text-muted">
+        Bastano pochi dati e meno di un minuto. Ti servono solo:
+      </p>
+      <ul class="mt-3 space-y-2 text-sm">
+        <li class="flex items-center gap-2">
+          <svg width="16" height="16" class="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Un username
+        </li>
+        <li class="flex items-center gap-2">
+          <svg width="16" height="16" class="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Un indirizzo email
+        </li>
+        <li class="flex items-center gap-2">
+          <svg width="16" height="16" class="h-4 w-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Una password
+        </li>
+      </ul>
+      <p class="mt-3 text-xs text-muted">Nient'altro: niente carta di credito, niente dati personali.</p>
+      <div class="mt-auto pt-5">
+        <a href="{% url 'register' %}" class="btn-primary w-full py-3 text-base">Inizia a giocare</a>
+      </div>
     </div>
-  {% else %}
-    <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
-      Sfida i tuoi amici<br />a ogni <span class="text-accent">weekend di gara</span>
-    </h1>
-    <p class="mt-4 max-w-xl text-lg text-muted">
-      Gestisci i tuoi crediti, scegli i piloti giusti dalla griglia, pronostica le qualifiche
-      e conquista la vetta del tuo campionato Fanta F1.
-    </p>
-    <div class="mt-8 flex flex-wrap gap-3">
-      <a href="{% url 'register' %}" class="btn-primary">Inizia a giocare</a>
-      <a href="{% url 'login' %}" class="btn-secondary">Accedi</a>
+
+    <div class="card-pad flex flex-col">
+      <span class="badge-accent w-fit">Hai già un account</span>
+      <h2 class="mt-3 text-xl font-black uppercase italic">Bentornato in griglia</h2>
+      <p class="mt-2 text-sm text-muted">
+        Da te non ci serve altro: username (o email) e password, e sei di nuovo in pista.
+      </p>
+      <p class="mt-3 text-sm text-muted">
+        I tuoi campionati, i crediti e le scelte del prossimo weekend sono dove li hai lasciati.
+      </p>
+      <div class="mt-auto pt-5">
+        <a href="{% url 'login' %}" class="btn-primary w-full py-3 text-base">Accedi</a>
+      </div>
     </div>
-  {% endif %}
+  </div>
 </section>
+
+<h2 class="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-muted">Come funziona</h2>
 
 <section class="grid gap-4 pb-12 sm:grid-cols-3">
   <div class="card-pad">

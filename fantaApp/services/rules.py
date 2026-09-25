@@ -91,23 +91,30 @@ PUPILLO_MAX_DISCOUNT = 20
 # ============================================================================
 # Bonus multichoice (weekend sprint - qualifica regular)
 # Si applica alla gara regular del weekend sprint
+# qualifying_points: punti per la classifica qualifiche. I livelli sono a
+# scaletta (q2_pass include q1_pass, q3_top3 include entrambi): vale il
+# punteggio del livello raggiunto, non la somma.
 # ============================================================================
 
 QUALIFYING_MULTICHOICE_BONUS_RULES = {
     "none": {
         "credit_discount": 0,
+        "qualifying_points": 0,
         "points_multiplier": Decimal("1"),
     },
     "q1_pass": {
         "credit_discount": 10,
+        "qualifying_points": 100,
         "points_multiplier": Decimal("1"),
     },
     "q2_pass": {
         "credit_discount": 20,
+        "qualifying_points": 500,
         "points_multiplier": Decimal("1.2"),
     },
     "q3_top3": {
         "credit_discount": 50,
+        "qualifying_points": 1500,
         "points_multiplier": Decimal("2"),
     },
 }

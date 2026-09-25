@@ -1,11 +1,23 @@
 from decimal import Decimal
 from datetime import timedelta
+from unittest.mock import patch
 
+from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+
+from .views import invites
+
+# In test DEBUG è sempre False, quindi lo storage WhiteNoise pretende il manifest
+# prodotto da collectstatic e qualsiasi template con {% static %} esplode. I test
+# che renderizzano pagine usano lo storage semplice, senza hash nei nomi.
+TEST_STORAGES = {
+    **django_settings.STORAGES,
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 from .models import (
     Championship,
@@ -25,6 +37,7 @@ from .models import (
     Status,
     Team,
     Weekend,
+    WeekendParticipant,
     PlayerRaceChoice,
 )
 from .services import event_processing as ep
@@ -1015,6 +1028,460 @@ class PlayerScoringTests(TestCase):
         self.assertEqual(
             PlayerRaceResult.objects.filter(player=self.player_a).count(), 2
         )
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class LoginNextRedirectTests(TestCase):
+    """F0: il ritorno dal login, su cui poggia ogni link d'invito."""
+
+    def setUp(self):
+        self.client = Client()
+        get_user_model().objects.create_user(
+            username="next-user",
+            email="next@example.com",
+            password="password123",
+        )
+
+    def test_login_returns_to_requested_internal_page(self):
+        target = reverse("user_dashboard")
+        response = self.client.post(
+            reverse("login"),
+            {"identifier": "next-user", "password": "password123", "next": target},
+        )
+
+        self.assertRedirects(response, target)
+
+    def test_login_ignores_external_next(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "identifier": "next-user",
+                "password": "password123",
+                "next": "https://evil.example.com/",
+            },
+        )
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+
+    def test_register_carries_next_to_the_login_page(self):
+        target = reverse("user_dashboard")
+        response = self.client.post(
+            reverse("register"),
+            {
+                "username": "brand-new",
+                "email": "brand-new@example.com",
+                "password": "password123",
+                "password2": "password123",
+                "next": target,
+            },
+        )
+
+        self.assertRedirects(response, f"{reverse('login')}?next={target}")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CreateChampionshipTests(TestCase):
+    """F1: chi crea il campionato entra anche come giocatore."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = get_user_model().objects.create_user(
+            username="organizzatore",
+            email="organizzatore@example.com",
+            password="password123",
+        )
+        self.client.force_login(self.user)
+
+    def _payload(self, **overrides):
+        payload = {
+            "name": "Coppa Amici",
+            "year": 2026,
+            "leagues-TOTAL_FORMS": "2",
+            "leagues-INITIAL_FORMS": "0",
+            "leagues-MIN_NUM_FORMS": "0",
+            "leagues-MAX_NUM_FORMS": "1000",
+            "leagues-0-name": "Serie A",
+            "leagues-1-name": "Serie B",
+            "join_as_player": "on",
+            "player_name": "Dave",
+            "player_league_index": "1",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_form_page_offers_the_player_fields(self):
+        response = self.client.get(reverse("create_championship"))
+
+        self.assertContains(response, "Partecipo anch")
+        self.assertContains(response, "id_player_league_index")
+        self.assertContains(response, 'value="organizzatore"')
+
+    def test_creator_becomes_player_in_the_chosen_league(self):
+        self.client.post(reverse("create_championship"), self._payload())
+
+        championship = Championship.objects.get(name="Coppa Amici")
+        player = ChampionshipPlayer.objects.get(
+            user=self.user, championship=championship
+        )
+        self.assertEqual(player.player_name, "Dave")
+        self.assertEqual(player.league.name, "Serie B")
+        self.assertEqual(player.available_credit, 2000)
+        self.assertTrue(
+            ChampionshipManager.objects.filter(
+                user=self.user, championship=championship
+            ).exists()
+        )
+
+    def test_player_name_defaults_to_username(self):
+        self.client.post(reverse("create_championship"), self._payload(player_name=""))
+
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        self.assertEqual(player.player_name, "organizzatore")
+
+    def test_out_of_range_league_index_falls_back_to_the_first_league(self):
+        self.client.post(
+            reverse("create_championship"), self._payload(player_league_index="99")
+        )
+
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        self.assertEqual(player.league.name, "Serie A")
+
+    def test_manager_can_stay_out_of_the_game(self):
+        payload = self._payload()
+        del payload["join_as_player"]
+        self.client.post(reverse("create_championship"), payload)
+
+        championship = Championship.objects.get(name="Coppa Amici")
+        self.assertTrue(
+            ChampionshipManager.objects.filter(
+                user=self.user, championship=championship
+            ).exists()
+        )
+        self.assertFalse(
+            ChampionshipPlayer.objects.filter(
+                user=self.user, championship=championship
+            ).exists()
+        )
+
+    def test_failed_creation_leaves_nothing_behind(self):
+        Championship.objects.create(name="Coppa Amici", year=2026)
+
+        self.client.post(reverse("create_championship"), self._payload())
+
+        self.assertEqual(Championship.objects.filter(name="Coppa Amici").count(), 1)
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.user).exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class InviteAndJoinTests(TestCase):
+    """F2, F3 e F4: iscrizione, link d'invito firmato, codice incollato a mano."""
+
+    def setUp(self):
+        self.client = Client()
+        self.organizer = get_user_model().objects.create_user(
+            username="capo",
+            email="capo@example.com",
+            password="password123",
+        )
+        self.guest = get_user_model().objects.create_user(
+            username="ospite",
+            email="ospite@example.com",
+            password="password123",
+        )
+
+        self.championship = Championship.objects.create(
+            name="Campionato Invitato", year=2026
+        )
+        self.league_a = League.objects.create(
+            championship=self.championship, name="Serie A"
+        )
+        self.league_b = League.objects.create(
+            championship=self.championship, name="Serie B"
+        )
+        ChampionshipManager.objects.create(
+            user=self.organizer, championship=self.championship
+        )
+
+        self.other_championship = Championship.objects.create(
+            name="Altro Campionato", year=2026
+        )
+        self.other_league = League.objects.create(
+            championship=self.other_championship, name="Lega Estranea"
+        )
+
+        self.join_url = reverse("join_championship", args=[self.championship.id])
+
+    # --- F2 ---------------------------------------------------------------
+
+    def test_join_page_lists_only_the_leagues_of_this_championship(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.get(self.join_url)
+
+        self.assertContains(response, "Serie A")
+        self.assertContains(response, "Serie B")
+        self.assertNotContains(response, "Lega Estranea")
+
+    def test_join_creates_the_player_in_the_selected_league(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.post(
+            self.join_url, {"player_name": "Ospite", "league": self.league_b.id}
+        )
+
+        self.assertRedirects(
+            response, reverse("championship_dashboard", args=[self.championship.id])
+        )
+        player = ChampionshipPlayer.objects.get(
+            user=self.guest, championship=self.championship
+        )
+        self.assertEqual(player.league, self.league_b)
+
+    def test_join_rejects_a_league_of_another_championship(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.post(
+            self.join_url, {"player_name": "Ospite", "league": self.other_league.id}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+    def test_join_rejects_a_player_name_already_taken(self):
+        ChampionshipPlayer.objects.create(
+            user=self.organizer,
+            championship=self.championship,
+            league=self.league_a,
+            player_name="Ospite",
+        )
+        self.client.force_login(self.guest)
+
+        response = self.client.post(
+            self.join_url, {"player_name": "Ospite", "league": self.league_a.id}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+    def test_joining_twice_is_welcomed_instead_of_crashing(self):
+        ChampionshipPlayer.objects.create(
+            user=self.guest,
+            championship=self.championship,
+            league=self.league_a,
+            player_name="Ospite",
+        )
+        self.client.force_login(self.guest)
+
+        response = self.client.get(self.join_url)
+
+        self.assertRedirects(
+            response, reverse("championship_dashboard", args=[self.championship.id])
+        )
+        self.assertEqual(ChampionshipPlayer.objects.filter(user=self.guest).count(), 1)
+
+    def test_join_requires_login_and_comes_back_after_it(self):
+        response = self.client.get(self.join_url)
+
+        self.assertRedirects(response, f"{reverse('login')}?next={self.join_url}")
+
+    # --- F3 ---------------------------------------------------------------
+
+    def test_invite_link_leads_to_the_join_page(self):
+        self.client.force_login(self.guest)
+        token = invites.make_invite_token(self.championship)
+
+        response = self.client.get(reverse("invite_accept", args=[token]))
+
+        self.assertRedirects(response, self.join_url)
+
+    def test_tampered_token_is_refused(self):
+        self.client.force_login(self.guest)
+        token = invites.make_invite_token(self.championship) + "x"
+
+        response = self.client.get(reverse("invite_accept", args=[token]))
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+
+    def test_expired_token_is_refused(self):
+        self.client.force_login(self.guest)
+        token = invites.make_invite_token(self.championship)
+
+        with patch.object(invites, "INVITE_MAX_AGE", timedelta(seconds=-1)):
+            response = self.client.get(reverse("invite_accept", args=[token]))
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+
+    def test_invite_box_is_shown_only_to_managers(self):
+        self.client.force_login(self.organizer)
+        manager_response = self.client.get(
+            reverse("championship_info", args=[self.championship.id])
+        )
+        self.assertContains(manager_response, "Invita i tuoi amici")
+
+        self.client.force_login(self.guest)
+        guest_response = self.client.get(
+            reverse("championship_info", args=[self.championship.id])
+        )
+        self.assertNotContains(guest_response, "Invita i tuoi amici")
+
+    # --- F4 ---------------------------------------------------------------
+
+    def test_pasted_full_invite_url_is_accepted(self):
+        self.client.force_login(self.guest)
+        token = invites.make_invite_token(self.championship)
+        pasted = f"https://fantaf1.example.com{reverse('invite_accept', args=[token])}"
+
+        response = self.client.post(reverse("invite_redeem"), {"invite_code": pasted})
+
+        self.assertRedirects(response, self.join_url)
+
+    def test_pasted_bare_token_is_accepted(self):
+        self.client.force_login(self.guest)
+        token = invites.make_invite_token(self.championship)
+
+        response = self.client.post(
+            reverse("invite_redeem"), {"invite_code": f"  {token}  "}
+        )
+
+        self.assertRedirects(response, self.join_url)
+
+    def test_empty_code_is_reported_without_crashing(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.post(reverse("invite_redeem"), {"invite_code": "   "})
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class RegularQualifyingPickerTests(TestCase):
+    """La griglia della qualifica regular segue il roster del weekend e il
+    limite di scelte per scuderia definiti dal backend."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = get_user_model().objects.create_user(
+            username="pole-hunter",
+            email="pole@example.com",
+            password="password123",
+        )
+        self.client.force_login(self.user)
+
+        self.championship = Championship.objects.create(name="Pole Cup", year=2026)
+        league = League.objects.create(championship=self.championship, name="Lega")
+        self.player = ChampionshipPlayer.objects.create(
+            user=self.user,
+            championship=self.championship,
+            league=league,
+            player_name="Pole Hunter",
+        )
+
+        circuit = Circuit.objects.create(
+            name="Imola", country="Italy", location="Imola", api_id="circuit-imola"
+        )
+        self.full_team = Team.objects.create(
+            name="Scuderia Piena",
+            short_name="SPI",
+            api_id="team-full",
+            nationality="IT",
+        )
+        other_team = Team.objects.create(
+            name="Scuderia Libera",
+            short_name="SLI",
+            api_id="team-free",
+            nationality="IT",
+        )
+
+        def driver(code, number, team):
+            return Driver.objects.create(
+                first_name=code,
+                last_name=f"Pilota{code}",
+                number=number,
+                short_name=code,
+                team=team,
+                season=2026,
+                api_id=f"drv-{code.lower()}",
+            )
+
+        used_1 = driver("US1", 1, self.full_team)
+        used_2 = driver("US2", 2, self.full_team)
+        self.third_seat = driver("TRD", 3, self.full_team)
+        self.free_driver = driver("FRE", 4, other_team)
+        self.not_racing = driver("RES", 5, other_team)
+
+        # Due qualifiche già giocate con i due titolari della scuderia piena
+        for round_number, used in ((1, used_1), (2, used_2)):
+            past_weekend = Weekend.objects.create(
+                circuit=circuit,
+                event_name=f"GP {round_number}",
+                round_number=round_number,
+                season=2026,
+                weekend_type="regular",
+            )
+            PlayerQualifyingChoice.objects.create(
+                player=self.player,
+                qualifying=Qualifying.objects.create(
+                    weekend=past_weekend, type="regular"
+                ),
+                driver=used,
+            )
+
+        self.weekend = Weekend.objects.create(
+            circuit=circuit,
+            event_name="GP Imola",
+            round_number=3,
+            season=2026,
+            weekend_type="regular",
+            qualifying_start=timezone.now() + timedelta(days=1),
+        )
+        self.qualifying = Qualifying.objects.create(
+            weekend=self.weekend, type="regular"
+        )
+        for racing in (self.third_seat, self.free_driver):
+            WeekendParticipant.objects.create(
+                weekend=self.weekend, driver=racing, team=racing.team
+            )
+
+        self.url = reverse(
+            "race_qualifying_choice",
+            args=[self.championship.id, self.weekend.id, self.qualifying.id],
+        )
+
+    def test_grid_shows_only_weekend_participants(self):
+        response = self.client.get(self.url)
+
+        drivers = response.context["drivers"]
+        self.assertEqual(
+            {d.id for d in drivers}, {self.third_seat.id, self.free_driver.id}
+        )
+        self.assertNotContains(response, "PilotaRES")
+
+    def test_driver_of_a_team_at_the_limit_is_locked_with_the_reason(self):
+        response = self.client.get(self.url)
+
+        drivers = {d.id: d for d in response.context["drivers"]}
+        self.assertEqual(
+            drivers[self.third_seat.id].locked_reason, "scuderia già scelta 2 volte"
+        )
+        self.assertIsNone(drivers[self.free_driver.id].locked_reason)
+        self.assertContains(response, "al massimo 2 volte")
+
+    def test_post_refuses_a_driver_of_a_team_at_the_limit(self):
+        self.client.post(self.url, {"driver": self.third_seat.id})
+
+        self.assertFalse(
+            PlayerQualifyingChoice.objects.filter(
+                player=self.player, qualifying=self.qualifying
+            ).exists()
+        )
+
+    def test_post_accepts_a_participant_of_a_free_team(self):
+        self.client.post(self.url, {"driver": self.free_driver.id})
+
+        choice = PlayerQualifyingChoice.objects.get(
+            player=self.player, qualifying=self.qualifying
+        )
+        self.assertEqual(choice.driver, self.free_driver)
 
 
 class EventProcessingServiceTests(TestCase):

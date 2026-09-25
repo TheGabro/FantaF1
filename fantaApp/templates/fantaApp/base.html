@@ -31,7 +31,9 @@
   <body class="flex min-h-screen flex-col">
     <header class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
       <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        <a href="{% url 'home' %}" class="flex items-center gap-2 text-lg font-black uppercase italic tracking-tight">
+        {# Per chi e' autenticato la "casa" e' la dashboard: puntarci dritto evita il rimbalzo da /. #}
+        <a href="{% if user.is_authenticated %}{% url 'user_dashboard' %}{% else %}{% url 'home' %}{% endif %}"
+           class="flex items-center gap-2 text-lg font-black uppercase italic tracking-tight">
           Fanta<span class="text-accent">F1</span>
         </a>
 

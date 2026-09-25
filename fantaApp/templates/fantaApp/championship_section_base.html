@@ -1,0 +1,24 @@
+{% extends "fantaApp/championship_flow_base.html" %}
+{% comment %}
+  Base delle sezioni della dashboard campionato: banner (ereditato) + tab di
+  navigazione + avviso "non sei iscritto". Le pagine di scelta e di risultato
+  restano su championship_flow_base.html, che non ha le tab.
+{% endcomment %}
+
+{% block title %}{{ championship.name }} {{ championship.year }} — Fanta F1{% endblock %}
+
+{% block championship_banner_link %}
+  {{ championship.name }} {{ championship.year }}
+{% endblock %}
+
+{% block championship_content %}
+{% include "fantaApp/_championship_nav.html" %}
+
+{% if not current_championship_player %}
+  <div class="card-pad mb-6 border-warn/40">
+    <p class="text-sm font-semibold text-warn">Non sei iscritto a questo campionato: puoi consultare le classifiche ma non fare scelte.</p>
+  </div>
+{% endif %}
+
+{% block section_content %}{% endblock %}
+{% endblock %}

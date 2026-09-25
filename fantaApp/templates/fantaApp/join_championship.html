@@ -1,0 +1,51 @@
+{% extends 'fantaApp/base.html' %}
+
+{% block title %}Iscriviti a {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block content %}
+<div class="mx-auto w-full max-w-lg">
+  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2 text-sm">← I miei campionati</a>
+
+  <div class="card-pad">
+    <p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">Sei stato invitato</p>
+    <h1 class="mt-1 text-2xl font-black uppercase italic">{{ championship.name }}</h1>
+    <p class="mt-1 mb-5 text-sm text-muted">
+      Stagione {{ championship.year }} ·
+      {{ championship.participants.count }} giocator{{ championship.participants.count|pluralize:"e,i" }}
+    </p>
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+
+      <div class="form-field">
+        <label for="{{ form.player_name.id_for_label }}">{{ form.player_name.label }}</label>
+        {{ form.player_name }}
+        {{ form.player_name.errors }}
+        <span class="helptext">È il nome con cui comparirai in classifica.</span>
+      </div>
+
+      {% comment %}
+        Con una lega sola la scelta non esiste: il campo resta nel form (serve al
+        modello, che vuole sempre una lega) ma si mostra solo se c'è da scegliere.
+      {% endcomment %}
+      <div class="form-field{% if form.fields.league.queryset|length < 2 %} hidden{% endif %}">
+        <label for="{{ form.league.id_for_label }}">{{ form.league.label }}</label>
+        {{ form.league }}
+        {{ form.league.errors }}
+      </div>
+
+      <button type="submit" class="btn-primary w-full">Entra nel campionato</button>
+    </form>
+  </div>
+
+  <p class="mt-4 text-center text-sm text-muted">
+    Parti con 2000 crediti da spendere nelle scelte di ogni weekend.
+  </p>
+</div>
+{% endblock %}

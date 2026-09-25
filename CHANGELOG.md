@@ -4,6 +4,9 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added
+- Comando interattivo `set_seat`: sposta un pilota in un altro team dal round indicato in poi, con l'eventuale pilota sostituito (`WeekendParticipant`).
+
 ## [0.3.1] - 2026-09-23
 
 ### Added
