@@ -4,16 +4,15 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0016_remove_circuit_active'),
+        ("fantaApp", "0016_remove_circuit_active"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='race',
-            name='event_name',
-            field=models.CharField(default='prova', max_length=100),
+            model_name="race",
+            name="event_name",
+            field=models.CharField(default="prova", max_length=100),
             preserve_default=False,
         ),
     ]

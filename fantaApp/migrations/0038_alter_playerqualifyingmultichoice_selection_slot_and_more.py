@@ -4,20 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0037_alter_qualifying_options'),
+        ("fantaApp", "0037_alter_qualifying_options"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='playerqualifyingmultichoice',
-            name='selection_slot',
-            field=models.CharField(choices=[('q1_pass', 'Pass Q1'), ('q2_pass', 'Pass Q2'), ('q3_top5', 'Q3 - Top-5')], max_length=8),
+            model_name="playerqualifyingmultichoice",
+            name="selection_slot",
+            field=models.CharField(
+                choices=[
+                    ("q1_pass", "Pass Q1"),
+                    ("q2_pass", "Pass Q2"),
+                    ("q3_top5", "Q3 - Top-5"),
+                ],
+                max_length=8,
+            ),
         ),
         migrations.AlterField(
-            model_name='playersprintqualifyingchoice',
-            name='selection_slot',
-            field=models.CharField(choices=[('sq1', 'Out in SQ1'), ('sq2', 'Out in SQ2'), ('sq3', 'SQ3 (6-10)')], max_length=3),
+            model_name="playersprintqualifyingchoice",
+            name="selection_slot",
+            field=models.CharField(
+                choices=[
+                    ("sq1", "Out in SQ1"),
+                    ("sq2", "Out in SQ2"),
+                    ("sq3", "SQ3 (6-10)"),
+                ],
+                max_length=3,
+            ),
         ),
     ]

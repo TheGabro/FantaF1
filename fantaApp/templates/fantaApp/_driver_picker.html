@@ -4,7 +4,7 @@ di submit del form che avvolge il partial (posta driver=<id>).
 
 Contesto atteso:
   drivers          Driver ordinati per team__name, number, con gli attributi
-                   annotati dalla view: .is_selected e .locked_event
+                   annotati dalla view: .is_selected e .locked_reason
   picker_locked    true quando la griglia non è selezionabile (scelta già
                    fatta o evento iniziato)
 {% endcomment %}
@@ -16,11 +16,11 @@ Contesto atteso:
       <div class="team-group-cards">
         {% for driver in group.list %}
           <button type="submit" name="driver" value="{{ driver.id }}" class="driver-pick"
-                  {% if picker_locked or driver.locked_event %}disabled{% endif %}
-                  {% if driver.locked_event %}title="Pilota già usato nel {{ driver.locked_event }}"{% endif %}
+                  {% if picker_locked or driver.locked_reason %}disabled{% endif %}
+                  {% if driver.locked_reason %}title="Non disponibile: {{ driver.locked_reason }}"{% endif %}
                   data-confirm-text="Confermi {{ driver.first_name }} {{ driver.last_name }} come tuo pronostico?"
                   aria-label="Scegli {{ driver.first_name }} {{ driver.last_name }}">
-            {% include "fantaApp/_driver_card.html" with card_selected=driver.is_selected card_locked=driver.locked_event %}
+            {% include "fantaApp/_driver_card.html" with card_selected=driver.is_selected card_locked=driver.locked_reason %}
           </button>
         {% empty %}
           <p class="text-sm text-muted">Nessun pilota disponibile.</p>

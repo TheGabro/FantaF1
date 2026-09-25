@@ -1,0 +1,794 @@
+{
+  ".claude/launch.json": {
+    "mtime": 1789584525.5577064,
+    "seen": 1789677097.7588952,
+    "ast_hash": "4f34873d09bcee039859e23715f21f90",
+    "semantic_hash": "4f34873d09bcee039859e23715f21f90"
+  },
+  "FantaF1/__init__.py": {
+    "mtime": 1751137534.0960069,
+    "seen": 1789563801.2812412,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "FantaF1/asgi.py": {
+    "mtime": 1751137534.0966067,
+    "seen": 1789563801.2812421,
+    "ast_hash": "cc65e5accd758a2e02c7c04b180569e3",
+    "semantic_hash": "cc65e5accd758a2e02c7c04b180569e3"
+  },
+  "FantaF1/manage.py": {
+    "mtime": 1751137534.0957932,
+    "seen": 1789563801.2812428,
+    "ast_hash": "c9de767af75f0eca30c836f5a6e75cdf",
+    "semantic_hash": "c9de767af75f0eca30c836f5a6e75cdf"
+  },
+  "FantaF1/settings.py": {
+    "mtime": 1787179664.6791406,
+    "seen": 1789563801.2812428,
+    "ast_hash": "b0563af95cb23564763ee10b30a78bbb",
+    "semantic_hash": "b0563af95cb23564763ee10b30a78bbb"
+  },
+  "FantaF1/urls.py": {
+    "mtime": 1751138241.5158634,
+    "seen": 1789563801.2812438,
+    "ast_hash": "b829349eb88004d0a23a4b9acaef62fc",
+    "semantic_hash": "b829349eb88004d0a23a4b9acaef62fc"
+  },
+  "FantaF1/wsgi.py": {
+    "mtime": 1751137534.0968134,
+    "seen": 1789563801.281245,
+    "ast_hash": "5e5ff9bbaf764cfb76446e475c3b5f19",
+    "semantic_hash": "5e5ff9bbaf764cfb76446e475c3b5f19"
+  },
+  "dev_settings.py": {
+    "mtime": 1789584525.5579624,
+    "seen": 1789677097.7589052,
+    "ast_hash": "a12223a74f470c5c64d503bb0175a1bd",
+    "semantic_hash": "a12223a74f470c5c64d503bb0175a1bd"
+  },
+  "fantaApp/admin.py": {
+    "mtime": 1789639024.8570282,
+    "seen": 1789677097.7589061,
+    "ast_hash": "d946a58449ff924772179ebdadd96abf",
+    "semantic_hash": "d946a58449ff924772179ebdadd96abf"
+  },
+  "fantaApp/apps.py": {
+    "mtime": 1789639024.857946,
+    "seen": 1789677097.7589061,
+    "ast_hash": "ca938dc157d16e3f9c93518bfa5bf860",
+    "semantic_hash": "ca938dc157d16e3f9c93518bfa5bf860"
+  },
+  "fantaApp/django_compat.py": {
+    "mtime": 1789639024.8588896,
+    "seen": 1789677097.7589068,
+    "ast_hash": "04ee2755acac09d9f6353c715e603e0b",
+    "semantic_hash": "04ee2755acac09d9f6353c715e603e0b"
+  },
+  "fantaApp/forms.py": {
+    "mtime": 1754561044.333352,
+    "seen": 1789563801.281247,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/forms/__init__.py": {
+    "mtime": 1754560811.2300196,
+    "seen": 1789563801.281248,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/forms/creations.py": {
+    "mtime": 1789639024.8604746,
+    "seen": 1789677097.758911,
+    "ast_hash": "f3883c8c50bd3121f4f172a682eb9cc5",
+    "semantic_hash": "f3883c8c50bd3121f4f172a682eb9cc5"
+  },
+  "fantaApp/forms/playerChoices.py": {
+    "mtime": 1789639024.8622599,
+    "seen": 1789677097.758911,
+    "ast_hash": "a469ae89aa4f5b7ff68498b3feeb29f1",
+    "semantic_hash": "a469ae89aa4f5b7ff68498b3feeb29f1"
+  },
+  "fantaApp/management/commands/compute_race_score.py": {
+    "mtime": 1789639024.8635728,
+    "seen": 1789677097.758912,
+    "ast_hash": "e64584f3a1e3566adca1aca61a2069d0",
+    "semantic_hash": "e64584f3a1e3566adca1aca61a2069d0"
+  },
+  "fantaApp/management/commands/consolidate_player_credits.py": {
+    "mtime": 1789639024.8618646,
+    "seen": 1789677097.758912,
+    "ast_hash": "15ece1a8dab7b8ae1e0e0f8db0fa6039",
+    "semantic_hash": "15ece1a8dab7b8ae1e0e0f8db0fa6039"
+  },
+  "fantaApp/management/commands/import_drivers.py": {
+    "mtime": 1789639024.863341,
+    "seen": 1789677097.758913,
+    "ast_hash": "d4784ad5e332e53d1b5bb6296a0fa000",
+    "semantic_hash": "d4784ad5e332e53d1b5bb6296a0fa000"
+  },
+  "fantaApp/management/commands/import_start_season.py": {
+    "mtime": 1789639024.864292,
+    "seen": 1789677097.758913,
+    "ast_hash": "09ce8857d42c0751b2436b96e20646f8",
+    "semantic_hash": "09ce8857d42c0751b2436b96e20646f8"
+  },
+  "fantaApp/management/commands/insert_quali_result.py": {
+    "mtime": 1789675214.8252099,
+    "seen": 1789677097.758914,
+    "ast_hash": "da9d3e70b3114ed077ef86952c881952",
+    "semantic_hash": "da9d3e70b3114ed077ef86952c881952"
+  },
+  "fantaApp/management/commands/insert_race_result.py": {
+    "mtime": 1789675011.4455485,
+    "seen": 1789677097.758914,
+    "ast_hash": "2fc7d0a64612d57724da6547a46e18a2",
+    "semantic_hash": "2fc7d0a64612d57724da6547a46e18a2"
+  },
+  "fantaApp/management/commands/insert_round_driver_standings.py": {
+    "mtime": 1789639024.8586166,
+    "seen": 1789677097.7589152,
+    "ast_hash": "47bf39412223c8a1d035c3424baf4336",
+    "semantic_hash": "47bf39412223c8a1d035c3424baf4336"
+  },
+  "fantaApp/migrations/0001_initial.py": {
+    "mtime": 1789639024.856958,
+    "seen": 1789677097.7589178,
+    "ast_hash": "9fe8951a8e87d704a0ab8a99e8611677",
+    "semantic_hash": "9fe8951a8e87d704a0ab8a99e8611677"
+  },
+  "fantaApp/migrations/0002_alter_customuser_managers_and_more.py": {
+    "mtime": 1789639024.857964,
+    "seen": 1789677097.7589178,
+    "ast_hash": "59d71ce393c35629e6828ddac9833a01",
+    "semantic_hash": "59d71ce393c35629e6828ddac9833a01"
+  },
+  "fantaApp/migrations/0003_remove_customuser_type_customuser_role_and_more.py": {
+    "mtime": 1789639024.8589985,
+    "seen": 1789677097.758919,
+    "ast_hash": "3b40874665f6f9b0cbfb3b88a3aec9f7",
+    "semantic_hash": "3b40874665f6f9b0cbfb3b88a3aec9f7"
+  },
+  "fantaApp/migrations/0004_team_alter_customuser_email_driver.py": {
+    "mtime": 1789639024.8607059,
+    "seen": 1789677097.758919,
+    "ast_hash": "bab85f37fa70c0d21bc24be988236e23",
+    "semantic_hash": "bab85f37fa70c0d21bc24be988236e23"
+  },
+  "fantaApp/migrations/0005_circuit_race_raceentry_qualifingentry.py": {
+    "mtime": 1789639024.861716,
+    "seen": 1789677097.75892,
+    "ast_hash": "b0ea41276e919bc4e5f4dce1af9ca103",
+    "semantic_hash": "b0ea41276e919bc4e5f4dce1af9ca103"
+  },
+  "fantaApp/migrations/0006_championship_league_playerentry.py": {
+    "mtime": 1789639024.8633304,
+    "seen": 1789677097.75892,
+    "ast_hash": "191153410d5947966e4210b8c30f7129",
+    "semantic_hash": "191153410d5947966e4210b8c30f7129"
+  },
+  "fantaApp/migrations/0007_rename_role_customuser_type_and_more.py": {
+    "mtime": 1789639024.8558295,
+    "seen": 1789677097.758921,
+    "ast_hash": "40a3b1817da92233f0e33b8212f6b12e",
+    "semantic_hash": "40a3b1817da92233f0e33b8212f6b12e"
+  },
+  "fantaApp/migrations/0008_rename_type_customuser_user_type.py": {
+    "mtime": 1789639024.8576443,
+    "seen": 1789677097.758921,
+    "ast_hash": "c68a7efd7cceb2dd55fd78b5e35eb678",
+    "semantic_hash": "c68a7efd7cceb2dd55fd78b5e35eb678"
+  },
+  "fantaApp/migrations/0009_championship_active_championship_is_private_and_more.py": {
+    "mtime": 1789639024.8589494,
+    "seen": 1789677097.758922,
+    "ast_hash": "bbe6efd89ea6986406e3e60bd2b6b50b",
+    "semantic_hash": "bbe6efd89ea6986406e3e60bd2b6b50b"
+  },
+  "fantaApp/migrations/0010_alter_playerentry_league.py": {
+    "mtime": 1789639024.8602624,
+    "seen": 1789677097.758922,
+    "ast_hash": "19c6edc968885b8d829274e78b863306",
+    "semantic_hash": "19c6edc968885b8d829274e78b863306"
+  },
+  "fantaApp/migrations/0011_rename_playerentry_championshipplayer.py": {
+    "mtime": 1789639024.8608046,
+    "seen": 1789677097.758923,
+    "ast_hash": "c3a6dad95106103e379f2d688e2662ff",
+    "semantic_hash": "c3a6dad95106103e379f2d688e2662ff"
+  },
+  "fantaApp/migrations/0012_championshipplayer_available_credit_and_more.py": {
+    "mtime": 1789639024.8568177,
+    "seen": 1789677097.758923,
+    "ast_hash": "5d379bc09251cbc98af764a2b4634a04",
+    "semantic_hash": "5d379bc09251cbc98af764a2b4634a04"
+  },
+  "fantaApp/migrations/0013_raceresult_remove_circuit_continent_circuit_location_and_more.py": {
+    "mtime": 1789639024.85786,
+    "seen": 1789677097.758924,
+    "ast_hash": "261f48f66a0d2f389e96968a7e5f997f",
+    "semantic_hash": "261f48f66a0d2f389e96968a7e5f997f"
+  },
+  "fantaApp/migrations/0014_rename_state_circuit_country_and_more.py": {
+    "mtime": 1789639024.8587792,
+    "seen": 1789677097.758927,
+    "ast_hash": "a81ba607624dfe01eec1e546bca94d6d",
+    "semantic_hash": "a81ba607624dfe01eec1e546bca94d6d"
+  },
+  "fantaApp/migrations/0015_rename_spinr_qualifing_start_race_sprint_qualifying_start.py": {
+    "mtime": 1789639024.8593159,
+    "seen": 1789677097.7589278,
+    "ast_hash": "e1881ecc0b85f2d93c2d7485e43264ba",
+    "semantic_hash": "e1881ecc0b85f2d93c2d7485e43264ba"
+  },
+  "fantaApp/migrations/0016_remove_circuit_active.py": {
+    "mtime": 1789639024.8605514,
+    "seen": 1789677097.7589278,
+    "ast_hash": "ec0f88ec679e4acf75e512208beda19b",
+    "semantic_hash": "ec0f88ec679e4acf75e512208beda19b"
+  },
+  "fantaApp/migrations/0017_race_event_name.py": {
+    "mtime": 1789639024.861024,
+    "seen": 1789677097.758929,
+    "ast_hash": "0fe77197a581d6fb6175bbd061379dfb",
+    "semantic_hash": "0fe77197a581d6fb6175bbd061379dfb"
+  },
+  "fantaApp/migrations/0018_alter_race_round_number_alter_race_week_and_more.py": {
+    "mtime": 1789639024.8567994,
+    "seen": 1789677097.758929,
+    "ast_hash": "55e4f467bc36ef276e08a26dc1e6940c",
+    "semantic_hash": "55e4f467bc36ef276e08a26dc1e6940c"
+  },
+  "fantaApp/migrations/0019_alter_race_options_alter_race_unique_together_and_more.py": {
+    "mtime": 1789639024.857329,
+    "seen": 1789677097.75893,
+    "ast_hash": "29fcca093fda1d77a8e12b9aca1774d8",
+    "semantic_hash": "29fcca093fda1d77a8e12b9aca1774d8"
+  },
+  "fantaApp/migrations/0020_alter_driver_options_rename_name_driver_first_name_and_more.py": {
+    "mtime": 1789639024.8584983,
+    "seen": 1789677097.75893,
+    "ast_hash": "96f068c2ffdfdf075a01ffbb6bdb3d2a",
+    "semantic_hash": "96f068c2ffdfdf075a01ffbb6bdb3d2a"
+  },
+  "fantaApp/migrations/0021_circuit_api_id.py": {
+    "mtime": 1789639024.8565936,
+    "seen": 1789677097.758931,
+    "ast_hash": "44e26dfa156a07ac595de57b6ec60093",
+    "semantic_hash": "44e26dfa156a07ac595de57b6ec60093"
+  },
+  "fantaApp/migrations/0022_alter_circuit_api_id_alter_driver_api_id_and_more.py": {
+    "mtime": 1789639024.8577821,
+    "seen": 1789677097.758931,
+    "ast_hash": "9a3fce82b295a3032f0a84e4a28cc6b8",
+    "semantic_hash": "9a3fce82b295a3032f0a84e4a28cc6b8"
+  },
+  "fantaApp/migrations/0023_driver_season.py": {
+    "mtime": 1789639024.8589423,
+    "seen": 1789677097.7589319,
+    "ast_hash": "c58a52557b30d53ebf8f00454c8520f6",
+    "semantic_hash": "c58a52557b30d53ebf8f00454c8520f6"
+  },
+  "fantaApp/migrations/0024_alter_race_modified_at.py": {
+    "mtime": 1789639024.8566911,
+    "seen": 1789677097.7589319,
+    "ast_hash": "53a73464578a36bb52ea260587f24b4f",
+    "semantic_hash": "53a73464578a36bb52ea260587f24b4f"
+  },
+  "fantaApp/migrations/0025_alter_race_options_rename_year_race_season_and_more.py": {
+    "mtime": 1789639024.857906,
+    "seen": 1789677097.758933,
+    "ast_hash": "c5b0394591ef850de6a6fea4d9afc054",
+    "semantic_hash": "c5b0394591ef850de6a6fea4d9afc054"
+  },
+  "fantaApp/migrations/0026_alter_qualifingentry_q1_position_and_more.py": {
+    "mtime": 1789639024.858524,
+    "seen": 1789677097.758933,
+    "ast_hash": "e6cd590793b900f1076ba72ccd226b60",
+    "semantic_hash": "e6cd590793b900f1076ba72ccd226b60"
+  },
+  "fantaApp/migrations/0027_rename_qualifingentry_qualifyingentry_and_more.py": {
+    "mtime": 1789639024.8607147,
+    "seen": 1789677097.758934,
+    "ast_hash": "facf754a8a47ed5aba5c90fc317a1c57",
+    "semantic_hash": "facf754a8a47ed5aba5c90fc317a1c57"
+  },
+  "fantaApp/migrations/0028_remove_raceentry_time.py": {
+    "mtime": 1789639024.8601024,
+    "seen": 1789677097.758934,
+    "ast_hash": "286014b7346af7c7538249a45d343a46",
+    "semantic_hash": "286014b7346af7c7538249a45d343a46"
+  },
+  "fantaApp/migrations/0029_qualifyingentry_position.py": {
+    "mtime": 1789639024.8606563,
+    "seen": 1789677097.758935,
+    "ast_hash": "869d408eb198be896cec44cd9d7e1bd0",
+    "semantic_hash": "869d408eb198be896cec44cd9d7e1bd0"
+  },
+  "fantaApp/migrations/0030_qualifying_alter_qualifyingentry_options_and_more.py": {
+    "mtime": 1789639024.856593,
+    "seen": 1789677097.758935,
+    "ast_hash": "8272c4a59a93cdd4fb3b0903019c2a82",
+    "semantic_hash": "8272c4a59a93cdd4fb3b0903019c2a82"
+  },
+  "fantaApp/migrations/0031_alter_weekend_weekend_type.py": {
+    "mtime": 1789639024.857501,
+    "seen": 1789677097.7589362,
+    "ast_hash": "5038ac7a1287cd7904e058092c87fb2c",
+    "semantic_hash": "5038ac7a1287cd7904e058092c87fb2c"
+  },
+  "fantaApp/migrations/0032_alter_driver_unique_together.py": {
+    "mtime": 1789639024.8589377,
+    "seen": 1789677097.7589362,
+    "ast_hash": "58561c75a6a2c26e98652909b15691bf",
+    "semantic_hash": "58561c75a6a2c26e98652909b15691bf"
+  },
+  "fantaApp/migrations/0033_playerqualifyingchoice_playerracechoice_and_more.py": {
+    "mtime": 1789639024.8606205,
+    "seen": 1789677097.7589371,
+    "ast_hash": "6c7bdb2d6dc7f2b712aed64b56ab44fb",
+    "semantic_hash": "6c7bdb2d6dc7f2b712aed64b56ab44fb"
+  },
+  "fantaApp/migrations/0034_rename_qualifyingentry_qualifyingresult_and_more.py": {
+    "mtime": 1789639024.8620512,
+    "seen": 1789677097.7589371,
+    "ast_hash": "6254f41acab92c9cf0f00a69bc326e9f",
+    "semantic_hash": "6254f41acab92c9cf0f00a69bc326e9f"
+  },
+  "fantaApp/migrations/0035_rename_raceentry_raceresult.py": {
+    "mtime": 1789639024.8619568,
+    "seen": 1789677097.758938,
+    "ast_hash": "6e68584e86344310a9a9d2ff7a100263",
+    "semantic_hash": "6e68584e86344310a9a9d2ff7a100263"
+  },
+  "fantaApp/migrations/0036_alter_race_options.py": {
+    "mtime": 1789639024.8635316,
+    "seen": 1789677097.758938,
+    "ast_hash": "be76df5f0b62e68ad2185136e40beb9c",
+    "semantic_hash": "be76df5f0b62e68ad2185136e40beb9c"
+  },
+  "fantaApp/migrations/0037_alter_qualifying_options.py": {
+    "mtime": 1789639024.864091,
+    "seen": 1789677097.7589388,
+    "ast_hash": "5621f062b055dafcd3ad45ce88144fa6",
+    "semantic_hash": "5621f062b055dafcd3ad45ce88144fa6"
+  },
+  "fantaApp/migrations/0038_alter_playerqualifyingmultichoice_selection_slot_and_more.py": {
+    "mtime": 1789639024.8616812,
+    "seen": 1789677097.7589388,
+    "ast_hash": "5aa88197e9f13da0bb36396c9cb423af",
+    "semantic_hash": "5aa88197e9f13da0bb36396c9cb423af"
+  },
+  "fantaApp/migrations/0039_alter_qualifying_weekend_alter_race_weekend.py": {
+    "mtime": 1789639024.8635342,
+    "seen": 1789677097.75894,
+    "ast_hash": "783774e29b7473b8f6e74621c99691b0",
+    "semantic_hash": "783774e29b7473b8f6e74621c99691b0"
+  },
+  "fantaApp/migrations/0040_alter_qualifying_weekend_alter_race_weekend.py": {
+    "mtime": 1789639024.864422,
+    "seen": 1789677097.75894,
+    "ast_hash": "14d0850b5ba4148ba6deed7321b639e1",
+    "semantic_hash": "14d0850b5ba4148ba6deed7321b639e1"
+  },
+  "fantaApp/migrations/0041_refactor_choice_spent_amount.py": {
+    "mtime": 1789639024.8617163,
+    "seen": 1789677097.758941,
+    "ast_hash": "f2c665c8448be692dcb9cea1bda691d4",
+    "semantic_hash": "f2c665c8448be692dcb9cea1bda691d4"
+  },
+  "fantaApp/migrations/0042_alter_playerqualifyingmultichoice_slot_and_constraint.py": {
+    "mtime": 1789639024.8635733,
+    "seen": 1789677097.758941,
+    "ast_hash": "e64c46db61b319c45204ea75ff520d92",
+    "semantic_hash": "e64c46db61b319c45204ea75ff520d92"
+  },
+  "fantaApp/migrations/0043_playerracechoice_credit_applied.py": {
+    "mtime": 1789639024.8639946,
+    "seen": 1789677097.758942,
+    "ast_hash": "a30654aa7187980ce87f362a801e087e",
+    "semantic_hash": "a30654aa7187980ce87f362a801e087e"
+  },
+  "fantaApp/migrations/0044_alter_driver_number_nullable.py": {
+    "mtime": 1789639024.8646219,
+    "seen": 1789677097.758942,
+    "ast_hash": "3b394d0e24c1033c79b03712838a48aa",
+    "semantic_hash": "3b394d0e24c1033c79b03712838a48aa"
+  },
+  "fantaApp/migrations/0045_deduplicate_schedule_and_add_constraints.py": {
+    "mtime": 1789639024.865527,
+    "seen": 1789677097.758943,
+    "ast_hash": "589999a8be711a5458ef5919c3ba8eba",
+    "semantic_hash": "589999a8be711a5458ef5919c3ba8eba"
+  },
+  "fantaApp/migrations/0046_driverstanding.py": {
+    "mtime": 1789639024.865958,
+    "seen": 1789677097.758943,
+    "ast_hash": "4fcc6a86fe04a8f235250f67f091ce45",
+    "semantic_hash": "4fcc6a86fe04a8f235250f67f091ce45"
+  },
+  "fantaApp/migrations/0047_playerraceresult_and_more.py": {
+    "mtime": 1789639024.865223,
+    "seen": 1789677097.758944,
+    "ast_hash": "062ff13f4b81e6c1e475b60e91ce1611",
+    "semantic_hash": "062ff13f4b81e6c1e475b60e91ce1611"
+  },
+  "fantaApp/migrations/0048_playerraceresult_point_modifier.py": {
+    "mtime": 1789639024.8661833,
+    "seen": 1789677097.758944,
+    "ast_hash": "0888ba7426b85a0582bd14eecd152cfb",
+    "semantic_hash": "0888ba7426b85a0582bd14eecd152cfb"
+  },
+  "fantaApp/migrations/0049_eventprocessingstatus.py": {
+    "mtime": 1789639024.8663156,
+    "seen": 1789677097.758945,
+    "ast_hash": "da2cbc0082368df467ed416ea84adce9",
+    "semantic_hash": "da2cbc0082368df467ed416ea84adce9"
+  },
+  "fantaApp/migrations/__init__.py": {
+    "mtime": 1742145293.1942148,
+    "seen": 1789563801.281277,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/models.py": {
+    "mtime": 1789639024.8664274,
+    "seen": 1789677097.7589471,
+    "ast_hash": "9c24662c70ef6eb7586ca3148c5df2a2",
+    "semantic_hash": "9c24662c70ef6eb7586ca3148c5df2a2"
+  },
+  "fantaApp/services/__init__.py": {
+    "mtime": 1789639024.8557944,
+    "seen": 1789677097.7589471,
+    "ast_hash": "b7d780fdfbb296fad01d49b0cc49dbfa",
+    "semantic_hash": "b7d780fdfbb296fad01d49b0cc49dbfa"
+  },
+  "fantaApp/services/bonuses.py": {
+    "mtime": 1789639024.858078,
+    "seen": 1789677097.758948,
+    "ast_hash": "c8af213db55f525eb42ec6047a2e4ddb",
+    "semantic_hash": "c8af213db55f525eb42ec6047a2e4ddb"
+  },
+  "fantaApp/services/costs.py": {
+    "mtime": 1789639024.8600948,
+    "seen": 1789677097.758948,
+    "ast_hash": "4fb06aef70558aee3761e4cb40b5d2f8",
+    "semantic_hash": "4fb06aef70558aee3761e4cb40b5d2f8"
+  },
+  "fantaApp/services/credit_consolidation.py": {
+    "mtime": 1789639024.8618853,
+    "seen": 1789677097.758949,
+    "ast_hash": "a4c824afe2dbbd6fd9873a7db02fd317",
+    "semantic_hash": "a4c824afe2dbbd6fd9873a7db02fd317"
+  },
+  "fantaApp/services/drivers.py": {
+    "mtime": 1789639024.8633296,
+    "seen": 1789677097.758949,
+    "ast_hash": "99fb9d97d3acd15ca384c301641105b7",
+    "semantic_hash": "99fb9d97d3acd15ca384c301641105b7"
+  },
+  "fantaApp/services/helper.py": {
+    "mtime": 1789639024.8639493,
+    "seen": 1789677097.75895,
+    "ast_hash": "644f868b8e879cc3472bac71086fa120",
+    "semantic_hash": "644f868b8e879cc3472bac71086fa120"
+  },
+  "fantaApp/services/player_choices.py": {
+    "mtime": 1789639024.864314,
+    "seen": 1789677097.758951,
+    "ast_hash": "15094c4cd83631c7ebb43f222e991eb5",
+    "semantic_hash": "15094c4cd83631c7ebb43f222e991eb5"
+  },
+  "fantaApp/services/player_scoring.py": {
+    "mtime": 1789639024.8646526,
+    "seen": 1789677097.758951,
+    "ast_hash": "23d9a9fd8013eed4d79e4a778208d6c0",
+    "semantic_hash": "23d9a9fd8013eed4d79e4a778208d6c0"
+  },
+  "fantaApp/services/rules.py": {
+    "mtime": 1789639024.8648121,
+    "seen": 1789677097.758952,
+    "ast_hash": "c081dc4cc1cff6cfca1145f7b337aeb8",
+    "semantic_hash": "c081dc4cc1cff6cfca1145f7b337aeb8"
+  },
+  "fantaApp/services/sources/fastf1Source.py": {
+    "mtime": 1789674827.7001746,
+    "seen": 1789677097.758952,
+    "ast_hash": "a50b0293b8fa1a25d8b4d057f0b4ce3e",
+    "semantic_hash": "a50b0293b8fa1a25d8b4d057f0b4ce3e"
+  },
+  "fantaApp/services/sources/jolpicaSource.py": {
+    "mtime": 1789639024.8618047,
+    "seen": 1789677097.7589529,
+    "ast_hash": "3c2274d7d2383d7bcd0eb90775764896",
+    "semantic_hash": "3c2274d7d2383d7bcd0eb90775764896"
+  },
+  "fantaApp/static/fantaApp/js/app.js": {
+    "mtime": 1789584525.5608568,
+    "seen": 1789677097.758954,
+    "ast_hash": "d0343055e0b5974cdc6cb76db6d3eff2",
+    "semantic_hash": "d0343055e0b5974cdc6cb76db6d3eff2"
+  },
+  "fantaApp/static/fantaApp/js/race-choice.js": {
+    "mtime": 1789584525.56098,
+    "seen": 1789677097.758954,
+    "ast_hash": "a07f64780b7031262395369fb8aa21ef",
+    "semantic_hash": "a07f64780b7031262395369fb8aa21ef"
+  },
+  "fantaApp/static/fantaApp/js/select-dedupe.js": {
+    "mtime": 1789584525.561066,
+    "seen": 1789677097.758955,
+    "ast_hash": "c3403749c2cb7067f4179f4d7f9715ea",
+    "semantic_hash": "c3403749c2cb7067f4179f4d7f9715ea"
+  },
+  "fantaApp/templatetags/__init__.py": {
+    "mtime": 1754559759.2909603,
+    "seen": 1789563801.281285,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/templatetags/dict_extras.py": {
+    "mtime": 1789639024.863862,
+    "seen": 1789677097.758956,
+    "ast_hash": "fc4183095cfde723e2c45bebe0a06a11",
+    "semantic_hash": "fc4183095cfde723e2c45bebe0a06a11"
+  },
+  "fantaApp/tests.py": {
+    "mtime": 1789674827.7010527,
+    "seen": 1789677097.758956,
+    "ast_hash": "abd541425e4076a7785f77835cc3bfc8",
+    "semantic_hash": "abd541425e4076a7785f77835cc3bfc8"
+  },
+  "fantaApp/urls.py": {
+    "mtime": 1789639024.8654976,
+    "seen": 1789677097.7589571,
+    "ast_hash": "8489fb9a2178fb44dac39afe54b1505e",
+    "semantic_hash": "8489fb9a2178fb44dac39afe54b1505e"
+  },
+  "fantaApp/views.py": {
+    "mtime": 1754561497.6280832,
+    "seen": 1789563801.281287,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/views/__init__.py": {
+    "mtime": 1753470583.514913,
+    "seen": 1789563801.281287,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/views/auth.py": {
+    "mtime": 1789639024.8646655,
+    "seen": 1789677097.758958,
+    "ast_hash": "128dab64202893a65eaba7c834e5b033",
+    "semantic_hash": "128dab64202893a65eaba7c834e5b033"
+  },
+  "fantaApp/views/dashboard.py": {
+    "mtime": 1789639024.865569,
+    "seen": 1789677097.758959,
+    "ast_hash": "79b8840d26ca8e032ea7a3cd42052469",
+    "semantic_hash": "79b8840d26ca8e032ea7a3cd42052469"
+  },
+  "fantaApp/views/general.py": {
+    "mtime": 1789639024.8645732,
+    "seen": 1789677097.758961,
+    "ast_hash": "67838542d58e3645fa78b5b79aa1d59e",
+    "semantic_hash": "67838542d58e3645fa78b5b79aa1d59e"
+  },
+  "fantaApp/views/weekend.py": {
+    "mtime": 1789639024.8656878,
+    "seen": 1789677097.758962,
+    "ast_hash": "410008665015346b96a95887b00c1632",
+    "semantic_hash": "410008665015346b96a95887b00c1632"
+  },
+  "frontend/build.ps1": {
+    "mtime": 1789584525.5637019,
+    "seen": 1789677097.758962,
+    "ast_hash": "cfc9ee213b32209b6f91137547dd63a1",
+    "semantic_hash": "cfc9ee213b32209b6f91137547dd63a1"
+  },
+  "manage.py": {
+    "mtime": 1751137757.893428,
+    "seen": 1789563801.28129,
+    "ast_hash": "c9de767af75f0eca30c836f5a6e75cdf",
+    "semantic_hash": "c9de767af75f0eca30c836f5a6e75cdf"
+  },
+  "README.md": {
+    "mtime": 1742137532.6051395,
+    "seen": 1789563801.28129,
+    "ast_hash": "522c4aa2c7c1ed62f0c1d9555db6e084",
+    "semantic_hash": "522c4aa2c7c1ed62f0c1d9555db6e084"
+  },
+  "docs/plans/chat-context-template.md": {
+    "mtime": 1787179664.6794152,
+    "seen": 1789563801.281291,
+    "ast_hash": "cc9b6f0c16d7efa1a7e0f447627aef46",
+    "semantic_hash": "cc9b6f0c16d7efa1a7e0f447627aef46"
+  },
+  "docs/plans/release-v0.2-neon.md": {
+    "mtime": 1787179664.6796513,
+    "seen": 1789563801.281291,
+    "ast_hash": "d0184cbc32c84e0ae0d2cf0e65d66a08",
+    "semantic_hash": "d0184cbc32c84e0ae0d2cf0e65d66a08"
+  },
+  "fantaApp/templates/fantaApp/base.html": {
+    "mtime": 1787692314.811456,
+    "seen": 1789563801.281292,
+    "ast_hash": "3f33a9fce14de39cc11be86a66916e74",
+    "semantic_hash": "3f33a9fce14de39cc11be86a66916e74"
+  },
+  "fantaApp/templates/fantaApp/championship_dashboard.html": {
+    "mtime": 1787692314.812162,
+    "seen": 1789563801.281292,
+    "ast_hash": "313ed5da06d5edf2d6c803d2164e8f59",
+    "semantic_hash": "313ed5da06d5edf2d6c803d2164e8f59"
+  },
+  "fantaApp/templates/fantaApp/championship_flow_base.html": {
+    "mtime": 1787692314.8129036,
+    "seen": 1789563801.2812932,
+    "ast_hash": "ebf30efaf98d3fc0ebdbb1f8542215e3",
+    "semantic_hash": "ebf30efaf98d3fc0ebdbb1f8542215e3"
+  },
+  "fantaApp/templates/fantaApp/create_championship.html": {
+    "mtime": 1787692314.8134885,
+    "seen": 1789563801.2812932,
+    "ast_hash": "bfde957db8341b85782d23215ed99ede",
+    "semantic_hash": "bfde957db8341b85782d23215ed99ede"
+  },
+  "fantaApp/templates/fantaApp/home.html": {
+    "mtime": 1787692314.8139226,
+    "seen": 1789563801.281294,
+    "ast_hash": "65e5507ffc204bfb170213ab5bb7f5b7",
+    "semantic_hash": "65e5507ffc204bfb170213ab5bb7f5b7"
+  },
+  "fantaApp/templates/fantaApp/login.html": {
+    "mtime": 1787692314.8142858,
+    "seen": 1789563801.281294,
+    "ast_hash": "8cbe631b3e0bb119fcb65241194953ec",
+    "semantic_hash": "8cbe631b3e0bb119fcb65241194953ec"
+  },
+  "fantaApp/templates/fantaApp/logout.html": {
+    "mtime": 1751273255.5327942,
+    "seen": 1789563801.281295,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "fantaApp/templates/fantaApp/race_results.html": {
+    "mtime": 1787692314.8145645,
+    "seen": 1789563801.281295,
+    "ast_hash": "53baa142ea37de89e846566ce226b3e3",
+    "semantic_hash": "53baa142ea37de89e846566ce226b3e3"
+  },
+  "fantaApp/templates/fantaApp/register.html": {
+    "mtime": 1787692314.8148668,
+    "seen": 1789563801.281295,
+    "ast_hash": "e824787d2680664ae5dce50dc2d7399c",
+    "semantic_hash": "e824787d2680664ae5dce50dc2d7399c"
+  },
+  "fantaApp/templates/fantaApp/regular_race_choice.html": {
+    "mtime": 1787692314.8152983,
+    "seen": 1789563801.2812958,
+    "ast_hash": "f0575ac68779e85e676bb4cb49b7a629",
+    "semantic_hash": "f0575ac68779e85e676bb4cb49b7a629"
+  },
+  "fantaApp/templates/fantaApp/regular_race_qualifying_choice.html": {
+    "mtime": 1787692314.8154213,
+    "seen": 1789563801.281297,
+    "ast_hash": "41152e823dcda43b1ebc8d02f6bbdaca",
+    "semantic_hash": "41152e823dcda43b1ebc8d02f6bbdaca"
+  },
+  "fantaApp/templates/fantaApp/regular_race_qualifying_multi_choice.html": {
+    "mtime": 1787692314.8155339,
+    "seen": 1789563801.281297,
+    "ast_hash": "8f75f41b298d09ad8ff0695e6d27ac27",
+    "semantic_hash": "8f75f41b298d09ad8ff0695e6d27ac27"
+  },
+  "fantaApp/templates/fantaApp/sprint_race_choice.html": {
+    "mtime": 1787692314.8160844,
+    "seen": 1789563801.281297,
+    "ast_hash": "6eb413495a0aa268dbab938ea76556e6",
+    "semantic_hash": "6eb413495a0aa268dbab938ea76556e6"
+  },
+  "fantaApp/templates/fantaApp/sprint_race_qualifying_choice.html": {
+    "mtime": 1787692314.8162005,
+    "seen": 1789563801.281298,
+    "ast_hash": "fe0419bde0163bd822ecf032a849effc",
+    "semantic_hash": "fe0419bde0163bd822ecf032a849effc"
+  },
+  "fantaApp/templates/fantaApp/user_dashboard.html": {
+    "mtime": 1787692314.8165913,
+    "seen": 1789563801.281298,
+    "ast_hash": "1d8006aab688d0cd46dc55a9408e694e",
+    "semantic_hash": "1d8006aab688d0cd46dc55a9408e694e"
+  },
+  "fantaApp/templates/fantaApp/weekend_details.html": {
+    "mtime": 1787692314.8169115,
+    "seen": 1789563801.2812989,
+    "ast_hash": "a6ce54a9afd8eacac0107794336e757a",
+    "semantic_hash": "a6ce54a9afd8eacac0107794336e757a"
+  },
+  "frontend/README.md": {
+    "mtime": 1787692314.8170183,
+    "seen": 1789563801.2812989,
+    "ast_hash": "803e5738788cc5f897eb560825eec54a",
+    "semantic_hash": "803e5738788cc5f897eb560825eec54a"
+  },
+  "render.yaml": {
+    "mtime": 1787179664.6827536,
+    "seen": 1789563801.2813,
+    "ast_hash": "89610d2500766041582351e038020009",
+    "semantic_hash": "89610d2500766041582351e038020009"
+  },
+  "requirements-dev.txt": {
+    "mtime": 1787179664.6829033,
+    "seen": 1789563801.2813,
+    "ast_hash": "1293a6175097f85e18666c53615db87a",
+    "semantic_hash": "1293a6175097f85e18666c53615db87a"
+  },
+  "requirements.txt": {
+    "mtime": 1787179664.6831954,
+    "seen": 1789563801.281301,
+    "ast_hash": "e6cdb7e36d4a03a6a00cdb9d04fa605d",
+    "semantic_hash": "e6cdb7e36d4a03a6a00cdb9d04fa605d"
+  },
+  "fantaApp/static/fantaApp/img/favicon.svg": {
+    "mtime": 1787692314.810781,
+    "seen": 1789563801.281301,
+    "ast_hash": "69d33912dba9d7d92274fc933f8ae138",
+    "semantic_hash": "69d33912dba9d7d92274fc933f8ae138"
+  },
+  "airflow/dags/hello_f1.py": {
+    "mtime": 1789584519.0747445,
+    "seen": 1789677097.758904,
+    "ast_hash": "3c53edcf3d79f307ad6f63ce0936ea2c",
+    "semantic_hash": "3c53edcf3d79f307ad6f63ce0936ea2c"
+  },
+  "fantaApp/management/commands/next_pending_event.py": {
+    "mtime": 1789676742.018607,
+    "seen": 1789677097.7589152,
+    "ast_hash": "aceb437341e8149a124237911643117c",
+    "semantic_hash": "aceb437341e8149a124237911643117c"
+  },
+  "fantaApp/management/commands/process_pending_events.py": {
+    "mtime": 1789674827.7002637,
+    "seen": 1789677097.7589161,
+    "ast_hash": "958ef86c8e2095f5ecc46e0b835efd67",
+    "semantic_hash": "958ef86c8e2095f5ecc46e0b835efd67"
+  },
+  "fantaApp/management/commands/rollback_event.py": {
+    "mtime": 1789639024.8622563,
+    "seen": 1789677097.758917,
+    "ast_hash": "6428b2332bb2ff5d95f28c05eef8adf7",
+    "semantic_hash": "6428b2332bb2ff5d95f28c05eef8adf7"
+  },
+  "fantaApp/management/commands/sync_weekend_participants.py": {
+    "mtime": 1789639024.8636425,
+    "seen": 1789677097.758917,
+    "ast_hash": "81bfb916085b7ed2cb9eea9d98399a00",
+    "semantic_hash": "81bfb916085b7ed2cb9eea9d98399a00"
+  },
+  "fantaApp/migrations/0050_weekendparticipant.py": {
+    "mtime": 1789639024.865467,
+    "seen": 1789677097.758945,
+    "ast_hash": "c55ca6456d6b00983446bbe1e7269852",
+    "semantic_hash": "c55ca6456d6b00983446bbe1e7269852"
+  },
+  "fantaApp/services/event_processing.py": {
+    "mtime": 1789676368.163228,
+    "seen": 1789677097.75895,
+    "ast_hash": "13af58192d762df62ff1ed0f8b63cd5d",
+    "semantic_hash": "13af58192d762df62ff1ed0f8b63cd5d"
+  },
+  "fantaApp/services/weekend_participants.py": {
+    "mtime": 1789639024.8632228,
+    "seen": 1789677097.7589529,
+    "ast_hash": "ae61b62e1827b28af695b6b865dbef61",
+    "semantic_hash": "ae61b62e1827b28af695b6b865dbef61"
+  },
+  "airflow/docker-compose.yaml": {
+    "mtime": 1789584519.0750258,
+    "seen": 1789677097.7589629,
+    "ast_hash": "c80d2864e91b2c534343519c5867f4c6",
+    "semantic_hash": "c80d2864e91b2c534343519c5867f4c6"
+  }
+}

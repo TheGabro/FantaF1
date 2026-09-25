@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0015_rename_spinr_qualifing_start_race_sprint_qualifying_start'),
+        ("fantaApp", "0015_rename_spinr_qualifing_start_race_sprint_qualifying_start"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='circuit',
-            name='active',
+            model_name="circuit",
+            name="active",
         ),
     ]

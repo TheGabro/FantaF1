@@ -4,25 +4,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0017_race_event_name'),
+        ("fantaApp", "0017_race_event_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='race',
-            name='round_number',
+            model_name="race",
+            name="round_number",
             field=models.PositiveSmallIntegerField(),
         ),
         migrations.AlterField(
-            model_name='race',
-            name='week',
+            model_name="race",
+            name="week",
             field=models.PositiveSmallIntegerField(),
         ),
         migrations.AlterField(
-            model_name='race',
-            name='year',
+            model_name="race",
+            name="year",
             field=models.PositiveSmallIntegerField(),
         ),
     ]

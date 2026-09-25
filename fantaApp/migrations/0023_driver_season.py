@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0022_alter_circuit_api_id_alter_driver_api_id_and_more'),
+        ("fantaApp", "0022_alter_circuit_api_id_alter_driver_api_id_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='driver',
-            name='season',
+            model_name="driver",
+            name="season",
             field=models.PositiveSmallIntegerField(default=2025),
             preserve_default=False,
         ),

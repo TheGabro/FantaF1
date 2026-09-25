@@ -6,43 +6,98 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0005_circuit_race_raceentry_qualifingentry'),
+        ("fantaApp", "0005_circuit_race_raceentry_qualifingentry"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Championship',
+            name="Championship",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('year', models.IntegerField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("year", models.IntegerField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='League',
+            name="League",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('championship', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='leagues', to='fantaApp.championship')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "championship",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="leagues",
+                        to="fantaApp.championship",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='PlayerEntry',
+            name="PlayerEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('player_name', models.CharField(max_length=50)),
-                ('joined_at', models.DateTimeField(auto_now_add=True)),
-                ('is_manager', models.BooleanField(default=False)),
-                ('championship', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='participants', to='fantaApp.championship')),
-                ('league', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='participants', to='fantaApp.league')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("player_name", models.CharField(max_length=50)),
+                ("joined_at", models.DateTimeField(auto_now_add=True)),
+                ("is_manager", models.BooleanField(default=False)),
+                (
+                    "championship",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="participants",
+                        to="fantaApp.championship",
+                    ),
+                ),
+                (
+                    "league",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="participants",
+                        to="fantaApp.league",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('user', 'championship'), ('player_name', 'championship')},
+                "unique_together": {
+                    ("user", "championship"),
+                    ("player_name", "championship"),
+                },
             },
         ),
     ]

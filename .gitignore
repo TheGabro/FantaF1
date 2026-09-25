@@ -27,9 +27,17 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+# Local database (in produzione si usa Postgres via DATABASE_URL)
+db.sqlite3
+
+# graphify cache (rigenerabile)
+graphify-out/cache/
+
 # Frontend toolchain
 frontend/bin/
 frontend/dev_db.sqlite3
 # folders
 docs/
+airflow/logs/
+airflow/auth/
 .claude/

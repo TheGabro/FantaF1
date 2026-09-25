@@ -9,48 +9,42 @@ from datetime import datetime
 
 CURRENT_YEAR = datetime.now().year
 
-class CustomUserRegistrationForm(forms.ModelForm):
 
-    password = forms.CharField(
-        label="Password",
-        widget=forms.PasswordInput
-    )
-    password2 = forms.CharField(
-        label="Ripeti la password",
-        widget=forms.PasswordInput
-    )
+class CustomUserRegistrationForm(forms.ModelForm):
+    password = forms.CharField(label="Password", widget=forms.PasswordInput)
+    password2 = forms.CharField(label="Ripeti la password", widget=forms.PasswordInput)
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email']
+        fields = ["username", "email"]
 
     def clean_username(self):
-        username = self.cleaned_data.get('username')
+        username = self.cleaned_data.get("username")
         if CustomUser.objects.filter(username=username).exists():
             raise ValidationError("Questo username è già in uso.")
         return username
-    
+
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = self.cleaned_data.get("email")
         if CustomUser.objects.filter(email=email).exists():
             raise forms.ValidationError("Questa email è già registrata.")
         return email
-    
+
     def clean(self):
         cleaned_data = super().clean()
-        p1 = cleaned_data.get('password')
-        p2 = cleaned_data.get('password2')
+        p1 = cleaned_data.get("password")
+        p2 = cleaned_data.get("password2")
         if p1 and p2 and p1 != p2:
             raise ValidationError("Le due password non corrispondono.")
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data['password'])
+        user.set_password(self.cleaned_data["password"])
         user.user_type = CustomUser.UserType.USER  # imposta come utente base
         if commit:
             user.save()
         return user
-    
+
 
 class UsernameOrEmailAuthenticationForm(forms.Form):
     identifier = forms.CharField(label="Username o Email")
@@ -60,7 +54,6 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
         cleaned_data = super().clean()
         identifier = cleaned_data.get("identifier")
         password = cleaned_data.get("password")
-
 
         UserModel = get_user_model()
 
@@ -80,10 +73,9 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
 
     def get_user(self):
         return self.user
-    
+
 
 class ChampionshipForm(forms.ModelForm):
-
     year = forms.IntegerField(widget=forms.HiddenInput(), initial=CURRENT_YEAR)
 
     join_as_player = forms.BooleanField(
@@ -109,27 +101,29 @@ class ChampionshipForm(forms.ModelForm):
 
     class Meta:
         model = Championship
-        fields = ['name', 'year']
+        fields = ["name", "year"]
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
         if user is not None:
-            self.fields['player_name'].initial = user.username
+            self.fields["player_name"].initial = user.username
 
     def clean(self):
         cleaned_data = super().clean()
-        name = cleaned_data.get('name')
-        year = cleaned_data.get('year')
+        name = cleaned_data.get("name")
+        year = cleaned_data.get("year")
         if Championship.objects.filter(name=name, year=year).exists():
-            raise ValidationError("Questo nome per il campionato è già in uso quest'anno")
+            raise ValidationError(
+                "Questo nome per il campionato è già in uso quest'anno"
+            )
 
         # Nome giocatore lasciato vuoto: si usa lo username. Il campionato è
         # appena nato, quindi nessun altro nome può ancora essere occupato.
-        if cleaned_data.get('join_as_player') and not cleaned_data.get('player_name'):
+        if cleaned_data.get("join_as_player") and not cleaned_data.get("player_name"):
             if self.user is None:
                 raise ValidationError("Indica il nome con cui vuoi giocare.")
-            cleaned_data['player_name'] = self.user.username
+            cleaned_data["player_name"] = self.user.username
 
         return cleaned_data
 
@@ -137,14 +131,15 @@ class ChampionshipForm(forms.ModelForm):
 class LeagueForm(forms.ModelForm):
     class Meta:
         model = League
-        fields = ['name']
+        fields = ["name"]
+
 
 LeagueFormSet = inlineformset_factory(
     Championship,
     League,
     form=LeagueForm,
     # extra=2,  # default: due leghe (F1 e DFA)
-    can_delete=False
+    can_delete=False,
 )
 
 
@@ -158,10 +153,10 @@ class ChampionshipPlayerForm(forms.ModelForm):
 
     class Meta:
         model = ChampionshipPlayer
-        fields = ['player_name', 'league']
+        fields = ["player_name", "league"]
         labels = {
-            'player_name': "Il tuo nome giocatore",
-            'league': "Lega",
+            "player_name": "Il tuo nome giocatore",
+            "league": "Lega",
         }
 
     def __init__(self, *args, championship=None, **kwargs):
@@ -173,21 +168,26 @@ class ChampionshipPlayerForm(forms.ModelForm):
         self.instance.championship = championship
 
         leagues = (
-            League.objects.filter(championship=championship).order_by('id')
+            League.objects.filter(championship=championship).order_by("id")
             if championship is not None
             else League.objects.none()
         )
-        self.fields['league'].queryset = leagues
-        self.fields['league'].empty_label = None
+        self.fields["league"].queryset = leagues
+        self.fields["league"].empty_label = None
         # Con una lega sola non c'è niente da scegliere: si preseleziona.
         if len(leagues) == 1:
-            self.fields['league'].initial = leagues[0]
+            self.fields["league"].initial = leagues[0]
 
     def clean_player_name(self):
-        player_name = self.cleaned_data['player_name']
-        if self.championship is not None and ChampionshipPlayer.objects.filter(
-            championship=self.championship,
-            player_name=player_name,
-        ).exists():
-            raise ValidationError("Questo nome giocatore è già stato usato in questo campionato.")
+        player_name = self.cleaned_data["player_name"]
+        if (
+            self.championship is not None
+            and ChampionshipPlayer.objects.filter(
+                championship=self.championship,
+                player_name=player_name,
+            ).exists()
+        ):
+            raise ValidationError(
+                "Questo nome giocatore è già stato usato in questo campionato."
+            )
         return player_name

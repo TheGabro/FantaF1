@@ -2,15 +2,22 @@
 Logica di calcolo bonus per qualifiche e gare.
 Le costanti/tabelle sono definite in rules.py.
 """
+
 from decimal import Decimal
 
-from ..models import PlayerQualifyingChoice, PlayerQualifyingMultiChoice, PlayerSprintQualifyingChoice, QualifyingResult
+from ..models import (
+    PlayerQualifyingChoice,
+    PlayerQualifyingMultiChoice,
+    PlayerSprintQualifyingChoice,
+    QualifyingResult,
+)
 from . import rules
 
 
 # ============================================================================
 # Helper functions per le qualifiche multichoice (weekend sprint)
 # ============================================================================
+
 
 def _passed_q1(result: QualifyingResult) -> bool:
     """Verifica se il pilota ha passato la Q1."""
@@ -21,14 +28,19 @@ def _passed_q2(result: QualifyingResult) -> bool:
     """Verifica se il pilota ha passato la Q2."""
     return result.q3_time is not None
 
-def _slot_position(slot: str, choice_by_slot: dict, results_by_driver_id: dict) -> int | None:
+
+def _slot_position(
+    slot: str, choice_by_slot: dict, results_by_driver_id: dict
+) -> int | None:
     driver_id = choice_by_slot.get(slot)
     result = results_by_driver_id.get(driver_id) if driver_id is not None else None
     return result.position if result is not None else None
 
+
 # ============================================================================
 # Bonus qualifiche sprint
 # ============================================================================
+
 
 def get_qualifying_sprint_bonus_rule(level: str) -> dict:
     """Restituisce i valori bonus per un livello multichoice."""
@@ -53,7 +65,7 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
             "sq2": False,
             "sq3": False,
         }
-    
+
     if not (qualifying.type == "sprint"):
         bonus = get_qualifying_sprint_bonus_rule("none")
         return {
@@ -68,9 +80,9 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
     choice_by_slot = {
         choice.selection_slot: choice.driver_id
         for choice in (
-            PlayerSprintQualifyingChoice.objects
-            .filter(player=player, qualifying=qualifying)
-            .select_related("driver")
+            PlayerSprintQualifyingChoice.objects.filter(
+                player=player, qualifying=qualifying
+            ).select_related("driver")
         )
     }
 
@@ -87,7 +99,6 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
     sq2_hit = sq2_position is not None and 11 <= sq2_position <= 15
     sq3_hit = sq3_position is not None and 6 <= sq3_position <= 10
 
-
     if sq3_hit:
         level = "sq3_hit"
     elif sq2_hit:
@@ -96,7 +107,7 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
         level = "sq1_hit"
     else:
         level = "made"
-    
+
     bonus = get_qualifying_sprint_bonus_rule(level)
     return {
         "level": level,
@@ -107,12 +118,11 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
         "sq3_hit": sq3_hit,
     }
 
-    
-
 
 # ============================================================================
 # Bonus qualifiche multichoice (weekend sprint)
 # ============================================================================
+
 
 def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
     """Restituisce i valori bonus per un livello multichoice."""
@@ -122,7 +132,9 @@ def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
     ).copy()
 
 
-def resolve_multichoice_level(*, choices_by_slot: dict, results_by_driver_id: dict) -> str:
+def resolve_multichoice_level(
+    *, choices_by_slot: dict, results_by_driver_id: dict
+) -> str:
     """
     Livello raggiunto dalla scelta multichoice, a partire dai dati gia' caricati.
 
@@ -135,13 +147,21 @@ def resolve_multichoice_level(*, choices_by_slot: dict, results_by_driver_id: di
     q2_driver_ids = choices_by_slot.get("q2_pass", [])
     q3_driver_ids = choices_by_slot.get("q3_top3", [])
 
-    q1_pass_hit = len(q1_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q1_pass"] and all(
-        results_by_driver_id.get(driver_id) is not None and _passed_q1(results_by_driver_id[driver_id])
+    q1_pass_hit = len(q1_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES[
+        "q1_pass"
+    ] and all(
+        results_by_driver_id.get(driver_id) is not None
+        and _passed_q1(results_by_driver_id[driver_id])
         for driver_id in q1_driver_ids
     )
-    q2_pass_hit = q1_pass_hit and len(q2_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q2_pass"] and all(
-        results_by_driver_id.get(driver_id) is not None and _passed_q2(results_by_driver_id[driver_id])
-        for driver_id in q2_driver_ids
+    q2_pass_hit = (
+        q1_pass_hit
+        and len(q2_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q2_pass"]
+        and all(
+            results_by_driver_id.get(driver_id) is not None
+            and _passed_q2(results_by_driver_id[driver_id])
+            for driver_id in q2_driver_ids
+        )
     )
 
     top_three_driver_ids = {
@@ -181,7 +201,9 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
         }
 
     # Multichoice bonus solo per qualifiche regular in weekend sprint
-    if not (qualifying.type == "regular" and qualifying.weekend.weekend_type == "sprint"):
+    if not (
+        qualifying.type == "regular" and qualifying.weekend.weekend_type == "sprint"
+    ):
         bonus = get_qualifying_multichoice_bonus_rule("none")
         return {
             "level": "none",
@@ -193,11 +215,9 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
         }
 
     choices_by_slot = {slot: [] for slot in rules.VALID_MULTI_CHOICE_SLOTS}
-    for choice in (
-        PlayerQualifyingMultiChoice.objects
-        .filter(player=player, qualifying=qualifying)
-        .select_related("driver")
-    ):
+    for choice in PlayerQualifyingMultiChoice.objects.filter(
+        player=player, qualifying=qualifying
+    ).select_related("driver"):
         choices_by_slot.setdefault(choice.selection_slot, []).append(choice.driver_id)
 
     results_by_driver_id = {
@@ -226,9 +246,14 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
 # Bonus qualifiche regular (weekend non-sprint)
 # ============================================================================
 
+
 def get_regular_qualifying_bonus_rule(position: int) -> dict:
     """Restituisce i valori bonus per una posizione in qualifica regular."""
-    default = {"credit_change": 0, "qualifying_points": 0, "points_multiplier": Decimal("1")}
+    default = {
+        "credit_change": 0,
+        "qualifying_points": 0,
+        "points_multiplier": Decimal("1"),
+    }
     return rules.REGULAR_QUALIFYING_BONUS_BY_POSITION.get(position, default).copy()
 
 
@@ -236,7 +261,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     """
     Calcola il bonus per la scelta qualifica regular (weekend non-sprint).
     Basato sulla posizione in qualifica del pilota scelto dal giocatore.
-    
+
     Per i weekend sprint si usa invece get_qualifying_multichoice_bonus().
     """
     default_result = {
@@ -252,8 +277,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
 
     # Trova la scelta del giocatore
     choice = (
-        PlayerQualifyingChoice.objects
-        .filter(player=player, qualifying=qualifying)
+        PlayerQualifyingChoice.objects.filter(player=player, qualifying=qualifying)
         .select_related("driver")
         .first()
     )
@@ -262,11 +286,9 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         return default_result
 
     # Trova la posizione in qualifica del pilota scelto
-    result = (
-        QualifyingResult.objects
-        .filter(qualifying=qualifying, driver=choice.driver)
-        .first()
-    )
+    result = QualifyingResult.objects.filter(
+        qualifying=qualifying, driver=choice.driver
+    ).first()
 
     if result is None or result.position is None:
         return {
@@ -283,9 +305,11 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "position": result.position,
     }
 
+
 # ============================================================================
 # Bonus gara sprint (aggiunta ai punti, non moltiplicatore)
 # ============================================================================
+
 
 def get_sprint_race_bonus(*, player, race) -> dict:
     """
@@ -300,20 +324,22 @@ def get_sprint_race_bonus(*, player, race) -> dict:
         "points_modifier": sprint_bonus["points_modifier"],
     }
 
+
 # ============================================================================
 # Bonus gara (unisce la logica per weekend sprint e regular)
 # ============================================================================
+
 
 def get_race_bonus(*, player, race) -> dict:
     """
     Restituisce il bonus per la gara.
     - Weekend sprint: bonus da multichoice (q1_pass, q2_pass, q3_top3)
     - Weekend regular: bonus da scelta singola pilota (PlayerQualifyingChoice)
-    
+
     credit_change: positivo = malus (costo aumenta), negativo = sconto (costo diminuisce)
     """
     qualifying = race.weekend.qualifyings.filter(type="regular").first()
-    
+
     if race.weekend.weekend_type == "sprint":
         # Weekend sprint: il bonus viene dalla qualifica multichoice
         multichoice_bonus = get_qualifying_multichoice_bonus(
@@ -324,7 +350,9 @@ def get_race_bonus(*, player, race) -> dict:
         # Lo convertiamo in credit_change (negativo = sconto)
         return {
             "level": multichoice_bonus["level"],
-            "credit_change": -multichoice_bonus["credit_discount"],  # sconto → credit_change negativo
+            "credit_change": -multichoice_bonus[
+                "credit_discount"
+            ],  # sconto → credit_change negativo
             "points_multiplier": multichoice_bonus["points_multiplier"],
             "qualifying_points": 0,
             "driver": None,
@@ -338,7 +366,9 @@ def get_race_bonus(*, player, race) -> dict:
         )
         return {
             "level": f"p{bonus['position']}" if bonus["position"] else "none",
-            "credit_change": bonus["credit_change"],  # positivo = malus, negativo = sconto
+            "credit_change": bonus[
+                "credit_change"
+            ],  # positivo = malus, negativo = sconto
             "points_multiplier": bonus["points_multiplier"],
             "qualifying_points": bonus["qualifying_points"],
             "driver": bonus["driver"],
@@ -358,41 +388,42 @@ def get_regular_qualifying_bonus(*, player, qualifying) -> dict:
 # Applicazione credit_change ai costi
 # ============================================================================
 
+
 def apply_race_credit_change(*, costs_by_driver_id: dict, credit_change: int) -> dict:
     """
     Applica il credit_change ai costi dei piloti.
     - credit_change positivo = malus (aumenta il costo totale)
     - credit_change negativo = sconto (riduce il costo totale)
-    
+
     Lo sconto viene applicato partendo dal pilota più costoso.
     Il malus viene distribuito equamente tra i piloti.
     """
     adjusted_costs = dict(costs_by_driver_id)
-    
+
     if credit_change < 0:
         # Sconto: riduce i costi partendo dal più costoso
         remaining_discount = min(abs(credit_change), sum(adjusted_costs.values()))
-        
+
         for driver_id, current_cost in sorted(
             adjusted_costs.items(),
             key=lambda item: (-item[1], item[0]),
         ):
             if remaining_discount <= 0:
                 break
-                
+
             applied_discount = min(current_cost, remaining_discount)
             adjusted_costs[driver_id] = current_cost - applied_discount
             remaining_discount -= applied_discount
-    
+
     elif credit_change > 0:
         # Malus: aumenta il costo totale, distribuito equamente
         num_drivers = len(adjusted_costs)
         if num_drivers > 0:
             malus_per_driver = credit_change // num_drivers
             remainder = credit_change % num_drivers
-            
+
             for i, driver_id in enumerate(adjusted_costs.keys()):
                 extra = 1 if i < remainder else 0
                 adjusted_costs[driver_id] += malus_per_driver + extra
-    
+
     return adjusted_costs

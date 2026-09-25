@@ -5,35 +5,44 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0008_rename_type_customuser_user_type'),
+        ("fantaApp", "0008_rename_type_customuser_user_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='championship',
-            name='active',
+            model_name="championship",
+            name="active",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='championship',
-            name='is_private',
+            model_name="championship",
+            name="is_private",
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
-            model_name='playerentry',
-            name='championship',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='participants', to='fantaApp.championship'),
+            model_name="playerentry",
+            name="championship",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="participants",
+                to="fantaApp.championship",
+            ),
         ),
         migrations.AlterField(
-            model_name='playerentry',
-            name='league',
-            field=models.ForeignKey(blank=True, default=1, on_delete=django.db.models.deletion.PROTECT, related_name='participants', to='fantaApp.league'),
+            model_name="playerentry",
+            name="league",
+            field=models.ForeignKey(
+                blank=True,
+                default=1,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="participants",
+                to="fantaApp.league",
+            ),
             preserve_default=False,
         ),
         migrations.AlterUniqueTogether(
-            name='championship',
-            unique_together={('name', 'year')},
+            name="championship",
+            unique_together={("name", "year")},
         ),
     ]

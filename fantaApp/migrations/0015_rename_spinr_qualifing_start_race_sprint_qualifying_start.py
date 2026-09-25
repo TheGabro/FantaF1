@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fantaApp', '0014_rename_state_circuit_country_and_more'),
+        ("fantaApp", "0014_rename_state_circuit_country_and_more"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='race',
-            old_name='spinr_qualifing_start',
-            new_name='sprint_qualifying_start',
+            model_name="race",
+            old_name="spinr_qualifing_start",
+            new_name="sprint_qualifying_start",
         ),
     ]

@@ -5,11 +5,11 @@ nome sotto. Solo <span>, così può stare dentro un <button>.
 Contesto atteso:
   driver        istanza Driver (con .team)
   card_selected (opz.) true se è il pilota scelto
-  card_locked   (opz.) testo del GP in cui il pilota è già stato usato
+  card_locked   (opz.) motivo per cui il pilota non è sceglibile
 Il colore arriva da --team, che eredita dalla classe .team-xxx del pannello.
 {% endcomment %}
 <span class="driver-card{% if card_selected %} is-selected{% endif %}{% if card_locked %} is-locked{% endif %}">
-  <span class="driver-card-number">{{ driver.number }}</span>
+  <span class="driver-card-number">{{ driver.number|default_if_none:"" }}</span>
   <span class="driver-card-code">{{ driver.short_name }}</span>
   <span class="driver-card-photo">
     {# Segnaposto: al posto di questo svg andrà la foto del pilota #}
@@ -27,4 +27,4 @@ Il colore arriva da --team, che eredita dalla classe .team-xxx del pannello.
   {% endif %}
 </span>
 <span class="driver-name">{{ driver.first_name }} <span class="driver-name-last">{{ driver.last_name }}</span></span>
-{% if card_locked %}<span class="driver-name-note">già usato · {{ card_locked }}</span>{% endif %}
+{% if card_locked %}<span class="driver-name-note">{{ card_locked }}</span>{% endif %}

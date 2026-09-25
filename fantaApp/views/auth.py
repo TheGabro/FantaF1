@@ -54,10 +54,14 @@ def register(request):
     else:
         form_register = creations.CustomUserRegistrationForm()
 
-    return render(request, "fantaApp/register.html", {
-        "form_register": form_register,
-        "next": next_url,
-    })
+    return render(
+        request,
+        "fantaApp/register.html",
+        {
+            "form_register": form_register,
+            "next": next_url,
+        },
+    )
 
 
 def login(request):
@@ -76,7 +80,11 @@ def login(request):
     else:
         form_login = creations.UsernameOrEmailAuthenticationForm()
 
-    return render(request, "fantaApp/login.html", {
-        "form_login": form_login,
-        "next": next_url,
-    })
+    return render(
+        request,
+        "fantaApp/login.html",
+        {
+            "form_login": form_login,
+            "next": next_url,
+        },
+    )

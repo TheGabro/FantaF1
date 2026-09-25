@@ -29,3 +29,9 @@ docs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+airflow/logs/
+airflow/auth/
+graphify-out/
+node_modules/
+
