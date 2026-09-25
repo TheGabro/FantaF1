@@ -6,10 +6,6 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ### Added
 - Comando interattivo `set_seat`: sposta un pilota in un altro team dal round indicato in poi, con l'eventuale pilota sostituito (`WeekendParticipant`).
-- Airflow: secondo stack `dev` sulla stessa VM, configurabile da `.env` (`COMPOSE_PROJECT_NAME`, `AIRFLOW_PORT`, `IMAGE_TAG`).
-
-### Changed
-- Airflow: rimossi i `container_name` fissi dal `docker-compose.yaml` per permettere più stack in parallelo.
 
 ## [0.3.1] - 2026-09-23
 

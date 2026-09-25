@@ -1,5 +1,3 @@
-# Sovrascrivibile con COMPOSE_PROJECT_NAME nel .env (es. airflow-fantaf1-dev):
-# il nome del progetto separa container, rete e volume postgres dei due ambienti.
 name: airflow-fantaf1
 
 x-airflow-common:
@@ -9,8 +7,7 @@ x-airflow-common:
   build:
     context: ..
     dockerfile: airflow/Dockerfile
-  # Tag diverso per ambiente, altrimenti il build di dev sovrascrive l'immagine di prod.
-  image: airflow-fantaf1:${IMAGE_TAG:-latest}
+  image: airflow-fantaf1:latest
   user: "${AIRFLOW_UID:-50000}:0"
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -56,6 +53,7 @@ services:
 
   airflow-init:
     <<: *airflow-common
+    container_name: airflow-fantaf1-init
     # Niente entrypoint custom: quello ufficiale dell'immagine imposta HOME e
     # registra l'utente quando il container gira con un UID arbitrario (user: 1000:0).
     # Senza, Python non trova i pacchetti installati in /home/airflow/.local.
@@ -68,9 +66,10 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
+    container_name: airflow-fantaf1-webserver
     command: api-server
     ports:
-      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,6 +79,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow-fantaf1-scheduler
     command: scheduler
     depends_on:
       postgres:
@@ -90,6 +90,7 @@ services:
 
   airflow-dag-processor:
     <<: *airflow-common
+    container_name: airflow-fantaf1-dag-processor
     command: dag-processor
     depends_on:
       postgres:
