@@ -58,6 +58,27 @@ def fantaf1_qualifying():
             raise AirflowSkipException("Qualifying result not ready yet")
         result.check_returncode()
 
+    @task(retries=1)
+    def insert_grid(ev: dict):
+        # The official grid (penalties included) is published by OpenF1
+        # after qualifying; race and qualifying share the same type
+        result = run_manage(
+            "insert_starting_grid",
+            "--season", str(ev["season"]),
+            "--round", str(ev["round"]),
+            "--type", str(ev["type"]),
+        )
+        if result.returncode == 3:
+            # Grid not published yet: wait and retry on the next run.
+            # Re-running insert_quali_result is safe (ignore_conflicts)
+            run_manage(
+                "mark_event",
+                "--status-id", str(ev["status_id"]),
+                "--status", "waiting",
+            )
+            raise AirflowSkipException("Starting grid not ready yet")
+        result.check_returncode()
+
     @task
     def mark_processed(ev: dict):
         run_manage(
@@ -77,8 +98,10 @@ def fantaf1_qualifying():
 
     ev = pick_event()
     inserted = insert_result(ev)
-    inserted >> mark_processed(ev)
-    inserted >> mark_error(ev)
+    grid = insert_grid(ev)
+    errored = mark_error(ev)
+    inserted >> grid >> mark_processed(ev)
+    [inserted, grid] >> errored
 
 
 fantaf1_qualifying()
