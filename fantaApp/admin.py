@@ -13,6 +13,7 @@ from .models import (
     ChampionshipPlayer,
     QualifyingResult,
     RaceResult,
+    RaceStartingGrid,
     Race,
     Qualifying,
     PlayerQualifyingChoice,
@@ -242,6 +243,15 @@ class QualifyingResultAdmin(admin.ModelAdmin):
 @admin.register(RaceResult)
 class RaceResultAdmin(admin.ModelAdmin):
     list_display = ["race", "driver", "position", "status", "points"]
+    list_filter = ["race__weekend__season", "race__weekend", "race"]
+    search_fields = ["driver__first_name", "driver__last_name", "driver__short_name"]
+
+
+@admin.register(RaceStartingGrid)
+class RaceStartingGridAdmin(admin.ModelAdmin):
+    list_display = ["race", "driver", "position"]
+    # Edit positions inline to fix late grid penalties by hand
+    list_editable = ["position"]
     list_filter = ["race__weekend__season", "race__weekend", "race"]
     search_fields = ["driver__first_name", "driver__last_name", "driver__short_name"]
 
