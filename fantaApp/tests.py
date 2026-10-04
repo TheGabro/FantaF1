@@ -34,6 +34,7 @@ from .models import (
     QualifyingResult,
     Race,
     RaceResult,
+    RaceStartingGrid,
     Status,
     Team,
     Weekend,
@@ -121,6 +122,10 @@ class SprintRaceChoiceTests(TestCase):
             driver=self.driver_3,
             position=20,
         )
+        for driver, position in ((self.driver_1, 1), (self.driver_2, 2), (self.driver_3, 20)):
+            RaceStartingGrid.objects.create(
+                race=self.sprint_race, driver=driver, position=position
+            )
 
     def _create_driver(self, *, api_id, number, short_name):
         return Driver.objects.create(
@@ -305,8 +310,36 @@ class GrandPrixChoiceTests(TestCase):
         QualifyingResult.objects.create(
             qualifying=qualifying, driver=self.driver_3, position=10
         )
+        for driver, position in ((self.driver_1, 1), (self.driver_2, 2), (self.driver_3, 10)):
+            RaceStartingGrid.objects.create(race=race, driver=driver, position=position)
 
         return {"weekend": weekend, "qualifying": qualifying, "race": race}
+
+    def test_race_driver_options_follow_starting_grid_not_qualifying(self):
+        race = self.weekend_bundles[0]["race"]
+        # Grid penalty: P10 in qualifying, P13 on the grid
+        RaceStartingGrid.objects.filter(race=race, driver=self.driver_3).update(
+            position=13
+        )
+        # Driver without a qualifying result still starts the race
+        no_quali_driver = self._create_driver(
+            api_id="drv-4", number=14, short_name="DDD"
+        )
+        RaceStartingGrid.objects.create(race=race, driver=no_quali_driver, position=20)
+
+        options = {
+            option["driver"].id: option
+            for option in costs.get_race_driver_options(race=race)
+        }
+
+        self.assertEqual(options[self.driver_3.id]["grid_position"], 13)
+        self.assertEqual(
+            options[self.driver_3.id]["cost"],
+            costs.get_regular_race_cost(
+                grid_position=13, driver=self.driver_3, weekend=race.weekend
+            ),
+        )
+        self.assertEqual(options[no_quali_driver.id]["grid_position"], 20)
 
     def test_regular_race_choice_requires_pupillo_among_selected_drivers(self):
         race = self.weekend_bundles[0]["race"]
@@ -491,6 +524,9 @@ class SprintWeekendRegularQualifyingBonusTests(TestCase):
                 if index <= 8
                 else None,
                 position=index,
+            )
+            RaceStartingGrid.objects.create(
+                race=self.race, driver=driver, position=index
             )
 
         for driver in self.drivers[9:15]:
