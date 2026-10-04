@@ -9,7 +9,6 @@ from django.db.models import Sum
 from ..models import (
     Driver,
     PlayerRaceChoice,
-    QualifyingResult,
     Weekend,
 )
 from . import rules
@@ -152,17 +151,8 @@ def get_race_driver_options(*, race, player=None) -> list:
     Include costi, sconti pupillo e altre info utili per la scelta.
     """
     options = []
-    for result in (
-        QualifyingResult.objects.filter(
-            qualifying__weekend=race.weekend,
-            qualifying__type=race.type,
-        )
-        .select_related("driver", "driver__team")
-        .order_by("position")
-    ):
-        if not result.position:
-            continue
-
+    # Official starting grid (penalties included), not the qualifying order
+    for result in race.starting_grid.select_related("driver", "driver__team"):
         if race.type == "sprint":
             option = {
                 "driver": result.driver,
