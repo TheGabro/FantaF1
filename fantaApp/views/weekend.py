@@ -161,7 +161,7 @@ def _grid_preview_options(weekend):
     Piloti da mostrare quando la griglia non è ancora stata importata.
 
     Stessi campi delle opzioni vere (costruite da costs.get_race_driver_options
-    sui QualifyingResult), ma con posizione e costi a None: senza griglia non c'è
+    su RaceStartingGrid), ma con posizione e costi a None: senza griglia non c'è
     nessun prezzo da calcolare. Serve solo a non lasciare la pagina vuota — la
     scelta resta bloccata, qui e nel POST.
     """

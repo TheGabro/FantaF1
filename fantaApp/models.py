@@ -265,6 +265,23 @@ class RaceResult(models.Model):
         ordering = ["race", "position"]
 
 
+class RaceStartingGrid(models.Model):
+    """Official starting grid (penalties included), used for driver costs."""
+
+    race = models.ForeignKey(
+        "Race", on_delete=models.CASCADE, related_name="starting_grid"
+    )
+    driver = models.ForeignKey("Driver", on_delete=models.CASCADE)
+    position = models.PositiveSmallIntegerField()
+
+    def __str__(self):
+        return f"{self.race} - {self.driver.short_name} (P{self.position})"
+
+    class Meta:
+        unique_together = ("race", "driver")
+        ordering = ["race", "position"]
+
+
 class QualifyingResult(models.Model):
     qualifying = models.ForeignKey(
         "Qualifying", on_delete=models.CASCADE, related_name="qualifying_entries"

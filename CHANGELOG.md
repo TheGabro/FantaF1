@@ -4,12 +4,22 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-04
+
 ### Added
+- Modello `RaceStartingGrid`: griglia di partenza ufficiale di ogni gara (penalità incluse), modificabile dall'admin per correggere a mano le penalità tardive.
+- Sorgente `openF1Source` e comando `insert_starting_grid` per importare la griglia da OpenF1 (`/v1/starting_grid`).
+- Airflow: il DAG `fantaf1_qualifying` importa la griglia dopo i risultati di qualifica; l'evento passa a `processed` solo quando anche la griglia è disponibile.
 - Comando interattivo `set_seat`: sposta un pilota in un altro team dal round indicato in poi, con l'eventuale pilota sostituito (`WeekendParticipant`).
 - Airflow: secondo stack `dev` sulla stessa VM, configurabile da `.env` (`COMPOSE_PROJECT_NAME`, `AIRFLOW_PORT`, `IMAGE_TAG`).
 
 ### Changed
+- Il costo dei piloti per Sprint e Grand Prix si calcola dalla griglia di partenza ufficiale invece che dalla posizione in qualifica.
 - Airflow: rimossi i `container_name` fissi dal `docker-compose.yaml` per permettere più stack in parallelo.
+
+### Fixed
+- I piloti senza risultato in qualifica ma presenti in griglia ora sono selezionabili.
+- Griglia OpenF1 non ancora pubblicata (404) o API bloccata durante una sessione live (401): l'evento resta in attesa e viene ritentato invece di andare in errore.
 
 ## [0.3.1] - 2026-09-23
 
@@ -55,7 +65,8 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Added
 - Prima versione funzionante con le funzionalità base.
 
-[Unreleased]: https://github.com/TheGabro/FantaF1/compare/v0.3.1...develop
+[Unreleased]: https://github.com/TheGabro/FantaF1/compare/v0.4.0...develop
+[0.4.0]: https://github.com/TheGabro/FantaF1/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/TheGabro/FantaF1/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/TheGabro/FantaF1/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/TheGabro/FantaF1/compare/v0.2...v0.2.1
