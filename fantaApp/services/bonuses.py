@@ -10,6 +10,7 @@ from ..models import (
     PlayerQualifyingMultiChoice,
     PlayerSprintQualifyingChoice,
     QualifyingResult,
+    RaceStartingGrid,
 )
 from . import rules
 
@@ -27,6 +28,16 @@ def _passed_q1(result: QualifyingResult) -> bool:
 def _passed_q2(result: QualifyingResult) -> bool:
     """Verifica se il pilota ha passato la Q2."""
     return result.q3_time is not None
+
+
+def _grid_by_driver_id(*, weekend, race_type) -> dict:
+    """Starting grid rows of the weekend race, by driver id."""
+    return {
+        row.driver_id: row
+        for row in RaceStartingGrid.objects.filter(
+            race__weekend=weekend, race__type=race_type
+        )
+    }
 
 
 def _slot_position(
@@ -86,10 +97,10 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
         )
     }
 
-    results_by_driver_id = {
-        result.driver_id: result
-        for result in QualifyingResult.objects.filter(qualifying=qualifying)
-    }
+    # The sprint race bonus follows the sprint starting grid, not the classification
+    results_by_driver_id = _grid_by_driver_id(
+        weekend=qualifying.weekend, race_type="sprint"
+    )
 
     sq1_position = _slot_position("sq1", choice_by_slot, results_by_driver_id)
     sq2_position = _slot_position("sq2", choice_by_slot, results_by_driver_id)
@@ -133,7 +144,7 @@ def get_qualifying_multichoice_bonus_rule(level: str) -> dict:
 
 
 def resolve_multichoice_level(
-    *, choices_by_slot: dict, results_by_driver_id: dict
+    *, choices_by_slot: dict, results_by_driver_id: dict, on_grid: bool = False
 ) -> str:
     """
     Livello raggiunto dalla scelta multichoice, a partire dai dati gia' caricati.
@@ -142,7 +153,16 @@ def resolve_multichoice_level(
     qualifiche deve valutare molti giocatori insieme: caricando scelte e
     risultati in blocco si evita di rifare due query per ogni giocatore.
     I livelli sono a scaletta: q2_pass richiede q1_pass, q3_top3 richiede q2_pass.
+
+    on_grid: results_by_driver_id holds starting grid rows (race bonus), so
+    Q1/Q2 passes come from grid position thresholds instead of lap times.
     """
+    if on_grid:
+        passed_q1 = lambda row: row.position <= rules.GRID_Q1_PASS_MAX_POSITION
+        passed_q2 = lambda row: row.position <= rules.GRID_Q2_PASS_MAX_POSITION
+    else:
+        passed_q1, passed_q2 = _passed_q1, _passed_q2
+
     q1_driver_ids = choices_by_slot.get("q1_pass", [])
     q2_driver_ids = choices_by_slot.get("q2_pass", [])
     q3_driver_ids = choices_by_slot.get("q3_top3", [])
@@ -151,7 +171,7 @@ def resolve_multichoice_level(
         "q1_pass"
     ] and all(
         results_by_driver_id.get(driver_id) is not None
-        and _passed_q1(results_by_driver_id[driver_id])
+        and passed_q1(results_by_driver_id[driver_id])
         for driver_id in q1_driver_ids
     )
     q2_pass_hit = (
@@ -159,7 +179,7 @@ def resolve_multichoice_level(
         and len(q2_driver_ids) == rules.MULTI_CHOICE_SLOT_SIZES["q2_pass"]
         and all(
             results_by_driver_id.get(driver_id) is not None
-            and _passed_q2(results_by_driver_id[driver_id])
+            and passed_q2(results_by_driver_id[driver_id])
             for driver_id in q2_driver_ids
         )
     )
@@ -220,14 +240,14 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
     ).select_related("driver"):
         choices_by_slot.setdefault(choice.selection_slot, []).append(choice.driver_id)
 
-    results_by_driver_id = {
-        result.driver_id: result
-        for result in QualifyingResult.objects.filter(qualifying=qualifying)
-    }
-
+    # The race bonus follows the Grand Prix starting grid; the qualifying
+    # points (dashboard) still use the qualifying classification
     level = resolve_multichoice_level(
         choices_by_slot=choices_by_slot,
-        results_by_driver_id=results_by_driver_id,
+        results_by_driver_id=_grid_by_driver_id(
+            weekend=qualifying.weekend, race_type="regular"
+        ),
+        on_grid=True,
     )
 
     bonus = get_qualifying_multichoice_bonus_rule(level)
@@ -260,7 +280,7 @@ def get_regular_qualifying_bonus_rule(position: int) -> dict:
 def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     """
     Calcola il bonus per la scelta qualifica regular (weekend non-sprint).
-    Basato sulla posizione in qualifica del pilota scelto dal giocatore.
+    Based on the starting grid position of the driver chosen by the player.
 
     Per i weekend sprint si usa invece get_qualifying_multichoice_bonus().
     """
@@ -285,9 +305,10 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     if choice is None:
         return default_result
 
-    # Trova la posizione in qualifica del pilota scelto
-    result = QualifyingResult.objects.filter(
-        qualifying=qualifying, driver=choice.driver
+    # The race bonus follows the Grand Prix starting grid position of the
+    # chosen driver; the qualifying points (dashboard) use the classification
+    result = RaceStartingGrid.objects.filter(
+        race__weekend=qualifying.weekend, race__type="regular", driver=choice.driver
     ).first()
 
     if result is None or result.position is None:
