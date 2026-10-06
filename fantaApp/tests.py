@@ -1,10 +1,14 @@
 from decimal import Decimal
 from datetime import timedelta
+from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -341,6 +345,62 @@ class GrandPrixChoiceTests(TestCase):
         )
         self.assertEqual(options[no_quali_driver.id]["grid_position"], 20)
 
+    def _consolidated_choice_on_grid_penalty(self):
+        """Pick drivers 1-2 at P1-P2, consolidate, then move driver 1 to P13."""
+        race = self.weekend_bundles[0]["race"]
+        pc.choose_regular_race_drivers(
+            player=self.player,
+            race=race,
+            drivers=[self.driver_1, self.driver_2],
+            pupillo_driver=self.driver_1,
+        )
+        spent = sum(
+            PlayerRaceChoice.objects.filter(race=race).values_list(
+                "spent_amount", flat=True
+            )
+        )
+        PlayerRaceChoice.objects.filter(race=race).update(credit_applied=True)
+        self.player.available_credit = 2000 - spent
+        self.player.save(update_fields=["available_credit"])
+        RaceStartingGrid.objects.filter(race=race, driver=self.driver_1).update(
+            position=13
+        )
+        return race
+
+    def test_recompute_race_costs_uses_grid_and_rebuilds_credit(self):
+        race = self._consolidated_choice_on_grid_penalty()
+        old_spent = PlayerRaceChoice.objects.get(
+            race=race, driver=self.driver_1
+        ).spent_amount
+
+        call_command("recompute_race_costs", season=2026, stdout=StringIO())
+
+        choice = PlayerRaceChoice.objects.get(race=race, driver=self.driver_1)
+        self.assertLess(choice.spent_amount, old_spent)
+        applied = sum(
+            PlayerRaceChoice.objects.filter(player=self.player).values_list(
+                "spent_amount", flat=True
+            )
+        )
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.available_credit, 2000 - applied)
+
+    def test_recompute_race_costs_aborts_on_hand_edited_credit(self):
+        race = self._consolidated_choice_on_grid_penalty()
+        self.player.available_credit += 50
+        self.player.save(update_fields=["available_credit"])
+        old_spent = PlayerRaceChoice.objects.get(
+            race=race, driver=self.driver_1
+        ).spent_amount
+
+        with self.assertRaises(CommandError):
+            call_command("recompute_race_costs", season=2026, stdout=StringIO())
+
+        self.assertEqual(
+            PlayerRaceChoice.objects.get(race=race, driver=self.driver_1).spent_amount,
+            old_spent,
+        )
+
     def test_regular_race_choice_requires_pupillo_among_selected_drivers(self):
         race = self.weekend_bundles[0]["race"]
 
@@ -544,6 +604,32 @@ class SprintWeekendRegularQualifyingBonusTests(TestCase):
                 selection_slot="q2_pass",
                 driver=driver,
             )
+
+    def test_multichoice_level_on_grid_uses_position_thresholds(self):
+        grid = {
+            driver_id: SimpleNamespace(driver_id=driver_id, position=position)
+            for driver_id, position in enumerate(range(1, 23), start=1)
+        }
+        choices_by_slot = {
+            "q1_pass": [11, 12, 13, 14, 15, 16],  # grid P11-P16: pass Q1
+            "q2_pass": [4, 5, 6, 7, 8],  # grid P4-P8: pass Q2
+            "q3_top3": [1, 2, 3],
+        }
+        self.assertEqual(
+            bonuses.resolve_multichoice_level(
+                choices_by_slot=choices_by_slot, results_by_driver_id=grid, on_grid=True
+            ),
+            "q3_top3",
+        )
+
+        # One Q1 pick starts P17 (e.g. grid penalty): no level reached
+        choices_by_slot["q1_pass"][-1] = 17
+        self.assertEqual(
+            bonuses.resolve_multichoice_level(
+                choices_by_slot=choices_by_slot, results_by_driver_id=grid, on_grid=True
+            ),
+            "none",
+        )
 
     def test_regular_race_bonus_reaches_q2_tier_when_top3_is_not_matched(self):
         for driver in (self.drivers[0], self.drivers[1], self.drivers[8]):
@@ -946,6 +1032,8 @@ class PlayerScoringTests(TestCase):
         QualifyingResult.objects.create(
             qualifying=self.qualifying, driver=self.driver_1, position=1
         )
+        # Grid penalty: P1 in qualifying, P3 on the grid
+        RaceStartingGrid.objects.create(race=self.race, driver=self.driver_1, position=3)
         PlayerQualifyingChoice.objects.create(
             player=self.player_a, qualifying=self.qualifying, driver=self.driver_1
         )
@@ -954,10 +1042,9 @@ class PlayerScoringTests(TestCase):
             player=self.player_a, race=self.race
         )
 
-        self.assertEqual(
-            result.point_multiplier, 2.0
-        )  # P1 in qualifica regular -> x2 (rules.py)
-        self.assertEqual(result.total_points, 50.0)
+        # The multiplier follows the grid: P3 -> x1.5 (rules.py), not P1 -> x2
+        self.assertEqual(result.point_multiplier, 1.5)
+        self.assertEqual(result.total_points, 37.5)
 
     def test_compute_race_points_upserts_existing_result(self):
         race_result = self._create_race_result(

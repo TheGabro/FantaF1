@@ -16,6 +16,50 @@ from . import bonuses, costs, rules
 
 
 # ============================================================================
+# Costo delle scelte gara (shared by the choices and the cost recompute)
+# ============================================================================
+
+
+def get_sprint_race_spent_amount(
+    *, player, race, driver_ids, options_by_driver_id
+) -> int:
+    """Sprint race cost: grid cost minus the sprint qualifying discount."""
+    qualifying = race.weekend.qualifyings.filter(type="sprint").first()
+    qualifying_bonus = bonuses.get_sprint_qualifying_bonus(
+        player=player, qualifying=qualifying
+    )
+
+    base_cost = sum(options_by_driver_id[driver_id]["cost"] for driver_id in driver_ids)
+    # Lo sconto non può portare il costo sotto zero: nessun guadagno di crediti.
+    return max(base_cost - qualifying_bonus["credit_discount"], 0)
+
+
+def get_regular_race_spent_amounts(
+    *, player, race, driver_ids, pupillo_driver_id, options_by_driver_id
+) -> tuple[dict, dict]:
+    """
+    Grand Prix cost of each selected driver: grid + standings cost, pupillo
+    discount and qualifying bonus. Returns (spent amount by driver id, qualifying bonus).
+    """
+    selected_costs_by_driver_id = {}
+    for driver_id in driver_ids:
+        option = options_by_driver_id[driver_id]
+        if driver_id == pupillo_driver_id:
+            selected_costs_by_driver_id[driver_id] = option.get(
+                "pupillo_cost", option["cost"]
+            )
+        else:
+            selected_costs_by_driver_id[driver_id] = option["cost"]
+
+    qualifying_bonus = bonuses.get_race_bonus(player=player, race=race)
+    adjusted_costs_by_driver_id = bonuses.apply_race_credit_change(
+        costs_by_driver_id=selected_costs_by_driver_id,
+        credit_change=qualifying_bonus["credit_change"],
+    )
+    return adjusted_costs_by_driver_id, qualifying_bonus
+
+
+# ============================================================================
 # Scelta piloti gara sprint
 # ============================================================================
 
@@ -48,14 +92,12 @@ def choose_sprint_race_drivers(*, player, race, drivers):
             "La griglia sprint non e' disponibile per uno o piu' piloti selezionati."
         )
 
-    qualifying = race.weekend.qualifyings.filter(type="sprint").first()
-    qualifying_bonus = bonuses.get_sprint_qualifying_bonus(
-        player=player, qualifying=qualifying
+    total_spent_amount = get_sprint_race_spent_amount(
+        player=player,
+        race=race,
+        driver_ids=driver_ids,
+        options_by_driver_id=options_by_driver_id,
     )
-
-    base_cost = sum(options_by_driver_id[driver_id]["cost"] for driver_id in driver_ids)
-    # Lo sconto non può portare il costo sotto zero: nessun guadagno di crediti.
-    total_spent_amount = max(base_cost - qualifying_bonus["credit_discount"], 0)
     spendable_credit = costs.get_player_spendable_credit(
         player=player, exclude_race=race
     )
@@ -126,20 +168,12 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
     pupillo_discount = options_by_driver_id[pupillo_driver.id].get(
         "pupillo_discount", 0
     )
-    selected_costs_by_driver_id = {}
-    for driver in selected_drivers:
-        option = options_by_driver_id[driver.id]
-        if driver.id == pupillo_driver.id:
-            selected_costs_by_driver_id[driver.id] = option.get(
-                "pupillo_cost", option["cost"]
-            )
-        else:
-            selected_costs_by_driver_id[driver.id] = option["cost"]
-
-    qualifying_bonus = bonuses.get_race_bonus(player=player, race=race)
-    adjusted_costs_by_driver_id = bonuses.apply_race_credit_change(
-        costs_by_driver_id=selected_costs_by_driver_id,
-        credit_change=qualifying_bonus["credit_change"],
+    adjusted_costs_by_driver_id, qualifying_bonus = get_regular_race_spent_amounts(
+        player=player,
+        race=race,
+        driver_ids=driver_ids,
+        pupillo_driver_id=pupillo_driver.id,
+        options_by_driver_id=options_by_driver_id,
     )
     total_spent_amount = sum(adjusted_costs_by_driver_id.values())
 
