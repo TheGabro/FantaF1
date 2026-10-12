@@ -788,6 +788,8 @@ def _rulebook():
         "magata_points": MAGATA_POINTS,
         "sucata_points": SUCATA_POINTS,
         "multi_choice_slot_sizes": rules.MULTI_CHOICE_SLOT_SIZES,
+        "grid_q1_pass_max_position": rules.GRID_Q1_PASS_MAX_POSITION,
+        "grid_q2_pass_max_position": rules.GRID_Q2_PASS_MAX_POSITION,
     }
 
 
