@@ -4,6 +4,15 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-12
+
+### Added
+- Comando per ricalcolare i costi delle scelte gara esistenti in base alla griglia di partenza.
+
+### Changed
+- Calcolo dei costi Sprint e Grand Prix aggiornato per applicare le soglie delle posizioni in griglia e dei passaggi Q1/Q2.
+- Dashboard e informazioni del campionato chiariscono l'impatto della qualifica e della posizione in griglia.
+
 ## [0.4.0] - 2026-10-04
 
 ### Added
@@ -65,7 +74,8 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Added
 - Prima versione funzionante con le funzionalità base.
 
-[Unreleased]: https://github.com/TheGabro/FantaF1/compare/v0.4.0...develop
+[Unreleased]: https://github.com/TheGabro/FantaF1/compare/v0.4.1...develop
+[0.4.1]: https://github.com/TheGabro/FantaF1/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/TheGabro/FantaF1/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/TheGabro/FantaF1/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/TheGabro/FantaF1/compare/v0.2.1...v0.3.0
