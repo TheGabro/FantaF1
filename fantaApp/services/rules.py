@@ -126,6 +126,11 @@ MULTI_CHOICE_SLOT_SIZES = {
     "q3_top3": 3,
 }
 
+# Race bonus on the starting grid: a pick "passes" Q1/Q2 when it starts
+# within these positions (22 drivers: Q1 and Q2 knock out 6 each)
+GRID_Q1_PASS_MAX_POSITION = 16
+GRID_Q2_PASS_MAX_POSITION = 10
+
 # ============================================================================
 # Bonus sprint (weekend sprint - qualifica regular)
 # Si applica alla gara regular del weekend sprint

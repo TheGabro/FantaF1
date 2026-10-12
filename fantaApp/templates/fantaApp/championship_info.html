@@ -75,8 +75,9 @@
       <summary class="cursor-pointer font-semibold">Qualifica del sabato — weekend regular</summary>
       <p class="mt-2 text-muted">
         Si sceglie un pilota solo, e ogni pilota può essere speso una volta sola nella stagione.
-        La posizione che ottiene in qualifica vale punti per la classifica qualifiche, uno sconto o un
-        malus sui fantamilioni del Grand Prix e un moltiplicatore sui punti di quella gara.
+        La posizione che ottiene in qualifica vale punti per la classifica qualifiche. La posizione
+        nella griglia di partenza (penalità incluse) decide invece lo sconto o il malus sui
+        fantamilioni del Grand Prix e il moltiplicatore sui punti di quella gara.
       </p>
       <div class="mt-3 overflow-x-auto">
         <table class="table-clean">
@@ -110,6 +111,9 @@
         Si pronosticano {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
         {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3.
         I livelli sono a scaletta: vale quello più alto raggiunto, non la somma.
+        I punti qualifica seguono la qualifica; sconto e moltiplicatore del Grand Prix seguono la
+        griglia di partenza: passa il Q1 chi parte entro la {{ rulebook.grid_q1_pass_max_position }}ª
+        casella, il Q2 entro la {{ rulebook.grid_q2_pass_max_position }}ª, la top 3 sono le prime tre caselle.
       </p>
       <div class="mt-3 overflow-x-auto">
         <table class="table-clean">
@@ -140,6 +144,7 @@
       <p class="mt-2 text-muted">
         Si indica un pilota per ciascuna fascia di eliminazione. I punti vinti qui si sommano
         al punteggio della sprint race, e valgono per la classifica campionato sprint.
+        L'esito si valuta sulla griglia di partenza della sprint (penalità incluse).
       </p>
       <div class="mt-3 overflow-x-auto">
         <table class="table-clean">

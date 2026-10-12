@@ -145,14 +145,18 @@ def get_regular_race_pupillo_discount(*, player, race, driver) -> int:
 # ============================================================================
 
 
-def get_race_driver_options(*, race, player=None) -> list:
+def get_race_driver_options(*, race, player=None, driver_ids=None) -> list:
     """
     Restituisce la lista delle opzioni pilota disponibili per una gara.
     Include costi, sconti pupillo e altre info utili per la scelta.
+    driver_ids limits the options to those drivers (each option costs queries).
     """
     options = []
     # Official starting grid (penalties included), not the qualifying order
-    for result in race.starting_grid.select_related("driver", "driver__team"):
+    grid = race.starting_grid.select_related("driver", "driver__team")
+    if driver_ids is not None:
+        grid = grid.filter(driver_id__in=driver_ids)
+    for result in grid:
         if race.type == "sprint":
             option = {
                 "driver": result.driver,
