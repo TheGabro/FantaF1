@@ -21,8 +21,6 @@ from fantaApp.models import EventProcessingStatus, Qualifying, Status
 from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable
 from fantaApp.services.event_processing import qualifying_ready, mark, eligible_events
 
-MAX_WAITING_ATTEMPTS = 10
-
 
 class Command(BaseCommand):
     help = "Event processing: process pending events in chronological order"

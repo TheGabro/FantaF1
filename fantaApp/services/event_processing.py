@@ -3,7 +3,9 @@ from django.utils import timezone
 
 from ..models import EventProcessingStatus, Status
 
-MAX_WAITING_ATTEMPTS = 10
+# Airflow retries every 15 minutes: 32 attempts cover ~8h, Jolpica and OpenF1
+# can take 3-4h after the session to publish
+MAX_WAITING_ATTEMPTS = 32
 
 
 def qualifying_ready(race) -> bool:
