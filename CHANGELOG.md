@@ -4,6 +4,11 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+### Fixed
+- `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
+- `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
+- Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.
+
 ## [0.4.1] - 2026-10-12
 
 ### Added
