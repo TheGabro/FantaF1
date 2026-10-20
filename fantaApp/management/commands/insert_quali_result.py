@@ -61,11 +61,13 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
         qualifying = Qualifying.objects.get(weekend=weekend, type=q_type)
+        # Jolpica has no sprint qualifying: each type has its own source
+        get_results = (
+            get_qualifying_result if q_type == "regular" else get_sprint_qualifying_result
+        )
         try:
-            results = list(get_qualifying_result(season, round))
-        except ResultsNotAvailable as exc:
-            raise CommandError(str(exc), returncode=3)
-        except ResultsNotAvailableFastf1 as exc:
+            results = list(get_results(season, round))
+        except (ResultsNotAvailable, ResultsNotAvailableFastf1) as exc:
             raise CommandError(str(exc), returncode=3)
 
         quali_objs: list[QualifyingResult] = []
@@ -97,7 +99,7 @@ class Command(BaseCommand):
                 )
         else:
             self.stdout.write(self.style.SUCCESS("=== Import sprint qualigfying ==="))
-            for data in get_sprint_qualifying_result(season, round):
+            for data in results:
                 q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
                 q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
                 q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None

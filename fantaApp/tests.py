@@ -1650,7 +1650,7 @@ class EventProcessingServiceTests(TestCase):
         self._status(event=self.sprint_qualifying, hours_ago=-1)
 
         self.assertEqual(
-            list(ep.eligible_statuses(self.now)),
+            list(ep.eligible_events(self.now)),
             [qualifying_status, race_status],
         )
 
@@ -1697,3 +1697,41 @@ class EventProcessingServiceTests(TestCase):
         event_status.refresh_from_db()
         self.assertEqual(event_status.status, Status.PROCESSED)
         self.assertEqual(event_status.last_error, "")
+
+
+class InsertSprintQualifyingResultTests(TestCase):
+    COMMAND = "fantaApp.management.commands.insert_quali_result"
+
+    def setUp(self):
+        circuit = Circuit.objects.create(
+            name="Marina Bay", country="Singapore", location="Singapore", api_id="marina_bay"
+        )
+        weekend = Weekend.objects.create(
+            circuit=circuit,
+            event_name="Singapore GP",
+            round_number=17,
+            season=2026,
+            weekend_type="sprint",
+        )
+        Qualifying.objects.create(weekend=weekend, type="sprint")
+
+    def _run(self):
+        call_command(
+            "insert_quali_result", season=2026, round=17, type="sprint", stdout=StringIO()
+        )
+
+    def test_sprint_does_not_need_jolpica_regular_qualifying(self):
+        # Friday of a sprint weekend: the regular qualifying is not on Jolpica yet
+        from .services.sources.jolpicaSource import ResultsNotAvailable
+
+        with patch(f"{self.COMMAND}.get_qualifying_result", side_effect=ResultsNotAvailable), \
+             patch(f"{self.COMMAND}.get_sprint_qualifying_result", return_value=[]):
+            self._run()
+
+    def test_sprint_not_available_means_retry_later(self):
+        from .services.sources.fastf1Source import ResultsNotAvailableFastf1
+
+        with patch(f"{self.COMMAND}.get_sprint_qualifying_result", side_effect=ResultsNotAvailableFastf1):
+            with self.assertRaises(CommandError) as ctx:
+                self._run()
+        self.assertEqual(ctx.exception.returncode, 3)
