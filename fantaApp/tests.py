@@ -13,6 +13,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from . import urls as fanta_urls
 from .views import invites
 
 # In test DEBUG è sempre False, quindi lo storage WhiteNoise pretende il manifest
@@ -1622,6 +1623,177 @@ class RegularQualifyingPickerTests(TestCase):
             player=self.player, qualifying=self.qualifying
         )
         self.assertEqual(choice.driver, self.free_driver)
+
+
+class WeekendPagesFixture:
+    """Stagione minima per aprire ogni pagina: un weekend regular e uno sprint,
+    con sessioni, roster, griglia e risultati, più un campionato con un giocatore."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = get_user_model().objects.create_user(
+            username="giocatore", email="giocatore@example.com", password="password123"
+        )
+
+        self.championship = Championship.objects.create(name="Smoke Cup", year=2026)
+        self.league = League.objects.create(championship=self.championship, name="Lega")
+        # Senza il giocatore: la pagina di iscrizione si apre invece di rimandare al campionato.
+        self.open_championship = Championship.objects.create(
+            name="Open Cup", year=2026, is_private=False
+        )
+        League.objects.create(championship=self.open_championship, name="Lega Aperta")
+        ChampionshipManager.objects.create(
+            user=self.user, championship=self.championship
+        )
+        ChampionshipPlayer.objects.create(
+            user=self.user,
+            championship=self.championship,
+            league=self.league,
+            player_name="Giocatore",
+        )
+
+        circuit = Circuit.objects.create(
+            name="Monza", country="Italy", location="Monza", api_id="circuit-monza"
+        )
+        team = Team.objects.create(
+            name="Scuderia Smoke",
+            short_name="SMK",
+            api_id="team-smoke",
+            nationality="IT",
+        )
+        drivers = [
+            Driver.objects.create(
+                first_name=f"Pilota{n}",
+                last_name=f"Smoke{n}",
+                number=n,
+                short_name=f"SM{n}",
+                team=team,
+                season=2026,
+                api_id=f"drv-smoke-{n}",
+            )
+            for n in (1, 2)
+        ]
+
+        future = timezone.now() + timedelta(days=7)
+        self.regular_weekend = Weekend.objects.create(
+            circuit=circuit,
+            event_name="GP Regular",
+            round_number=1,
+            season=2026,
+            weekend_type="regular",
+            qualifying_start=future,
+            race_start=future + timedelta(days=1),
+        )
+        self.sprint_weekend = Weekend.objects.create(
+            circuit=circuit,
+            event_name="GP Sprint",
+            round_number=2,
+            season=2026,
+            weekend_type="sprint",
+            sprint_qualifying_start=future + timedelta(days=7),
+            sprint_start=future + timedelta(days=8),
+            qualifying_start=future + timedelta(days=8),
+            race_start=future + timedelta(days=9),
+        )
+        self.regular_qualifying = Qualifying.objects.create(
+            weekend=self.regular_weekend, type="regular"
+        )
+        self.regular_race = Race.objects.create(
+            weekend=self.regular_weekend, type="regular"
+        )
+        self.sprint_qualifying = Qualifying.objects.create(
+            weekend=self.sprint_weekend, type="sprint"
+        )
+        self.sprint_race = Race.objects.create(
+            weekend=self.sprint_weekend, type="sprint"
+        )
+        self.sprint_weekend_qualifying = Qualifying.objects.create(
+            weekend=self.sprint_weekend, type="regular"
+        )
+        Race.objects.create(weekend=self.sprint_weekend, type="regular")
+
+        for weekend in (self.regular_weekend, self.sprint_weekend):
+            for driver in drivers:
+                WeekendParticipant.objects.create(
+                    weekend=weekend, driver=driver, team=team
+                )
+        for race in (self.regular_race, self.sprint_race):
+            for position, driver in enumerate(drivers, start=1):
+                RaceStartingGrid.objects.create(
+                    race=race, driver=driver, position=position
+                )
+                RaceResult.objects.create(
+                    race=race,
+                    driver=driver,
+                    position=position,
+                    status="Finished",
+                    starting_grid=position,
+                )
+
+    def pages(self):
+        """Rotta -> args delle pagine che si aprono con una GET e rispondono 200."""
+        c = self.championship.id
+        rw, sw = self.regular_weekend.id, self.sprint_weekend.id
+        return {
+            "user_dashboard": [],
+            "create_championship": [],
+            "join_championship": [self.open_championship.id],
+            "championship_dashboard": [c],
+            "championship_my_choices": [c],
+            "championship_calendar": [c],
+            "championship_league_standings": [c],
+            "championship_general_standings": [c],
+            "championship_qualifying_standings": [c],
+            "championship_sprint_standings": [c],
+            "championship_info": [c],
+            "weekend_details": [c, rw],
+            "sprint_race_qualifying_choice": [c, sw, self.sprint_qualifying.id],
+            "race_qualifying_choice": [c, rw, self.regular_qualifying.id],
+            "race_qualifying_multi_choice": [c, sw, self.sprint_weekend_qualifying.id],
+            "sprint_race_choice": [c, sw, self.sprint_race.id],
+            "regular_race_choice": [c, rw, self.regular_race.id],
+            "sprint_race_results": [c, sw, self.sprint_race.id],
+            "regular_race_results": [c, rw, self.regular_race.id],
+        }
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PageSmokeTests(WeekendPagesFixture, TestCase):
+    """Rete di sicurezza per i refactoring (#53): ogni rotta si apre senza errori."""
+
+    # Pagine aperte anche senza login.
+    PUBLIC_PAGES = {"home", "login", "register"}
+    # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests).
+    ACTIONS = {"logout", "invite_redeem", "invite_accept"}
+
+    def test_every_route_is_covered(self):
+        routes = {p.name for p in fanta_urls.urlpatterns}
+
+        self.assertEqual(routes, set(self.pages()) | self.PUBLIC_PAGES | self.ACTIONS)
+
+    def test_public_pages_open_for_anonymous_users(self):
+        for name in self.PUBLIC_PAGES:
+            with self.subTest(route=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+    def test_every_page_opens_for_an_enrolled_player(self):
+        self.client.force_login(self.user)
+
+        for name, args in self.pages().items():
+            with self.subTest(route=name):
+                self.assertEqual(
+                    self.client.get(reverse(name, args=args)).status_code, 200
+                )
+
+    def test_protected_pages_redirect_anonymous_users_to_login(self):
+        for name, args in self.pages().items():
+            url = reverse(name, args=args)
+            with self.subTest(route=name):
+                self.assertRedirects(
+                    self.client.get(url),
+                    f"{reverse('login')}?next={url}",
+                    fetch_redirect_response=False,
+                )
 
 
 class EventProcessingServiceTests(TestCase):
