@@ -853,6 +853,7 @@ def _render_race_results_page(
     return render(request, "fantaApp/race_results.html", context)
 
 
+@login_required
 def sprint_race_results(request, championship_id, weekend_id, event_id):
     return _render_race_results_page(
         request,
@@ -864,6 +865,7 @@ def sprint_race_results(request, championship_id, weekend_id, event_id):
     )
 
 
+@login_required
 def regular_race_results(request, championship_id, weekend_id, event_id):
     return _render_race_results_page(
         request,
