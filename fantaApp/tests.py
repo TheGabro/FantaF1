@@ -1202,6 +1202,23 @@ class LoginNextRedirectTests(TestCase):
         self.assertRedirects(response, f"{reverse('login')}?next={target}")
 
 
+class RaceResultsLoginRequiredTests(TestCase):
+    """#51: le pagine dei risultati gara chiedono il login come le altre del weekend."""
+
+    def test_anonymous_users_are_sent_to_login(self):
+        for url_name in ("sprint_race_results", "regular_race_results"):
+            with self.subTest(url_name=url_name):
+                # Il login scatta prima di ogni accesso al database: bastano id qualsiasi.
+                url = reverse(url_name, args=[1, 1, 1])
+                response = self.client.get(url)
+
+                self.assertRedirects(
+                    response,
+                    f"{reverse('login')}?next={url}",
+                    fetch_redirect_response=False,
+                )
+
+
 @override_settings(STORAGES=TEST_STORAGES)
 class CreateChampionshipTests(TestCase):
     """F1: chi crea il campionato entra anche come giocatore."""
