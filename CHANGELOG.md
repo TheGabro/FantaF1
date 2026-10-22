@@ -12,6 +12,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
 - Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.
 - Pagine dei risultati gara: chi non ha effettuato l'accesso viene mandato al login invece di ricevere un errore 500.
+- Date, orari, conti alla rovescia ed errori dei form in italiano e in ora italiana su tutte le pagine (prima in inglese e in UTC).
 
 ## [0.4.1] - 2026-10-12
 

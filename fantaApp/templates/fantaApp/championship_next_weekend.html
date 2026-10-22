@@ -32,7 +32,7 @@
 
     {% if next_weekend.deadline %}
       <p class="border-b border-line bg-surface-2 px-5 py-2 text-sm">
-        La prima sessione scatta <strong>{{ next_weekend.deadline|date:"l j F · H:i" }}</strong>,
+        La prima sessione scatta <strong>{{ next_weekend.deadline|date:"l j F · H:i"|lower }}</strong>,
         fra {{ next_weekend.deadline|timeuntil }}: dopo il via quella scelta si blocca.
       </p>
     {% endif %}
@@ -84,7 +84,7 @@
             <div class="min-w-0 flex-1">
               <h3 class="truncate font-semibold">{{ item.weekend.event_name }}</h3>
               <p class="truncate text-xs text-muted">
-                {{ item.weekend.circuit.name }}{% if item.deadline %} · dal {{ item.deadline|date:"j M" }}{% endif %}
+                {{ item.weekend.circuit.name }}{% if item.deadline %} · dal {{ item.deadline|date:"j M"|lower }}{% endif %}
               </p>
             </div>
             {% if item.weekend.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}

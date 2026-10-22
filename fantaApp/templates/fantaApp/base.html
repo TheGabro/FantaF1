@@ -1,4 +1,6 @@
-{% load static %}
+{% load static i18n tz %}
+{# Il backend resta in inglese e in UTC: qui la pagina si mostra in italiano e in ora italiana (#91). #}
+{% language "it" %}{% timezone "Europe/Rome" %}
 <!doctype html>
 <html lang="it">
   <head>
@@ -93,3 +95,4 @@
     </footer>
   </body>
 </html>
+{% endtimezone %}{% endlanguage %}
