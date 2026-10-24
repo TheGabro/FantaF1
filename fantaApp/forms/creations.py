@@ -50,8 +50,6 @@ class CustomUserRegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # L'email serve per accedere: obbligatoria anche se il modello la ammette vuota.
-        self.fields["email"].required = True
         # Il testo d'aiuto (per la password, le regole) viene letto dagli screen reader.
         for name in ("username", "email", "password"):
             self.fields[name].widget.attrs["aria-describedby"] = f"id_{name}_help"
