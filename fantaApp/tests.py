@@ -5,10 +5,13 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings as django_settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.base import Message
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.template.loader import render_to_string
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -2044,3 +2047,56 @@ class LegacyUrlRedirectTests(TestCase):
         self.assertEqual(
             reverse("weekend_details", args=[7, 3]), "/championships/7/weekends/3/"
         )
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SiteHeaderTests(TestCase):
+    """#93: header e footer uguali ovunque, sezione aperta evidenziata, menu accessibili."""
+
+    def test_anonymous_visitor_sees_sections_and_login_links(self):
+        response = self.client.get(reverse("game"))
+
+        # Logo, menu e footer.
+        self.assertContains(response, f'href="{reverse("home")}"', count=3)
+        self.assertContains(
+            response,
+            f'<a href="{reverse("game")}" class="nav-link" aria-current="page">',
+        )
+        self.assertContains(response, f'href="{reverse("login")}"')
+        self.assertContains(response, f'href="{reverse("register")}"')
+        self.assertNotContains(response, 'id="user-menu"')
+        self.assertContains(response, 'aria-controls="nav-menu" aria-expanded="false"')
+
+    def test_logged_in_user_gets_the_user_menu_and_the_championships_section(self):
+        user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("user_dashboard"))
+
+        # Logo, menu e footer: il logo porta alla home del sito, non più ai campionati.
+        self.assertContains(response, f'href="{reverse("home")}"', count=3)
+        self.assertContains(
+            response,
+            f'<a href="{reverse("user_dashboard")}" class="nav-link" '
+            'aria-current="page">',
+        )
+        self.assertContains(response, 'aria-controls="user-menu" aria-expanded="false"')
+        self.assertContains(response, 'id="user-menu"')
+        self.assertContains(response, f'action="{reverse("logout")}"')
+        self.assertNotContains(response, f'href="{reverse("register")}"')
+
+    def test_toasts_are_announced_and_errors_are_alerts(self):
+        html = render_to_string(
+            "fantaApp/base.html",
+            {
+                "messages": [
+                    Message(messages.SUCCESS, "Scelta salvata"),
+                    Message(messages.ERROR, "Credito insufficiente"),
+                ]
+            },
+        )
+
+        self.assertIn('role="status" aria-live="polite"', html)
+        self.assertEqual(html.count('role="alert"'), 1)
