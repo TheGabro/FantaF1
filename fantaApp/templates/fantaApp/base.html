@@ -43,7 +43,6 @@
         <div class="flex items-center gap-2">
           {# Su mobile è il pannello aperto da #nav-toggle, da sm in su la barra sempre visibile. #}
           <div id="nav-menu" class="hidden absolute left-0 right-0 top-14 flex-col gap-1 border-b border-line bg-surface p-3 data-[open]:flex sm:static sm:flex sm:flex-row sm:items-center sm:gap-1 sm:border-0 sm:bg-transparent sm:p-0">
-            {# Le sezioni senza pagina (Account #96) si aggiungono con la loro issue. #}
             <a href="{% url 'home' %}" class="nav-link"{% if section == "" %} aria-current="page"{% endif %}>Home</a>
             <a href="{% url 'f1_drivers_standings' %}" class="nav-link"{% if section == "standings" %} aria-current="page"{% endif %}>Classifiche F1</a>
             <a href="{% url 'game' %}" class="nav-link"{% if section == "game" %} aria-current="page"{% endif %}>Il gioco</a>
@@ -61,6 +60,7 @@
                 {# Su mobile le voci stanno nel pannello, sotto il nome; da sm in su in un menu a tendina. #}
                 <p class="px-3 pb-1 text-xs text-muted sm:hidden">Connesso come <strong class="text-ink">{{ user.username }}</strong></p>
                 <div id="user-menu" class="flex flex-col gap-1 sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:hidden sm:w-56 sm:rounded-xl sm:border sm:border-line sm:bg-surface sm:p-2 sm:shadow-lg sm:data-[open]:flex">
+                  <a href="{% url 'account' %}" class="nav-link"{% if section == "account" %} aria-current="page"{% endif %}>Account</a>
                   {# Su mobile c'è già nel pannello, sopra. #}
                   <a href="{% url 'user_dashboard' %}" class="nav-link max-sm:hidden">I miei campionati</a>
                   <form method="post" action="{% url 'logout' %}" class="contents">

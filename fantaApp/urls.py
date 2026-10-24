@@ -2,6 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from fantaApp.views import auth, dashboard, invites, weekend
+from fantaApp.views.account import overview as account_overview
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.site import home, standings_drivers
 
@@ -16,6 +17,7 @@ urlpatterns = [
     path("auth/register/", auth.register, name="register"),
     path("auth/login/", auth.login, name="login"),
     path("auth/logout/", auth.logout, name="logout"),
+    path("account/", account_overview.overview, name="account"),
     path("championships/", dashboard.user_dashboard, name="user_dashboard"),
     path(
         "championships/create/",

@@ -1771,6 +1771,7 @@ class WeekendPagesFixture:
         c = self.championship.id
         rw, sw = self.regular_weekend.id, self.sprint_weekend.id
         return {
+            "account": [],
             "user_dashboard": [],
             "create_championship": [],
             "join_championship": [self.open_championship.id],
@@ -2333,3 +2334,30 @@ class AuthPagesTests(TestCase):
 
         for response in (unknown, wrong):
             self.assertContains(response, "Username, email o password non corretti.")
+@override_settings(STORAGES=TEST_STORAGES)
+class AccountOverviewTests(TestCase):
+    """#96: area account, panoramica raggiungibile dal menu utente."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="Pista-Monza-1922"
+        )
+
+    def test_requires_login(self):
+        url = reverse("account")
+
+        self.assertRedirects(self.client.get(url), f"{reverse('login')}?next={url}")
+
+    def test_shows_the_account_data_and_the_championships_link(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("account"))
+
+        self.assertContains(response, "pilota@example.com")
+        self.assertContains(response, "Non giochi ancora in nessun campionato.")
+        self.assertContains(response, f'href="{reverse("user_dashboard")}"')
+        # La voce Account del menu utente e quella del menu laterale sono evidenziate.
+        self.assertContains(
+            response,
+            f'<a href="{reverse("account")}" class="nav-link" aria-current="page">',
+        )
