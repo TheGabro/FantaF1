@@ -35,7 +35,7 @@
         <div class="min-w-0 flex-1">
           <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
           <p class="truncate text-sm text-muted">
-            {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y" }}{% endif %}
+            {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y"|lower }}{% endif %}
           </p>
         </div>
         {% if item.spent %}

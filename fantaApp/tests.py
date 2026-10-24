@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -1794,6 +1794,48 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
                     f"{reverse('login')}?next={url}",
                     fetch_redirect_response=False,
                 )
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ItalianDatesTests(WeekendPagesFixture, TestCase):
+    """Le pagine mostrano date in italiano e in ora italiana, il DB resta in UTC (#91)."""
+
+    def test_weekend_page_shows_italian_names_and_rome_time(self):
+        # Luglio: ora legale, Roma è UTC+2.
+        self.regular_weekend.qualifying_start = datetime(
+            2026, 7, 4, 13, 0, tzinfo=dt_timezone.utc
+        )
+        self.regular_weekend.race_start = datetime(
+            2026, 7, 5, 13, 0, tzinfo=dt_timezone.utc
+        )
+        self.regular_weekend.save()
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "weekend_details", args=[self.championship.id, self.regular_weekend.id]
+            )
+        )
+
+        self.assertContains(response, "5 luglio 2026")
+        self.assertContains(response, "Sab 4 Lug · 15:00")
+        self.assertContains(response, "Dom 5 Lug · 15:00")
+
+    def test_next_weekend_countdown_is_in_italian(self):
+        # La fixture fa partire il primo weekend fra 7 giorni.
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("championship_dashboard", args=[self.championship.id])
+        )
+
+        # timeuntil separa numero e unità con uno spazio non divisibile.
+        self.assertContains(response, "fra 6 giorni")
+
+    def test_form_errors_are_in_italian(self):
+        response = self.client.post(reverse("register"), {})
+
+        self.assertContains(response, "Questo campo è obbligatorio.")
 
 
 class EventProcessingServiceTests(TestCase):
