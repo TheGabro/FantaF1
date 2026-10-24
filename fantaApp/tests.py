@@ -1796,11 +1796,23 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     PUBLIC_PAGES = {"home", "game", "login", "register"}
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests).
     ACTIONS = {"logout", "invite_redeem", "invite_accept"}
+    # Indirizzi vecchi rimandati ai nuovi (#89): li prova LegacyUrlRedirectTests.
+    LEGACY_REDIRECTS = {
+        "legacy_user_dashboard",
+        "legacy_championship_dashboard",
+        "legacy_invite_accept",
+    }
 
     def test_every_route_is_covered(self):
         routes = {p.name for p in fanta_urls.urlpatterns}
 
-        self.assertEqual(routes, set(self.pages()) | self.PUBLIC_PAGES | self.ACTIONS)
+        self.assertEqual(
+            routes,
+            set(self.pages())
+            | self.PUBLIC_PAGES
+            | self.ACTIONS
+            | self.LEGACY_REDIRECTS,
+        )
 
     def test_public_pages_open_for_anonymous_users(self):
         for name in self.PUBLIC_PAGES:
@@ -2003,3 +2015,32 @@ class InsertSprintQualifyingResultTests(TestCase):
             with self.assertRaises(CommandError) as ctx:
                 self._run()
         self.assertEqual(ctx.exception.returncode, 3)
+
+
+class LegacyUrlRedirectTests(TestCase):
+    """#89: gli indirizzi vecchi rimasti in segnalibri e chat portano alle pagine nuove."""
+
+    def test_old_paths_redirect_to_the_new_ones(self):
+        cases = {
+            "/dashboard/account/": reverse("user_dashboard"),
+            "/dashboard/championships/7/": reverse("championship_dashboard", args=[7]),
+            "/campionati/invito/abc123/": reverse("invite_accept", args=["abc123"]),
+        }
+        for old, new in cases.items():
+            with self.subTest(old=old):
+                self.assertRedirects(
+                    self.client.get(old),
+                    new,
+                    status_code=301,
+                    fetch_redirect_response=False,
+                )
+
+    def test_new_paths_are_in_english(self):
+        self.assertEqual(reverse("user_dashboard"), "/championships/")
+        self.assertEqual(
+            reverse("championship_league_standings", args=[7]),
+            "/championships/7/standings/league/",
+        )
+        self.assertEqual(
+            reverse("weekend_details", args=[7, 3]), "/championships/7/weekends/3/"
+        )

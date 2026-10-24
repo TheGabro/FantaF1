@@ -8,6 +8,9 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Smoke test che apre ogni pagina del sito, da loggati e da anonimi; fallisce se si aggiunge una rotta senza coprirla.
 - Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
 
+### Changed
+- Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
+
 ### Fixed
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
 - `MAX_WAITING_ATTEMPTS` portato da 10 a 32.

@@ -49,7 +49,7 @@ del database in `frontend/dev_db.sqlite3` (creata al primo avvio, ignorata da gi
 ## Mappa del sito e URL
 
 FantaF1 è un sito di Formula 1 in cui il gioco è una delle sezioni. Nella colonna *Stato*: **c'è** = la pagina
-esiste già (con #89 cambia solo l'indirizzo), **nuova** = da fare nell'issue indicata, **futura** = più avanti.
+esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'issue indicata, **futura** = più avanti.
 
 | Sezione | Pagina | URL | Nome URL | Stato |
 |---|---|---|---|---|
@@ -65,7 +65,7 @@ esiste già (con #89 cambia solo l'indirizzo), **nuova** = da fare nell'issue in
 | | Dati personali | `/account/profile/` | `account_profile` | nuova (#97) |
 | | Sicurezza (password) | `/account/security/` | `account_security` | nuova (#98) |
 | | Dati e privacy | `/account/privacy/` | `account_privacy` | futura (#106) |
-| I miei campionati | Campionati in corso | `/championships/` | `user_dashboard` | c'è, oggi su `/dashboard/account/` |
+| I miei campionati | Campionati in corso | `/championships/` | `user_dashboard` | c'è |
 | | Cerca un campionato | `/championships/search/` | `championship_search` | nuova (#72) |
 | | Archivio | `/championships/archive/` | `championship_archive` | nuova (#100) |
 | | Crea un campionato | `/championships/create/` | `create_championship` | c'è |
@@ -87,6 +87,9 @@ Regole per gli URL:
 - percorsi in inglese, minuscoli, parole separate da trattino, barra finale;
 - il nome dell'URL (`name=`) non cambia quando cambia il percorso: template e test usano solo i nomi
   (`{% url %}`, `reverse()`);
+- gli indirizzi vecchi che possono stare in segnalibri e chat (`/dashboard/account/`,
+  `/dashboard/championships/<id>/`, `/campionati/invito/<token>/`) rimandano a quelli nuovi con un redirect
+  permanente (`legacy_…` in `fantaApp/urls.py`);
 - ogni pagina nuova va aggiunta allo smoke test (`PageSmokeTests` in `fantaApp/tests.py`), che altrimenti fallisce.
 
 ## Organizzazione delle view
