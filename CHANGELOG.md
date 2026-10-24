@@ -16,7 +16,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.
 
 ### Fixed
-- Iscrizione: le regole della password (lunghezza minima, password comuni, solo numeri, troppo simile ai dati dell'account) vengono applicate davvero; prima erano solo configurate. L'email è obbligatoria.
+- Iscrizione: le regole della password (lunghezza minima, password comuni, solo numeri, troppo simile ai dati dell'account) vengono applicate davvero; prima erano solo configurate.
 - Accesso: un solo messaggio per utente inesistente e password errata, così la pagina non rivela quali account esistono.
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
 - `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
