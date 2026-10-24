@@ -1,9 +1,11 @@
 from django.urls import path
 
 from fantaApp.views import auth, dashboard, general, invites, weekend
+from fantaApp.views.game import landing as game_landing
 
 urlpatterns = [
     path("", general.home, name="home"),
+    path("game/", game_landing.landing, name="game"),
     path("auth/register", auth.register, name="register"),
     path("auth/login/", auth.login, name="login"),
     path("auth/logout/", auth.logout, name="logout"),

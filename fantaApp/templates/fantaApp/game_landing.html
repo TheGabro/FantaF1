@@ -6,7 +6,7 @@
 <section class="py-10 sm:py-16">
   <p class="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
 
-  {# Vetrina per i soli utenti anonimi: chi e' autenticato viene mandato in dashboard dalla view. #}
+  {# Su /game/ la vedono tutti; su / solo chi non è autenticato, gli altri vanno in dashboard. #}
   <h1 class="max-w-2xl text-4xl font-black uppercase italic leading-tight sm:text-5xl">
     Sfida i tuoi amici<br />a ogni <span class="text-accent">weekend di gara</span>
   </h1>
@@ -14,6 +14,17 @@
     Gestisci i tuoi crediti, scegli i piloti giusti dalla griglia, pronostica le qualifiche
     e conquista la vetta del tuo campionato Fanta F1.
   </p>
+  {% if user.is_authenticated %}
+  <div class="card-pad mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2 class="text-xl font-black uppercase italic">Bentornato, {{ user.username }}</h2>
+      <p class="mt-2 text-sm text-muted">
+        I tuoi campionati e le scelte del prossimo weekend sono dove li hai lasciati.
+      </p>
+    </div>
+    <a href="{% url 'user_dashboard' %}" class="btn-primary shrink-0 py-3 text-base">I miei campionati</a>
+  </div>
+  {% else %}
   <div class="mt-8 grid gap-4 sm:grid-cols-2">
     <div class="card-pad flex flex-col">
       <span class="badge-accent w-fit">Nuovo giocatore</span>
@@ -61,6 +72,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </section>
 
 <h2 class="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-muted">Come funziona</h2>

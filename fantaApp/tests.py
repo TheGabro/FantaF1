@@ -1203,6 +1203,37 @@ class LoginNextRedirectTests(TestCase):
         self.assertRedirects(response, f"{reverse('login')}?next={target}")
 
 
+@override_settings(STORAGES=TEST_STORAGES)
+class GameLandingTests(TestCase):
+    """/game/ presenta il gioco a tutti; i pulsanti dipendono dal login (#90)."""
+
+    def test_anonymous_visitor_sees_sign_up_and_login_cards(self):
+        response = self.client.get(reverse("game"))
+
+        self.assertContains(response, "Inizia a giocare")
+        self.assertContains(response, "Bentornato in griglia")
+        self.assertNotContains(response, "Bentornato, ")
+
+    def test_logged_in_user_sees_link_to_championships_instead_of_cards(self):
+        user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("game"))
+
+        self.assertContains(response, "Bentornato, pilota")
+        self.assertContains(response, f'href="{reverse("user_dashboard")}"')
+        self.assertNotContains(response, "Inizia a giocare")
+        self.assertNotContains(response, "Bentornato in griglia")
+
+    def test_home_still_shows_the_game_landing_to_anonymous_visitors(self):
+        # Finché non arriva la home del sito (#92) / non cambia.
+        response = self.client.get(reverse("home"))
+
+        self.assertTemplateUsed(response, "fantaApp/game_landing.html")
+
+
 class RaceResultsLoginRequiredTests(TestCase):
     """#51: le pagine dei risultati gara chiedono il login come le altre del weekend."""
 
@@ -1762,7 +1793,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     """Rete di sicurezza per i refactoring (#53): ogni rotta si apre senza errori."""
 
     # Pagine aperte anche senza login.
-    PUBLIC_PAGES = {"home", "login", "register"}
+    PUBLIC_PAGES = {"home", "game", "login", "register"}
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests).
     ACTIONS = {"logout", "invite_redeem", "invite_accept"}
 
@@ -1784,6 +1815,12 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
                 self.assertEqual(
                     self.client.get(reverse(name, args=args)).status_code, 200
                 )
+
+    def test_game_page_opens_for_a_logged_in_user(self):
+        # A differenza di home, /game/ non rimanda alla dashboard chi è autenticato.
+        self.client.force_login(self.user)
+
+        self.assertEqual(self.client.get(reverse("game")).status_code, 200)
 
     def test_protected_pages_redirect_anonymous_users_to_login(self):
         for name, args in self.pages().items():
