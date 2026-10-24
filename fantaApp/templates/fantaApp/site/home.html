@@ -1,0 +1,135 @@
+{% extends 'fantaApp/base.html' %}
+
+{% block title %}Fanta F1 — Formula 1 e fantagioco tra amici{% endblock %}
+
+{% block content %}
+{# Banner del gioco: una riga e il pulsante per /game/. #}
+<section class="card-pad mb-8 flex flex-col gap-4 border-accent/40 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
+    <p class="mt-1 font-semibold">Sfida i tuoi amici: scegli i piloti a ogni weekend di gara e scala la classifica del tuo campionato.</p>
+  </div>
+  <div class="flex shrink-0 gap-2">
+    {% if user.is_authenticated %}
+      <a href="{% url 'user_dashboard' %}" class="btn-secondary">I miei campionati</a>
+    {% endif %}
+    <a href="{% url 'game' %}" class="btn-primary">Scopri il gioco</a>
+  </div>
+</section>
+
+<div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+  <div>
+    <p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">Formula 1</p>
+    <h1 class="text-3xl font-black uppercase italic sm:text-4xl">{% if season %}Stagione {{ season }}{% else %}Stagione F1{% endif %}</h1>
+  </div>
+  {% if season %}
+    <a href="https://www.formula1.com/en/racing/{{ season }}" target="_blank" rel="noopener" class="btn-ghost -ml-4 text-sm sm:ml-0 sm:-mr-2">Calendario ufficiale ↗</a>
+  {% endif %}
+</div>
+
+<div class="grid items-start gap-6 lg:grid-cols-3">
+  {# Prossimo Gran Premio #}
+  <section class="lg:col-span-2" aria-labelledby="next-gp-title">
+    {% if next_weekend %}
+      {% with w=next_weekend.weekend %}
+      <div class="card-pad">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="badge-accent">Prossimo Gran Premio</span>
+          <span class="badge-muted">Round {{ w.round_number }}</span>
+          {% if w.weekend_type == "sprint" %}<span class="badge-warn">Weekend sprint</span>{% endif %}
+        </div>
+        <h2 id="next-gp-title" class="mt-3 text-2xl font-black uppercase italic">{{ w.event_name }}</h2>
+        <p class="text-sm text-muted">{{ w.circuit.name }} · {{ w.circuit.location }}, {{ w.circuit.country }}</p>
+        {% if next_weekend.sessions %}
+          <dl class="mt-4 grid max-w-xl gap-y-2 text-sm">
+            {% for s in next_weekend.sessions %}
+              <div class="flex justify-between gap-3 border-b border-line pb-2">
+                <dt class="{% if s.label == 'Gran Premio' %}font-bold{% else %}text-muted{% endif %}">{{ s.label }}</dt>
+                <dd class="font-semibold">{{ s.start|date:"D j M · H:i" }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
+        {% else %}
+          <p class="mt-4 text-sm text-muted">Gli orari delle sessioni non sono ancora disponibili.</p>
+        {% endif %}
+      </div>
+      {% endwith %}
+    {% elif season %}
+      <div class="card-pad">
+        <h2 id="next-gp-title" class="font-bold">La stagione {{ season }} è conclusa</h2>
+        <p class="mt-1 text-sm text-muted">Il calendario della prossima stagione comparirà qui appena disponibile.</p>
+      </div>
+    {% else %}
+      <div class="card-pad">
+        <h2 id="next-gp-title" class="font-bold">Calendario non ancora disponibile</h2>
+        <p class="mt-1 text-sm text-muted">Il programma della stagione comparirà qui appena disponibile.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <div class="flex flex-col gap-6">
+    <section class="card-pad" aria-labelledby="standings-title">
+      <h2 id="standings-title" class="text-sm font-bold uppercase tracking-wide text-muted">Classifiche F1</h2>
+      <div class="mt-3 flex flex-col gap-2">
+        <a href="{% url 'f1_drivers_standings' %}" class="btn-secondary justify-between">Classifica piloti <span aria-hidden="true">→</span></a>
+        {# Finché il backend non importa la classifica costruttori (#104) si rimanda a formula1.com. #}
+        <a href="https://www.formula1.com/en/results/{{ season|default:'' }}{% if season %}/team{% endif %}" target="_blank" rel="noopener" class="btn-secondary justify-between">Classifica costruttori <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section class="card-pad" aria-labelledby="news-title">
+      <h2 id="news-title" class="text-sm font-bold uppercase tracking-wide text-muted">News</h2>
+      <p class="mt-2 text-sm text-muted">In arrivo: notizie e commenti sui weekend di gara.</p>
+    </section>
+  </div>
+</div>
+
+{% if upcoming|length > 1 %}
+<section class="mt-10" aria-labelledby="programme-title">
+  <h2 id="programme-title" class="mb-4 text-sm font-bold uppercase tracking-wide text-muted">Programma della stagione</h2>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for item in upcoming %}
+      {% if not forloop.first %}
+        {% with w=item.weekend %}
+        <article class="card p-4">
+          <div class="flex items-start gap-3">
+            <span class="pos-badge shrink-0 !h-10 !w-10 text-sm">R{{ w.round_number }}</span>
+            <div class="min-w-0 flex-1">
+              <h3 class="font-bold leading-tight">{{ w.event_name }}</h3>
+              <p class="truncate text-xs text-muted">{{ w.circuit.name }}</p>
+            </div>
+            {% if w.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
+          </div>
+          {% if item.sessions %}
+            <dl class="mt-3 space-y-1 text-xs">
+              {% for s in item.sessions %}
+                <div class="flex justify-between gap-3">
+                  <dt class="{% if s.label == 'Gran Premio' %}font-bold{% else %}text-muted{% endif %}">{{ s.label }}</dt>
+                  <dd>{{ s.start|date:"D j M · H:i" }}</dd>
+                </div>
+              {% endfor %}
+            </dl>
+          {% endif %}
+        </article>
+        {% endwith %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if past %}
+<details class="mt-8">
+  <summary class="cursor-pointer text-sm font-bold uppercase tracking-wide text-muted hover:text-ink">Weekend già corsi ({{ past|length }})</summary>
+  <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    {% for item in past %}
+      <li class="flex items-center gap-3 rounded-lg border border-line px-3 py-2 text-sm">
+        <span class="pos-badge shrink-0">R{{ item.weekend.round_number }}</span>
+        <span class="min-w-0 flex-1 truncate">{{ item.weekend.event_name }}</span>
+        {% if item.weekend.race_start %}<span class="shrink-0 text-xs text-muted">{{ item.weekend.race_start|date:"j M"|lower }}</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% endblock %}

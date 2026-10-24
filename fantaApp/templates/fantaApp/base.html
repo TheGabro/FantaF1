@@ -34,7 +34,7 @@
     {% nav_section as section %}
     <header class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
       <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Menu principale">
-        {# Il logo porta sempre alla home del sito; finché non arriva la home nuova (#92) / rimanda chi è autenticato ai suoi campionati. #}
+        {# Il logo porta sempre alla home del sito, anche chi è autenticato (#92). #}
         <a href="{% url 'home' %}"
            class="flex items-center gap-2 text-lg font-black uppercase italic tracking-tight">
           Fanta<span class="text-accent">F1</span>
