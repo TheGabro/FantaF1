@@ -54,7 +54,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | Sezione | Pagina | URL | Nome URL | Stato |
 |---|---|---|---|---|
 | Sito | Home: stagione F1, classifiche, news, banner del gioco | `/` | `home` | nuova (#92) |
-| | Classifica piloti F1 | `/standings/drivers/` | `f1_drivers_standings` | nuova (#95) |
+| | Classifica piloti F1 | `/standings/drivers/` | `f1_drivers_standings` | c'è |
 | | Classifica costruttori F1 | `/standings/constructors/` | `f1_constructors_standings` | futura (#104) |
 | | News | `/news/`, `/news/<slug>/` | `news_list`, `news_detail` | futura (#111) |
 | | Chi siamo, privacy, termini, supportaci | `/about/`, `/privacy/`, `/terms/`, `/support/` | `about`, `privacy`, `terms`, `support` | futura (#107–#110) |

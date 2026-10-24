@@ -33,6 +33,7 @@ from .models import (
     ChampionshipPlayer,
     Circuit,
     Driver,
+    DriverStanding,
     EventProcessingStatus,
     League,
     PlayerQualifyingChoice,
@@ -1796,7 +1797,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     """Rete di sicurezza per i refactoring (#53): ogni rotta si apre senza errori."""
 
     # Pagine aperte anche senza login.
-    PUBLIC_PAGES = {"home", "game", "login", "register"}
+    PUBLIC_PAGES = {"home", "game", "f1_drivers_standings", "login", "register"}
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests).
     ACTIONS = {"logout", "invite_redeem", "invite_accept"}
     # Indirizzi vecchi rimandati ai nuovi (#89): li prova LegacyUrlRedirectTests.
@@ -2100,3 +2101,86 @@ class SiteHeaderTests(TestCase):
 
         self.assertIn('role="status" aria-live="polite"', html)
         self.assertEqual(html.count('role="alert"'), 1)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DriversStandingsTests(TestCase):
+    """#95: classifica piloti F1 dopo l'ultimo round importato, aperta a tutti."""
+
+    def setUp(self):
+        circuit = Circuit.objects.create(
+            name="Suzuka", country="Japan", location="Suzuka", api_id="suzuka"
+        )
+        self.round_1 = Weekend.objects.create(
+            circuit=circuit,
+            event_name="Australian Grand Prix",
+            round_number=1,
+            season=2026,
+        )
+        self.round_2 = Weekend.objects.create(
+            circuit=circuit,
+            event_name="Japanese Grand Prix",
+            round_number=2,
+            season=2026,
+        )
+        self.ferrari = Team.objects.create(
+            name="Ferrari", short_name="FER", api_id="ferrari", nationality="Italian"
+        )
+        self.mclaren = Team.objects.create(
+            name="McLaren", short_name="MCL", api_id="mclaren", nationality="British"
+        )
+        self.leclerc = Driver.objects.create(
+            first_name="Charles",
+            last_name="Leclerc",
+            short_name="LEC",
+            team=self.ferrari,
+            season=2026,
+            api_id="leclerc",
+        )
+        self.norris = Driver.objects.create(
+            first_name="Lando",
+            last_name="Norris",
+            short_name="NOR",
+            team=self.mclaren,
+            season=2026,
+            api_id="norris",
+        )
+
+    def test_shows_a_message_when_there_are_no_standings_yet(self):
+        response = self.client.get(reverse("f1_drivers_standings"))
+
+        self.assertContains(response, "La classifica non è ancora disponibile")
+
+    def test_shows_the_latest_round_in_position_order(self):
+        DriverStanding.objects.create(
+            weekend=self.round_1, driver=self.leclerc, position=1, points=25, wins=1
+        )
+        DriverStanding.objects.create(
+            weekend=self.round_2, driver=self.norris, position=1, points=43, wins=1
+        )
+        DriverStanding.objects.create(
+            weekend=self.round_2, driver=self.leclerc, position=2, points=37, wins=1
+        )
+
+        response = self.client.get(reverse("f1_drivers_standings"))
+
+        self.assertContains(response, "Dopo il round 2 · Japanese Grand Prix")
+        self.assertEqual(
+            [row["driver"] for row in response.context["rows"]],
+            [self.norris, self.leclerc],
+        )
+        self.assertNotContains(response, ">25<")
+
+    def test_team_is_the_one_of_that_weekend(self):
+        # Pilota passato in McLaren: la riga segue il roster del weekend, non Driver.team.
+        WeekendParticipant.objects.create(
+            weekend=self.round_2, driver=self.leclerc, team=self.mclaren
+        )
+        DriverStanding.objects.create(
+            weekend=self.round_2, driver=self.leclerc, position=1, points=25, wins=1
+        )
+
+        response = self.client.get(reverse("f1_drivers_standings"))
+
+        self.assertEqual(response.context["rows"][0]["team"], self.mclaren)
+        self.assertContains(response, 'class="team-mcl"')
