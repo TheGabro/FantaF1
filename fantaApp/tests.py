@@ -1773,6 +1773,7 @@ class WeekendPagesFixture:
         return {
             "account": [],
             "account_profile": [],
+            "account_security": [],
             "user_dashboard": [],
             "create_championship": [],
             "join_championship": [self.open_championship.id],
@@ -2423,3 +2424,42 @@ class AccountPersonalDataTests(TestCase):
 
         self.assertContains(response, "pilota@example.com")
         self.assertNotContains(response, 'name="email"')
+@override_settings(STORAGES=TEST_STORAGES)
+class AccountChangePasswordTests(TestCase):
+    """#98: Account → Sicurezza, cambio password restando collegati."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="Pista-Monza-1922"
+        )
+        self.client.force_login(self.user)
+
+    def _change(self, old, new1, new2=None):
+        return self.client.post(
+            reverse("account_security"),
+            {"old_password": old, "new_password1": new1, "new_password2": new2 or new1},
+            follow=True,
+        )
+
+    def test_success_keeps_the_user_logged_in(self):
+        response = self._change("Pista-Monza-1922", "Curva-Parabolica-71")
+
+        self.assertContains(response, "Password cambiata.")
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Curva-Parabolica-71"))
+        # Ancora dentro: la pagina dell'account si apre senza passare dal login.
+        self.assertEqual(self.client.get(reverse("account")).status_code, 200)
+
+    def test_wrong_current_password_is_an_error(self):
+        response = self._change("sbagliata", "Curva-Parabolica-71")
+
+        self.assertContains(response, "La password attuale non è corretta.")
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Pista-Monza-1922"))
+
+    def test_rules_and_errors_are_in_italian(self):
+        page = self.client.get(reverse("account_security"))
+        self.assertContains(page, "La tua password deve contenere almeno 8 caratteri.")
+
+        response = self._change("Pista-Monza-1922", "password123")
+        self.assertContains(response, "Questa password è troppo comune.")

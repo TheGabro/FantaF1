@@ -4,6 +4,7 @@ from django.views.generic import RedirectView
 from fantaApp.views import auth, dashboard, invites, weekend
 from fantaApp.views.account import overview as account_overview
 from fantaApp.views.account import profile as account_profile
+from fantaApp.views.account import security as account_security
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.site import home, standings_drivers
 
@@ -20,6 +21,7 @@ urlpatterns = [
     path("auth/logout/", auth.logout, name="logout"),
     path("account/", account_overview.overview, name="account"),
     path("account/profile/", account_profile.profile, name="account_profile"),
+    path("account/security/", account_security.security, name="account_security"),
     path("championships/", dashboard.user_dashboard, name="user_dashboard"),
     path(
         "championships/create/",
