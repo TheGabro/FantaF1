@@ -9,6 +9,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
 - Classifica piloti F1 su `/standings/drivers/`, aperta a tutti: posizione, pilota, scuderia del weekend, vittorie e punti dopo l'ultimo round importato. Raggiungibile da header e footer.
 - Home del sito su `/`, aperta a tutti: banner del gioco, prossimo Gran Premio con gli orari delle sessioni, programma della stagione (i weekend già corsi sono raccolti a parte), link alle classifiche F1 e spazio per le news. Chi ha fatto l'accesso non viene più rimandato ai suoi campionati.
+- Area account su `/account/` (voce «Account» nel menu utente): panoramica con username, email, data di iscrizione e link ai propri campionati. Menu laterale su desktop, in alto su mobile.
 
 ### Changed
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.

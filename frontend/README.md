@@ -61,7 +61,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | Il gioco | Presentazione del gioco | `/game/` | `game` | c'è, oggi su `/` (#90) |
 | | Regolamento | `/game/rules/` | `game_rules` | c'è, oggi nella scheda Info (#81) |
 | Accesso | Accedi, registrati, esci | `/auth/login/`, `/auth/register/`, `/auth/logout/` | `login`, `register`, `logout` | c'è |
-| Account | Panoramica | `/account/` | `account` | nuova (#96) |
+| Account | Panoramica | `/account/` | `account` | c'è |
 | | Dati personali | `/account/profile/` | `account_profile` | nuova (#97) |
 | | Sicurezza (password) | `/account/security/` | `account_security` | nuova (#98) |
 | | Dati e privacy | `/account/privacy/` | `account_privacy` | futura (#106) |
