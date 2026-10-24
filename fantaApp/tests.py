@@ -1772,6 +1772,7 @@ class WeekendPagesFixture:
         rw, sw = self.regular_weekend.id, self.sprint_weekend.id
         return {
             "account": [],
+            "account_profile": [],
             "user_dashboard": [],
             "create_championship": [],
             "join_championship": [self.open_championship.id],
@@ -2361,3 +2362,64 @@ class AccountOverviewTests(TestCase):
             response,
             f'<a href="{reverse("account")}" class="nav-link" aria-current="page">',
         )
+@override_settings(STORAGES=TEST_STORAGES)
+class AccountPersonalDataTests(TestCase):
+    """#97: Account → Dati personali, username, nome e cognome."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="Pista-Monza-1922"
+        )
+        get_user_model().objects.create_user(
+            username="occupato",
+            email="occupato@example.com",
+            password="Pista-Monza-1922",
+        )
+        self.client.force_login(self.user)
+
+    def _save(self, **data):
+        return self.client.post(
+            reverse("account_profile"),
+            {"username": "pilota", "first_name": "", "last_name": "", **data},
+            follow=True,
+        )
+
+    def test_saves_the_data_with_a_confirmation(self):
+        response = self._save(
+            username="pilota-nuovo", first_name="Ada", last_name="Rossi"
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(
+            (self.user.username, self.user.first_name, self.user.last_name),
+            ("pilota-nuovo", "Ada", "Rossi"),
+        )
+        self.assertContains(response, "Dati personali salvati.")
+
+    def test_username_already_taken_is_rejected_in_italian(self):
+        response = self._save(username="occupato")
+
+        self.assertContains(response, "Questo username è già in uso.")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, "pilota")
+
+    def test_player_names_in_championships_do_not_change(self):
+        championship = Championship.objects.create(name="Coppa", year=2026)
+        league = League.objects.create(championship=championship, name="Lega")
+        player = ChampionshipPlayer.objects.create(
+            user=self.user,
+            championship=championship,
+            league=league,
+            player_name="Pilota",
+        )
+
+        self._save(username="pilota-nuovo")
+
+        player.refresh_from_db()
+        self.assertEqual(player.player_name, "Pilota")
+
+    def test_email_is_shown_but_not_editable(self):
+        response = self.client.get(reverse("account_profile"))
+
+        self.assertContains(response, "pilota@example.com")
+        self.assertNotContains(response, 'name="email"')
