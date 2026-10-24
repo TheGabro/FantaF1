@@ -3,30 +3,38 @@
 {% block title %}Registrati — Fanta F1{% endblock %}
 
 {% block content %}
-<div class="mx-auto mt-8 w-full max-w-sm sm:mt-16">
-  <div class="card-pad">
-    <h1 class="text-xl font-black uppercase italic">Registrati</h1>
-    <p class="mt-1 mb-5 text-sm text-muted">Crea il tuo account e inizia a giocare.</p>
+<div class="mx-auto mt-6 w-full max-w-md sm:mt-12">
+  <div class="card-pad sm:p-8">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
+    <h1 class="mt-1 text-2xl font-black uppercase italic">Crea il tuo account</h1>
+    <p class="mt-1 mb-6 text-sm text-muted">Un solo account per tutti i campionati a cui ti iscrivi.</p>
 
     {% if form_register.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent" role="alert">
         {% for error in form_register.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
 
-    <form method="post" class="space-y-4">
+    <form method="post" class="space-y-4" novalidate>
       {% csrf_token %}
-      {# Destinazione di ritorno (es. un invito): viene ripassata al login dopo la registrazione. #}
+      {# Destinazione di ritorno (es. un invito): dopo l'iscrizione si entra e si va lì. #}
       {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
       {% for field in form_register %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
           {{ field.errors }}
-          {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+          {% if field.name == "password" %}
+            {# Regole dei validatori di Django: visibili prima di inviare il form. #}
+            <ul id="id_password_help" class="helptext">
+              {% for rule in password_rules %}<li>{{ rule }}</li>{% endfor %}
+            </ul>
+          {% elif field.help_text %}
+            <span id="{{ field.auto_id }}_help" class="helptext">{{ field.help_text }}</span>
+          {% endif %}
         </div>
       {% endfor %}
-      <button type="submit" class="btn-primary w-full">Crea account</button>
+      <button type="submit" class="btn-primary w-full py-3">Crea account</button>
     </form>
   </div>
 

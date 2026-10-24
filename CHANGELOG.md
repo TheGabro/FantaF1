@@ -13,8 +13,11 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Changed
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
 - Header e footer uguali su tutto il sito: il logo porta sempre alla home, menu Home · Il gioco · I miei campionati con la sezione aperta evidenziata, menu utente con Esci. Menu accessibili da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
+- Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.
 
 ### Fixed
+- Iscrizione: le regole della password (lunghezza minima, password comuni, solo numeri, troppo simile ai dati dell'account) vengono applicate davvero; prima erano solo configurate. L'email è obbligatoria.
+- Accesso: un solo messaggio per utente inesistente e password errata, così la pagina non rivela quali account esistono.
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
 - `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
 - Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.

@@ -3,8 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme, urlencode
+from django.utils.http import url_has_allowed_host_and_scheme
 from ..forms import creations
 
 
@@ -26,14 +25,6 @@ def safe_next_url(request):
     return None
 
 
-def _with_next(url_name, next_url):
-    """Rotta con il ?next= riagganciato, per non perderlo passando fra login e registrazione."""
-    url = reverse(url_name)
-    if next_url:
-        url = f"{url}?{urlencode({'next': next_url})}"
-    return url
-
-
 @login_required
 def logout(request):
     auth_logout(request)
@@ -46,11 +37,16 @@ def register(request):
     if request.method == "POST":
         form_register = creations.CustomUserRegistrationForm(request.POST)
         if form_register.is_valid():
-            form_register.save()
-            messages.success(request, "Account creato: accedi per iniziare.")
-            # La registrazione non autentica: si passa dal login portandosi
-            # dietro next, altrimenti chi arriva da un invito lo perde qui.
-            return redirect(_with_next("login", next_url))
+            user = form_register.save()
+            # Si entra subito, senza ripassare dal login: chi arriva da un invito
+            # torna all'invito (next), gli altri vanno ai loro campionati.
+            auth_login(
+                request, user, backend="django.contrib.auth.backends.ModelBackend"
+            )
+            messages.success(
+                request, f"Benvenuto, {user.username}: il tuo account è pronto."
+            )
+            return redirect(next_url or "user_dashboard")
     else:
         form_register = creations.CustomUserRegistrationForm()
 
@@ -59,6 +55,7 @@ def register(request):
         "fantaApp/register.html",
         {
             "form_register": form_register,
+            "password_rules": creations.password_rules(),
             "next": next_url,
         },
     )
