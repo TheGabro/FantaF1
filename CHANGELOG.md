@@ -10,6 +10,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ### Changed
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
+- Header e footer uguali su tutto il sito: il logo porta sempre alla home, menu Home · Il gioco · I miei campionati con la sezione aperta evidenziata, menu utente con Esci. Menu accessibili da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
 
 ### Fixed
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
