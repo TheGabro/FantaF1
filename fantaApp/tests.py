@@ -1193,20 +1193,25 @@ class LoginNextRedirectTests(TestCase):
 
         self.assertRedirects(response, reverse("user_dashboard"))
 
-    def test_register_carries_next_to_the_login_page(self):
-        target = reverse("user_dashboard")
+    def test_register_logs_in_and_returns_to_next(self):
+        # #94: dopo l'iscrizione si entra subito e si torna a next (es. un invito).
+        target = reverse("create_championship")
         response = self.client.post(
             reverse("register"),
             {
                 "username": "brand-new",
                 "email": "brand-new@example.com",
-                "password": "password123",
-                "password2": "password123",
+                "password": "Pista-Monza-1922",
+                "password2": "Pista-Monza-1922",
                 "next": target,
             },
         )
 
-        self.assertRedirects(response, f"{reverse('login')}?next={target}")
+        self.assertRedirects(response, target)
+        self.assertEqual(
+            int(self.client.session["_auth_user_id"]),
+            get_user_model().objects.get(username="brand-new").pk,
+        )
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -2272,3 +2277,59 @@ class SiteHomeTests(TestCase):
             self.client.get(reverse("home"))
 
         self.assertEqual(len(many), len(few))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AuthPagesTests(TestCase):
+    """#94: iscrizione e accesso, testi e regole in italiano."""
+
+    def _register(self, **overrides):
+        data = {
+            "username": "nuovo",
+            "email": "nuovo@example.com",
+            "password": "Pista-Monza-1922",
+            "password2": "Pista-Monza-1922",
+            **overrides,
+        }
+        return self.client.post(reverse("register"), data)
+
+    def test_sign_up_page_shows_the_password_rules_in_italian(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(
+            response, "La tua password deve contenere almeno 8 caratteri."
+        )
+        self.assertContains(response, 'aria-describedby="id_password_help"')
+
+    def test_sign_up_logs_in_and_lands_on_my_championships(self):
+        response = self._register()
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+        self.assertIn("_auth_user_id", self.client.session)
+
+    def test_weak_passwords_are_rejected_in_italian(self):
+        response = self._register(password="password123", password2="password123")
+
+        self.assertContains(response, "Questa password è troppo comune.")
+        self.assertFalse(get_user_model().objects.filter(username="nuovo").exists())
+
+    def test_email_is_required(self):
+        response = self._register(email="")
+
+        self.assertContains(response, "Questo campo è obbligatorio.")
+        self.assertFalse(get_user_model().objects.filter(username="nuovo").exists())
+
+    def test_login_error_does_not_reveal_whether_the_user_exists(self):
+        get_user_model().objects.create_user(
+            username="esiste", email="esiste@example.com", password="Pista-Monza-1922"
+        )
+
+        unknown = self.client.post(
+            reverse("login"), {"identifier": "nessuno", "password": "x"}
+        )
+        wrong = self.client.post(
+            reverse("login"), {"identifier": "esiste", "password": "sbagliata"}
+        )
+
+        for response in (unknown, wrong):
+            self.assertContains(response, "Username, email o password non corretti.")
