@@ -1,0 +1,31 @@
+{% extends 'fantaApp/account/base.html' %}
+
+{% block title %}Dati personali — Account — Fanta F1{% endblock %}
+
+{% block account_content %}
+<section class="card-pad" aria-labelledby="profile-title">
+  <h2 id="profile-title" class="text-sm font-bold uppercase tracking-wide text-muted">Dati personali</h2>
+  <p class="mt-1 text-sm text-muted">Ti chiediamo solo quello che serve al gioco: nome e cognome sono facoltativi.</p>
+
+  <form method="post" class="mt-5 max-w-lg space-y-4" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+        {% if field.help_text %}<span id="{{ field.auto_id }}_help" class="helptext">{{ field.help_text }}</span>{% endif %}
+      </div>
+    {% endfor %}
+
+    {# L'email si vede ma non si cambia: serve prima la conferma via email (#105). #}
+    <div class="form-field">
+      <span class="mb-1 block text-sm font-semibold">Email</span>
+      <p class="text-sm font-semibold break-all">{{ user.email }}</p>
+      <span class="helptext">Per ora l'email non si può cambiare da qui.</span>
+    </div>
+
+    <button type="submit" class="btn-primary">Salva</button>
+  </form>
+</section>
+{% endblock %}
