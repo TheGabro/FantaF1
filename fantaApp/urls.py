@@ -3,9 +3,15 @@ from django.views.generic import RedirectView
 
 from fantaApp.views import auth, dashboard, general, invites, weekend
 from fantaApp.views.game import landing as game_landing
+from fantaApp.views.site import standings_drivers
 
 urlpatterns = [
     path("", general.home, name="home"),
+    path(
+        "standings/drivers/",
+        standings_drivers.standings_drivers,
+        name="f1_drivers_standings",
+    ),
     path("game/", game_landing.landing, name="game"),
     path("auth/register/", auth.register, name="register"),
     path("auth/login/", auth.login, name="login"),

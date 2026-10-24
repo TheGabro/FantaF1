@@ -7,6 +7,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Added
 - Smoke test che apre ogni pagina del sito, da loggati e da anonimi; fallisce se si aggiunge una rotta senza coprirla.
 - Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
+- Classifica piloti F1 su `/standings/drivers/`, aperta a tutti: posizione, pilota, scuderia del weekend, vittorie e punti dopo l'ultimo round importato. Raggiungibile da header e footer.
 
 ### Changed
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.

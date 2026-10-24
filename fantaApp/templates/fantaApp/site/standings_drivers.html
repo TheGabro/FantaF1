@@ -1,0 +1,48 @@
+{% extends 'fantaApp/base.html' %}
+
+{% block title %}Classifica piloti F1 — Fanta F1{% endblock %}
+
+{% block content %}
+<p class="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-accent">Formula 1{% if weekend %} · Stagione {{ weekend.season }}{% endif %}</p>
+<h1 class="text-3xl font-black uppercase italic sm:text-4xl">Classifica piloti</h1>
+
+{% if weekend %}
+  <p class="mt-2 text-sm text-muted">Dopo il round {{ weekend.round_number }} · {{ weekend.event_name }}</p>
+
+  <div class="card mt-6 overflow-x-auto">
+    <table class="table-clean">
+      <thead>
+        <tr>
+          <th class="w-16 !text-center">Pos.</th>
+          <th>Pilota</th>
+          <th class="hidden sm:table-cell">Scuderia</th>
+          <th class="w-20 !text-center">Vittorie</th>
+          <th class="w-20 !text-right">Punti</th>
+        </tr>
+      </thead>
+      <tbody>
+        {# Niente colonna dei podi finché il conteggio non è corretto (#22). #}
+        {% for row in rows %}
+        <tr>
+          <td class="text-center">
+            <span class="pos-badge {% if row.position == 1 %}!bg-accent-strong !text-white !border-accent-strong{% endif %}">P{{ row.position }}</span>
+          </td>
+          <td class="team-{{ row.team.short_name|slugify }}">
+            <span class="team-chip">{{ row.driver.first_name }} {{ row.driver.last_name }}</span>
+            {# Su mobile la colonna Scuderia è nascosta per lasciare spazio ai punti. #}
+            <span class="mt-0.5 block pl-2.5 text-xs text-muted sm:hidden">{{ row.team.name }}</span>
+          </td>
+          <td class="hidden text-muted sm:table-cell">{{ row.team.name }}</td>
+          <td class="text-center">{{ row.wins }}</td>
+          <td class="text-right font-black">{{ row.points }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="card-pad mt-6">
+    <p class="text-muted">La classifica non è ancora disponibile: compare dopo il primo Gran Premio della stagione.</p>
+  </div>
+{% endif %}
+{% endblock %}
