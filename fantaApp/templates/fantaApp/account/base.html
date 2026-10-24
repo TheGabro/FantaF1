@@ -8,9 +8,10 @@
 
 <div class="grid items-start gap-6 md:grid-cols-[14rem_1fr]">
   <nav aria-label="Sezioni dell'account" class="card flex gap-1 overflow-x-auto p-2 md:flex-col">
-    {# Sicurezza (#98) e Dati e privacy (#106) si aggiungono con la loro issue. #}
+    {# Dati e privacy (#106) si aggiunge con la sua issue. #}
     <a href="{% url 'account' %}" class="nav-link shrink-0"{% if account_page == "overview" %} aria-current="page"{% endif %}>Panoramica</a>
     <a href="{% url 'account_profile' %}" class="nav-link shrink-0"{% if account_page == "profile" %} aria-current="page"{% endif %}>Dati personali</a>
+    <a href="{% url 'account_security' %}" class="nav-link shrink-0"{% if account_page == "security" %} aria-current="page"{% endif %}>Sicurezza</a>
   </nav>
 
   <div class="min-w-0">

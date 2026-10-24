@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import ValidationError
+from django.utils import translation
 
 from ..models import CustomUser
 
@@ -40,3 +42,29 @@ class PersonalDataForm(forms.ModelForm):
         if taken:
             raise ValidationError("Questo username è già in uso.")
         return username
+
+
+class ChangePasswordForm(PasswordChangeForm):
+    """Account → Sicurezza (#98): il PasswordChangeForm di Django con testi in
+    italiano. Le regole della password le mostra il template (password_rules)."""
+
+    error_messages = {
+        "password_mismatch": "Le due password non corrispondono.",
+        "password_incorrect": "La password attuale non è corretta.",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["old_password"].label = "Password attuale"
+        self.fields["new_password1"].label = "Nuova password"
+        self.fields["new_password1"].help_text = ""
+        self.fields["new_password1"].widget.attrs[
+            "aria-describedby"
+        ] = "id_new_password1_help"
+        self.fields["new_password2"].label = "Ripeti la nuova password"
+
+    def clean_new_password2(self):
+        # I messaggi dei validatori sono tradotti appena creati: come
+        # all'iscrizione (#94) si forza l'italiano.
+        with translation.override("it"):
+            return super().clean_new_password2()

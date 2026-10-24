@@ -63,7 +63,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | Accesso | Accedi, registrati, esci | `/auth/login/`, `/auth/register/`, `/auth/logout/` | `login`, `register`, `logout` | c'è |
 | Account | Panoramica | `/account/` | `account` | c'è |
 | | Dati personali | `/account/profile/` | `account_profile` | c'è |
-| | Sicurezza (password) | `/account/security/` | `account_security` | nuova (#98) |
+| | Sicurezza (password) | `/account/security/` | `account_security` | c'è |
 | | Dati e privacy | `/account/privacy/` | `account_privacy` | futura (#106) |
 | I miei campionati | Campionati in corso | `/championships/` | `user_dashboard` | c'è |
 | | Cerca un campionato | `/championships/search/` | `championship_search` | nuova (#72) |
