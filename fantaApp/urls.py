@@ -1,12 +1,12 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from fantaApp.views import auth, dashboard, general, invites, weekend
+from fantaApp.views import auth, dashboard, invites, weekend
 from fantaApp.views.game import landing as game_landing
-from fantaApp.views.site import standings_drivers
+from fantaApp.views.site import home, standings_drivers
 
 urlpatterns = [
-    path("", general.home, name="home"),
+    path("", home.home, name="home"),
     path(
         "standings/drivers/",
         standings_drivers.standings_drivers,

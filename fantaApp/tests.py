@@ -11,8 +11,10 @@ from django.contrib.messages.storage.base import Message
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import connection
 from django.template.loader import render_to_string
 from django.test import Client, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -1231,12 +1233,6 @@ class GameLandingTests(TestCase):
         self.assertNotContains(response, "Inizia a giocare")
         self.assertNotContains(response, "Bentornato in griglia")
 
-    def test_home_still_shows_the_game_landing_to_anonymous_visitors(self):
-        # Finché non arriva la home del sito (#92) / non cambia.
-        response = self.client.get(reverse("home"))
-
-        self.assertTemplateUsed(response, "fantaApp/game_landing.html")
-
 
 class RaceResultsLoginRequiredTests(TestCase):
     """#51: le pagine dei risultati gara chiedono il login come le altre del weekend."""
@@ -2184,3 +2180,95 @@ class DriversStandingsTests(TestCase):
 
         self.assertEqual(response.context["rows"][0]["team"], self.mclaren)
         self.assertContains(response, 'class="team-mcl"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SiteHomeTests(TestCase):
+    """#92: home del sito per tutti, con il programma della stagione corrente."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Monza", country="Italy", location="Monza", api_id="monza"
+        )
+        self.now = timezone.now()
+
+    def _weekend(self, round_number, race_in_days, season=2026, **fields):
+        return Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Round {round_number} Grand Prix",
+            round_number=round_number,
+            season=season,
+            race_start=self.now + timedelta(days=race_in_days),
+            **fields,
+        )
+
+    def test_logged_in_users_see_the_home_instead_of_a_redirect(self):
+        user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "fantaApp/site/home.html")
+        self.assertContains(response, f'href="{reverse("game")}"')
+
+    def test_next_grand_prix_comes_first_and_past_weekends_are_apart(self):
+        self._weekend(1, race_in_days=-7)
+        upcoming = self._weekend(2, race_in_days=3)
+        self._weekend(3, race_in_days=10)
+        self._weekend(24, race_in_days=-400, season=2025)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.context["season"], 2026)
+        self.assertEqual(response.context["next_weekend"]["weekend"], upcoming)
+        self.assertEqual(
+            [i["weekend"].round_number for i in response.context["upcoming"]], [2, 3]
+        )
+        self.assertEqual(
+            [i["weekend"].round_number for i in response.context["past"]], [1]
+        )
+        self.assertContains(response, "Prossimo Gran Premio")
+        self.assertNotContains(response, "Round 24 Grand Prix")
+
+    def test_sessions_are_listed_in_time_order_with_italian_names(self):
+        race = self.now + timedelta(days=3)
+        self._weekend(
+            1,
+            race_in_days=3,
+            weekend_type="sprint",
+            fp1_start=race - timedelta(days=2),
+            sprint_qualifying_start=race - timedelta(days=2, hours=-4),
+            sprint_start=race - timedelta(days=1, hours=4),
+            qualifying_start=race - timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(
+            [s["label"] for s in response.context["next_weekend"]["sessions"]],
+            ["Libere 1", "Qualifiche Sprint", "Sprint", "Qualifiche", "Gran Premio"],
+        )
+        self.assertContains(response, "Weekend sprint")
+
+    def test_season_over_and_empty_calendar_messages(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Calendario non ancora disponibile")
+
+        self._weekend(1, race_in_days=-7)
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "La stagione 2026 è conclusa")
+
+    def test_number_of_queries_does_not_grow_with_the_weekends(self):
+        self._weekend(1, race_in_days=3)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(reverse("home"))
+
+        for round_number in range(2, 12):
+            self._weekend(round_number, race_in_days=round_number * 7)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(reverse("home"))
+
+        self.assertEqual(len(many), len(few))
