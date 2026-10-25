@@ -12,7 +12,7 @@
     });
   }
 
-  // Menu (pannello mobile e menu utente): il pulsante [data-menu-toggle] apre il
+  // Menu a tendina (oggi il menu utente): il pulsante [data-menu-toggle] apre il
   // pannello indicato da aria-controls, che si mostra con l'attributo data-open.
   var toggles = Array.prototype.slice.call(document.querySelectorAll('[data-menu-toggle]'));
   var setOpen = function (toggle, open) {

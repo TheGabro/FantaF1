@@ -100,7 +100,7 @@
   .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-surface-2; }
   .btn-ghost { @apply text-muted hover:text-ink hover:bg-surface-2; }
 
-  /* Voci del menu di header: la sezione aperta ha aria-current="page" (#93) */
+  /* Voci del menu utente: la sezione aperta ha aria-current="page" (#93, #131) */
   .nav-link {
     @apply flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors
       cursor-pointer hover:bg-surface-2 hover:text-ink;

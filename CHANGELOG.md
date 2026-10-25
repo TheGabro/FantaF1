@@ -7,7 +7,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Added
 - Smoke test che apre ogni pagina del sito, da loggati e da anonimi; fallisce se si aggiunge una rotta senza coprirla.
 - Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
-- Classifica piloti F1 su `/standings/drivers/`, aperta a tutti: posizione, pilota, scuderia del weekend, vittorie e punti dopo l'ultimo round importato. Raggiungibile da header e footer.
+- Classifica piloti F1 su `/standings/drivers/`, aperta a tutti: posizione, pilota, scuderia del weekend, vittorie e punti dopo l'ultimo round importato. Raggiungibile dalla home e dal footer.
 - Home del sito su `/`, aperta a tutti: banner del gioco, prossimo Gran Premio con gli orari delle sessioni, programma della stagione (i weekend già corsi sono raccolti a parte), link alle classifiche F1 e spazio per le news. Chi ha fatto l'accesso non viene più rimandato ai suoi campionati.
 - Area account su `/account/` (voce «Account» nel menu utente): panoramica con username, email, data di iscrizione e link ai propri campionati. Menu laterale su desktop, in alto su mobile.
 - Account → Dati personali: si cambiano username, nome e cognome (facoltativi); i nomi giocatore già scelti nei campionati restano gli stessi. L'email si vede ma per ora non si cambia.
@@ -16,7 +16,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ### Changed
 - Aprendo un campionato si vedono le classifiche: la classifica della propria lega per chi gioca, la generale per gli altri, anche a stagione finita. Le schede sono Classifiche · Gioca · Info; «Prossimo weekend» è su `/championships/<id>/play/` e la scheda Gioca mostra quante scelte restano da fare nel prossimo weekend.
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
-- Header e footer uguali su tutto il sito: il logo porta sempre alla home, menu Home · Il gioco · I miei campionati con la sezione aperta evidenziata, menu utente con Esci. Menu accessibili da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
+- Header e footer uguali su tutto il sito. Nell'header solo il logo, che porta alla home, il tema e Accedi/Registrati oppure il menu utente (Account, I miei campionati, Esci), anche su mobile; Classifiche F1 e Il gioco sono nella home e nel footer. Menu accessibile da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
 - Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.
 
 ### Fixed
