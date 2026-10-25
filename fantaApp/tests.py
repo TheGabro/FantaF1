@@ -1778,6 +1778,7 @@ class WeekendPagesFixture:
             "create_championship": [],
             "join_championship": [self.open_championship.id],
             "championship_dashboard": [c],
+            "championship_next_weekend": [c],
             "championship_my_choices": [c],
             "championship_calendar": [c],
             "championship_league_standings": [c],
@@ -1883,7 +1884,7 @@ class ItalianDatesTests(WeekendPagesFixture, TestCase):
         self.client.force_login(self.user)
 
         response = self.client.get(
-            reverse("championship_dashboard", args=[self.championship.id])
+            reverse("championship_next_weekend", args=[self.championship.id])
         )
 
         # timeuntil separa numero e unità con uno spazio non divisibile.
@@ -2463,3 +2464,75 @@ class AccountChangePasswordTests(TestCase):
 
         response = self._change("Pista-Monza-1922", "password123")
         self.assertContains(response, "Questa password è troppo comune.")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
+    """#113: aprendo un campionato si vedono le classifiche; le scadenze restano
+    visibili sulla scheda Gioca."""
+
+    def _open(self, user):
+        self.client.force_login(user)
+        return self.client.get(
+            reverse("championship_dashboard", args=[self.championship.id])
+        )
+
+    def _guest(self):
+        return get_user_model().objects.create_user(
+            username="ospite", email="ospite@example.com", password="password123"
+        )
+
+    def test_player_lands_on_the_standings_of_their_league(self):
+        response = self._open(self.user)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_section"], "standings_league")
+        self.assertContains(response, "Classifica — Lega")
+
+    def test_user_who_does_not_play_lands_on_the_general_standings(self):
+        response = self._open(self._guest())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_section"], "standings_general")
+
+    def test_tabs_are_standings_then_play_then_info(self):
+        html = self._open(self.user).content.decode()
+        c = self.championship.id
+
+        positions = [
+            html.index(f'href="{reverse(name, args=[c])}"')
+            for name in (
+                "championship_dashboard",
+                "championship_next_weekend",
+                "championship_info",
+            )
+        ]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_play_tab_counts_the_choices_left_for_the_next_weekend(self):
+        # Primo weekend della fixture: qualifica e Gran Premio, nessuna scelta fatta.
+        response = self._open(self.user)
+
+        self.assertEqual(response.context["play_pending"], 2)
+        self.assertContains(
+            response, "2<span class=\"sr-only\"> scelte da fare nel prossimo weekend"
+        )
+
+    def test_no_counter_for_users_who_do_not_play(self):
+        response = self._open(self._guest())
+
+        self.assertEqual(response.context["play_pending"], 0)
+        self.assertNotContains(response, "da fare nel prossimo weekend")
+
+    def test_next_weekend_has_its_own_address(self):
+        self.assertEqual(
+            reverse("championship_next_weekend", args=[7]), "/championships/7/play/"
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("championship_next_weekend", args=[self.championship.id])
+        )
+
+        self.assertEqual(response.context["active_section"], "next_weekend")
+        self.assertContains(response, "GP Regular")

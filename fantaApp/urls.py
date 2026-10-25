@@ -5,6 +5,7 @@ from fantaApp.views import auth, dashboard, invites, weekend
 from fantaApp.views.account import overview as account_overview
 from fantaApp.views.account import profile as account_profile
 from fantaApp.views.account import security as account_security
+from fantaApp.views.championship import entry as championship_entry
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.site import home, standings_drivers
 
@@ -38,13 +39,19 @@ urlpatterns = [
     path(
         "championships/invite/<str:token>/", invites.invite_accept, name="invite_accept"
     ),
-    # Sezione Gioca: la radice del campionato e' il prossimo weekend da giocare.
-    # Il nome 'championship_dashboard' resta: e' il bersaglio dei link dalla
-    # dashboard utente, dagli inviti e dal banner.
+    # Ingresso del campionato: le classifiche (#113). Il nome 'championship_dashboard'
+    # resta per i link che "aprono il campionato": card dei miei campionati,
+    # banner, rimandi dopo l'iscrizione.
     path(
         "championships/<int:championship_id>/",
-        dashboard.championship_next_weekend,
+        championship_entry.entry,
         name="championship_dashboard",
+    ),
+    # Sezione Gioca: il prossimo weekend da giocare.
+    path(
+        "championships/<int:championship_id>/play/",
+        dashboard.championship_next_weekend,
+        name="championship_next_weekend",
     ),
     path(
         "championships/<int:championship_id>/my-choices/",
