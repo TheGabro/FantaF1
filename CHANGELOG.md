@@ -26,6 +26,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.
 - Pagine dei risultati gara: chi non ha effettuato l'accesso viene mandato al login invece di ricevere un errore 500.
 - Date, orari, conti alla rovescia ed errori dei form in italiano e in ora italiana su tutte le pagine (prima in inglese e in UTC).
+- Build del CSS: Tailwind legge solo template e JS, quindi `main.css` è lo stesso da qualunque cartella si lanci la build (prima, dalla radice del repo, entravano classi inutili prese dai file Python e Markdown).
 
 ## [0.4.1] - 2026-10-12
 

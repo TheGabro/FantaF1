@@ -1,7 +1,9 @@
 /* FantaF1 design system — sorgente Tailwind v4.
    Build: vedi frontend/README.md (output in fantaApp/static/fantaApp/css/main.css) */
 
-@import "tailwindcss";
+/* source(none): si leggono solo i percorsi di @source, relativi a questo file, così la build
+   dà lo stesso main.css da qualunque cartella venga lanciata (#128). */
+@import "tailwindcss" source(none);
 
 @source "../fantaApp/templates/**/*.html";
 @source "../fantaApp/static/fantaApp/js/**/*.js";
