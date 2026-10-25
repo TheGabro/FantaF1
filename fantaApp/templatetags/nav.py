@@ -5,7 +5,7 @@ register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def nav_section(context):
-    """Sezione del sito della pagina aperta, per evidenziarla nel menu (#93).
+    """Sezione della pagina aperta, per evidenziarla nel menu utente (#93, #131).
 
     È il primo pezzo del percorso: "" per la home, "game", "championships",
     "account"… Le pagine nuove di una sezione si accendono da sole, senza

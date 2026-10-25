@@ -2057,41 +2057,54 @@ class LegacyUrlRedirectTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class SiteHeaderTests(TestCase):
-    """#93: header e footer uguali ovunque, sezione aperta evidenziata, menu accessibili."""
+    """Header e footer uguali ovunque, menu accessibili (#93). Nell'header solo il
+    logo, il tema e accesso/iscrizione o il menu utente, anche su mobile (#131)."""
 
-    def test_anonymous_visitor_sees_sections_and_login_links(self):
-        response = self.client.get(reverse("game"))
+    def _parts(self, response):
+        html = response.content.decode()
+        header = html[html.index("<header") : html.index("</header>")]
+        footer = html[html.index("<footer") : html.index("</footer>")]
+        return header, footer
 
-        # Logo, menu e footer.
-        self.assertContains(response, f'href="{reverse("home")}"', count=3)
-        self.assertContains(
-            response,
-            f'<a href="{reverse("game")}" class="nav-link" aria-current="page">',
-        )
-        self.assertContains(response, f'href="{reverse("login")}"')
-        self.assertContains(response, f'href="{reverse("register")}"')
-        self.assertNotContains(response, 'id="user-menu"')
-        self.assertContains(response, 'aria-controls="nav-menu" aria-expanded="false"')
+    def test_anonymous_visitor_gets_the_logo_and_the_login_links_only(self):
+        header, footer = self._parts(self.client.get(reverse("game")))
 
-    def test_logged_in_user_gets_the_user_menu_and_the_championships_section(self):
+        self.assertEqual(header.count(f'href="{reverse("home")}"'), 1)  # il logo
+        self.assertIn(f'href="{reverse("login")}"', header)
+        self.assertIn(f'href="{reverse("register")}"', header)
+        for name in ("f1_drivers_standings", "game", "user_dashboard"):
+            with self.subTest(route=name):
+                self.assertNotIn(f'href="{reverse(name)}"', header)
+        # Niente pannello mobile: non c'è più niente da metterci.
+        self.assertNotIn("nav-toggle", header)
+        self.assertNotIn('id="user-menu"', header)
+        # Le pagine tolte dall'header restano raggiungibili dal footer.
+        for name in ("home", "f1_drivers_standings", "game"):
+            with self.subTest(footer=name):
+                self.assertIn(f'href="{reverse(name)}"', footer)
+
+    def test_logged_in_user_gets_the_user_menu_only(self):
         user = get_user_model().objects.create_user(
             username="pilota", email="pilota@example.com", password="password123"
         )
         self.client.force_login(user)
 
-        response = self.client.get(reverse("user_dashboard"))
+        header, _ = self._parts(self.client.get(reverse("user_dashboard")))
 
-        # Logo, menu e footer: il logo porta alla home del sito, non più ai campionati.
-        self.assertContains(response, f'href="{reverse("home")}"', count=3)
-        self.assertContains(
-            response,
+        self.assertIn('aria-controls="user-menu" aria-expanded="false"', header)
+        self.assertIn(f'href="{reverse("account")}"', header)
+        # La voce della sezione aperta è evidenziata anche nel menu utente.
+        self.assertIn(
             f'<a href="{reverse("user_dashboard")}" class="nav-link" '
             'aria-current="page">',
+            header,
         )
-        self.assertContains(response, 'aria-controls="user-menu" aria-expanded="false"')
-        self.assertContains(response, 'id="user-menu"')
-        self.assertContains(response, f'action="{reverse("logout")}"')
-        self.assertNotContains(response, f'href="{reverse("register")}"')
+        self.assertIn(f'action="{reverse("logout")}"', header)
+        self.assertEqual(header.count(f'href="{reverse("home")}"'), 1)  # il logo
+        for name in ("login", "register", "f1_drivers_standings", "game"):
+            with self.subTest(route=name):
+                self.assertNotIn(f'href="{reverse(name)}"', header)
+        self.assertNotIn("nav-toggle", header)
 
     def test_toasts_are_announced_and_errors_are_alerts(self):
         html = render_to_string(

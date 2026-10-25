@@ -34,60 +34,43 @@
     {% nav_section as section %}
     <header class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
       <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Menu principale">
-        {# Il logo porta sempre alla home del sito, anche chi è autenticato (#92). #}
+        {# Il logo è il link alla home (#92). Classifiche F1 e Il gioco stanno nella home e nel footer (#131). #}
         <a href="{% url 'home' %}"
            class="flex items-center gap-2 text-lg font-black uppercase italic tracking-tight">
           Fanta<span class="text-accent">F1</span>
         </a>
 
+        {# Solo accesso e iscrizione, o il menu utente: uguale su desktop e mobile (#131). #}
         <div class="flex items-center gap-2">
-          {# Su mobile è il pannello aperto da #nav-toggle, da sm in su la barra sempre visibile. #}
-          <div id="nav-menu" class="hidden absolute left-0 right-0 top-14 flex-col gap-1 border-b border-line bg-surface p-3 data-[open]:flex sm:static sm:flex sm:flex-row sm:items-center sm:gap-1 sm:border-0 sm:bg-transparent sm:p-0">
-            <a href="{% url 'home' %}" class="nav-link"{% if section == "" %} aria-current="page"{% endif %}>Home</a>
-            <a href="{% url 'f1_drivers_standings' %}" class="nav-link"{% if section == "standings" %} aria-current="page"{% endif %}>Classifiche F1</a>
-            <a href="{% url 'game' %}" class="nav-link"{% if section == "game" %} aria-current="page"{% endif %}>Il gioco</a>
-            {% if user.is_authenticated %}
-              <a href="{% url 'user_dashboard' %}" class="nav-link"{% if section == "championships" %} aria-current="page"{% endif %}>I miei campionati</a>
-
-              <div class="relative mt-2 border-t border-line pt-2 sm:ml-2 sm:mt-0 sm:border-0 sm:pt-0">
-                <button id="user-menu-toggle" type="button" data-menu-toggle aria-controls="user-menu" aria-expanded="false"
-                        class="btn-secondary hidden sm:inline-flex">
-                  {{ user.username }}
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {# Su mobile le voci stanno nel pannello, sotto il nome; da sm in su in un menu a tendina. #}
-                <p class="px-3 pb-1 text-xs text-muted sm:hidden">Connesso come <strong class="text-ink">{{ user.username }}</strong></p>
-                <div id="user-menu" class="flex flex-col gap-1 sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:hidden sm:w-56 sm:rounded-xl sm:border sm:border-line sm:bg-surface sm:p-2 sm:shadow-lg sm:data-[open]:flex">
-                  <a href="{% url 'account' %}" class="nav-link"{% if section == "account" %} aria-current="page"{% endif %}>Account</a>
-                  {# Su mobile c'è già nel pannello, sopra. #}
-                  <a href="{% url 'user_dashboard' %}" class="nav-link max-sm:hidden">I miei campionati</a>
-                  <form method="post" action="{% url 'logout' %}" class="contents">
-                    {% csrf_token %}
-                    <button type="submit" class="nav-link text-left">Esci</button>
-                  </form>
-                </div>
+          {% if user.is_authenticated %}
+            <div class="relative">
+              <button id="user-menu-toggle" type="button" data-menu-toggle aria-controls="user-menu" aria-expanded="false"
+                      class="btn-secondary max-sm:!px-3">
+                <span class="max-w-28 truncate sm:max-w-48">{{ user.username }}</span>
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div id="user-menu" class="absolute right-0 top-full mt-2 hidden w-56 flex-col gap-1 rounded-xl border border-line bg-surface p-2 shadow-lg data-[open]:flex">
+                <a href="{% url 'account' %}" class="nav-link"{% if section == "account" %} aria-current="page"{% endif %}>Account</a>
+                <a href="{% url 'user_dashboard' %}" class="nav-link"{% if section == "championships" %} aria-current="page"{% endif %}>I miei campionati</a>
+                <form method="post" action="{% url 'logout' %}" class="contents">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link text-left">Esci</button>
+                </form>
               </div>
-            {% else %}
-              <a href="{% url 'login' %}" class="nav-link sm:ml-2"{% if request.resolver_match.url_name == "login" %} aria-current="page"{% endif %}>Accedi</a>
-              <a href="{% url 'register' %}" class="btn-primary">Registrati</a>
-            {% endif %}
-          </div>
+            </div>
+          {% else %}
+            <a href="{% url 'login' %}" class="btn-ghost max-sm:!px-3"{% if request.resolver_match.url_name == "login" %} aria-current="page"{% endif %}>Accedi</a>
+            <a href="{% url 'register' %}" class="btn-primary max-sm:!px-3">Registrati</a>
+          {% endif %}
 
           <button id="theme-toggle" type="button" class="btn-ghost !px-2" aria-label="Cambia tema chiaro/scuro">
-            <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
-            <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
-
-          <button id="nav-toggle" type="button" data-menu-toggle aria-controls="nav-menu" aria-expanded="false"
-                  class="btn-ghost !px-2 sm:hidden" aria-label="Menu">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
