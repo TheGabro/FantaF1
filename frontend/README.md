@@ -10,10 +10,15 @@ anche le convenzioni del frontend: [mappa del sito e URL](#mappa-del-sito-e-url)
 Il sorgente è `input.css`, l'output compilato è `../fantaApp/static/fantaApp/css/main.css` (committato nel repo:
 il sito funziona anche senza rifare la build).
 
-Serve la CLI standalone in `bin/tailwindcss.exe` (non committata). Per scaricarla:
+Tailwind legge solo i template (`fantaApp/templates/`) e i file JS (`fantaApp/static/fantaApp/js/`), elencati con
+`@source` in `input.css`: la build dà lo stesso file da qualunque cartella venga lanciata. Le classi CSS vanno
+quindi scritte nei template o nel JS, mai composte nel codice Python, altrimenti non finiscono in `main.css`.
+
+Serve la CLI standalone in `bin/tailwindcss.exe` (non committata), nella stessa versione per tutti (oggi la 4.3.3),
+così `main.css` non cambia a seconda di chi lo compila. Per scaricarla:
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-windows-x64.exe" -OutFile "bin\tailwindcss.exe"
+Invoke-WebRequest -Uri "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-windows-x64.exe" -OutFile "bin\tailwindcss.exe"
 ```
 
 Build una tantum:
