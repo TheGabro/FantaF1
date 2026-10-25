@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
 from ..models import (
@@ -36,17 +36,38 @@ SUCATA_POINTS = 5
 
 @login_required
 def user_dashboard(request):
+    """I miei campionati: quelli in cui si gioca e, a parte, quelli che si gestiscono
+    senza giocare (#62). Un campionato in cui si gioca e si è manager compare una
+    volta sola, con il badge Manager. Query costanti, qualunque sia il numero di
+    campionati."""
     user = request.user
 
     championship = (
         ChampionshipPlayer.objects.filter(user=user)
         .select_related("championship", "league")
+        .annotate(
+            is_manager=Exists(
+                ChampionshipManager.objects.filter(
+                    user=user, championship_id=OuterRef("championship_id")
+                )
+            )
+        )
         .order_by("championship__active", "-championship__year")
+    )
+    managed_championships = (
+        Championship.objects.filter(managers__user=user)
+        .exclude(participants__user=user)
+        .annotate(
+            leagues_count=Count("leagues", distinct=True),
+            players_count=Count("participants", distinct=True),
+        )
+        .order_by("-active", "-year", "name")
     )
 
     context = {
         "user": user,
         "championship": championship,
+        "managed_championships": managed_championships,
         "is_admin": user.user_type == "admin",
         "is_staff": user.user_type == "staff",
         "is_premium": user.user_type == "premium",
