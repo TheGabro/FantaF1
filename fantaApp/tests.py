@@ -2549,3 +2549,89 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
 
         self.assertEqual(response.context["active_section"], "next_weekend")
         self.assertContains(response, "GP Regular")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class UserDashboardTests(TestCase):
+    """#62: i campionati gestiti li prepara la view, senza schede doppie e con un
+    numero di query che non cresce con i campionati."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="manager", email="manager@example.com", password="password123"
+        )
+        self.client.force_login(self.user)
+
+    def _championship(self, name, *, plays, manages, leagues=1, others=0, active=True):
+        championship = Championship.objects.create(name=name, year=2026, active=active)
+        league_objs = [
+            League.objects.create(championship=championship, name=f"Lega {n}")
+            for n in range(leagues)
+        ]
+        if plays:
+            ChampionshipPlayer.objects.create(
+                user=self.user,
+                championship=championship,
+                league=league_objs[0],
+                player_name="Io",
+            )
+        if manages:
+            ChampionshipManager.objects.create(
+                user=self.user, championship=championship
+            )
+        for n in range(others):
+            other = get_user_model().objects.create_user(
+                username=f"{name}-g{n}",
+                email=f"{name}-g{n}@example.com",
+                password="password123",
+            )
+            ChampionshipPlayer.objects.create(
+                user=other,
+                championship=championship,
+                league=league_objs[n % leagues],
+                player_name=f"Giocatore {n}",
+            )
+        return championship
+
+    def test_played_and_managed_championship_is_one_card_with_the_badge(self):
+        self._championship("Doppio", plays=True, manages=True)
+        self._championship("Solo gioco", plays=True, manages=False)
+        managed_only = self._championship("Solo gestione", plays=False, manages=True)
+
+        response = self.client.get(reverse("user_dashboard"))
+
+        self.assertContains(response, "Doppio", count=1)
+        badges = {
+            e.championship.name: e.is_manager for e in response.context["championship"]
+        }
+        self.assertEqual(badges, {"Doppio": True, "Solo gioco": False})
+        self.assertEqual(
+            list(response.context["managed_championships"]), [managed_only]
+        )
+
+    def test_managed_cards_count_leagues_and_players_in_full_words(self):
+        self._championship("Una lega", plays=False, manages=True, leagues=1, others=1)
+        self._championship("Due leghe", plays=False, manages=True, leagues=2, others=3)
+
+        response = self.client.get(reverse("user_dashboard"))
+
+        html = " ".join(response.content.decode().split())
+        self.assertIn('<strong class="text-ink">1</strong> lega', html)
+        self.assertIn('<strong class="text-ink">1</strong> giocatore', html)
+        self.assertIn('<strong class="text-ink">2</strong> leghe', html)
+        self.assertIn('<strong class="text-ink">3</strong> giocatori', html)
+        self.assertNotIn("legha", html)
+
+    def test_number_of_queries_does_not_grow_with_the_championships(self):
+        self._championship("A", plays=True, manages=True)
+        self._championship("B", plays=False, manages=True, others=1)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(reverse("user_dashboard"))
+
+        for n in range(4):
+            self._championship(f"Gioco {n}", plays=True, manages=n % 2 == 0)
+            self._championship(f"Gestione {n}", plays=False, manages=True, others=2)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(reverse("user_dashboard"))
+
+        self.assertEqual(len(many), len(few))

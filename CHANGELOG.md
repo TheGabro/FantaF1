@@ -14,6 +14,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Account → Sicurezza: cambio password con la password attuale, regole visibili e testi in italiano; dopo il cambio si resta collegati.
 
 ### Changed
+- I miei campionati: un campionato in cui giochi e che gestisci compare una volta sola, con il badge Manager; «Campionati che gestisci» elenca quelli in cui non giochi, con il numero di leghe e di giocatori (prima compariva «1 legha»). La pagina fa lo stesso numero di query qualunque sia il numero di campionati.
 - Aprendo un campionato si vedono le classifiche: la classifica della propria lega per chi gioca, la generale per gli altri, anche a stagione finita. Le schede sono Classifiche · Gioca · Info; «Prossimo weekend» è su `/championships/<id>/play/` e la scheda Gioca mostra quante scelte restano da fare nel prossimo weekend.
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
 - Header e footer uguali su tutto il sito. Nell'header solo il logo, che porta alla home, il tema e Accedi/Registrati oppure il menu utente (Account, I miei campionati, Esci), anche su mobile; Classifiche F1 e Il gioco sono nella home e nel footer. Menu accessibile da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
