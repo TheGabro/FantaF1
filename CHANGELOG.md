@@ -14,6 +14,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Account → Sicurezza: cambio password con la password attuale, regole visibili e testi in italiano; dopo il cambio si resta collegati.
 
 ### Changed
+- Aprendo un campionato si vedono le classifiche: la classifica della propria lega per chi gioca, la generale per gli altri, anche a stagione finita. Le schede sono Classifiche · Gioca · Info; «Prossimo weekend» è su `/championships/<id>/play/` e la scheda Gioca mostra quante scelte restano da fare nel prossimo weekend.
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
 - Header e footer uguali su tutto il sito: il logo porta sempre alla home, menu Home · Il gioco · I miei campionati con la sezione aperta evidenziata, menu utente con Esci. Menu accessibili da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
 - Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.

@@ -76,9 +76,9 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | Crea un campionato | `/championships/create/` | `create_championship` | c'è |
 | | Iscriviti | `/championships/<id>/join/` | `join_championship` | c'è |
 | | Invito (nascosto per ora) | `/championships/invite/`, `/championships/invite/<token>/` | `invite_redeem`, `invite_accept` | c'è |
-| Campionato | Ingresso: le classifiche | `/championships/<id>/` | `championship_dashboard` | c'è, oggi apre «Prossimo weekend» (#113) |
+| Campionato | Ingresso: le classifiche | `/championships/<id>/` | `championship_dashboard` | c'è: Lega per chi gioca, Generale per gli altri |
 | | Classifiche: lega, generale, qualifiche, sprint | `/championships/<id>/standings/league/`, `…/general/`, `…/qualifying/`, `…/sprint/` | `championship_league_standings`, `…_general_…`, `…_qualifying_…`, `…_sprint_…` | c'è |
-| | Gioca: prossimo weekend | `/championships/<id>/play/` | `championship_next_weekend` | c'è, nome nuovo (#113) |
+| | Gioca: prossimo weekend | `/championships/<id>/play/` | `championship_next_weekend` | c'è |
 | | Gioca: le mie scelte | `/championships/<id>/my-choices/` | `championship_my_choices` | c'è |
 | | Gioca: calendario | `/championships/<id>/calendar/` | `championship_calendar` | c'è |
 | | Info | `/championships/<id>/info/` | `championship_info` | c'è |
