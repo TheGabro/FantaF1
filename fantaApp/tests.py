@@ -2029,21 +2029,53 @@ class InsertSprintQualifyingResultTests(TestCase):
             "insert_quali_result", season=2026, round=17, type="sprint", stdout=StringIO()
         )
 
-    def test_sprint_does_not_need_jolpica_regular_qualifying(self):
-        # Friday of a sprint weekend: the regular qualifying is not on Jolpica yet
-        from .services.sources.jolpicaSource import ResultsNotAvailable
-
-        with patch(f"{self.COMMAND}.get_qualifying_result", side_effect=ResultsNotAvailable), \
-             patch(f"{self.COMMAND}.get_sprint_qualifying_result", return_value=[]):
+    def test_sprint_asks_openf1_for_sprint_qualifying(self):
+        with patch(f"{self.COMMAND}.get_qualifying_result", return_value=[]) as get:
             self._run()
+        self.assertEqual(get.call_args.args[1], "Sprint Qualifying")
 
     def test_sprint_not_available_means_retry_later(self):
-        from .services.sources.fastf1Source import ResultsNotAvailableFastf1
+        from .services.sources.base import ResultsNotAvailable
 
-        with patch(f"{self.COMMAND}.get_sprint_qualifying_result", side_effect=ResultsNotAvailableFastf1):
+        with patch(f"{self.COMMAND}.get_qualifying_result", side_effect=ResultsNotAvailable):
             with self.assertRaises(CommandError) as ctx:
                 self._run()
         self.assertEqual(ctx.exception.returncode, 3)
+
+
+class OpenF1RaceResultTests(TestCase):
+    """Shape of OpenF1 session_result/laps rows, as seen for Singapore 2026."""
+
+    SOURCE = "fantaApp.services.sources.openF1Source"
+    FLAGS = {"dnf": False, "dns": False, "dsq": False}
+    SESSION_RESULT = [
+        {"position": 1, "driver_number": 3, "points": 25.0, **FLAGS, "gap_to_leader": 0},
+        {"position": 2, "driver_number": 11, "points": 0.0, **FLAGS, "gap_to_leader": "+1 LAP"},
+        {"position": 3, "driver_number": 23, "points": 0.0, **FLAGS, "dnf": True, "gap_to_leader": None},
+        {"position": None, "driver_number": 18, "points": 0.0, **FLAGS, "dnf": True, "gap_to_leader": None},
+        {"position": None, "driver_number": 5, "points": 0.0, **FLAGS, "dsq": True, "gap_to_leader": None},
+    ]
+    LAPS = [
+        {"driver_number": 3, "lap_number": 1, "lap_duration": None},
+        {"driver_number": 3, "lap_number": 2, "lap_duration": 95.5},
+        {"driver_number": 3, "lap_number": 3, "lap_duration": 94.25},
+    ]
+
+    def test_maps_positions_status_and_fastest_lap(self):
+        from .services.sources import openF1Source
+
+        rows = {"session_result": self.SESSION_RESULT, "laps": self.LAPS}
+        with patch(f"{self.SOURCE}._session_key", return_value=1), \
+             patch(f"{self.SOURCE}._fetch", side_effect=lambda endpoint, _: [dict(r) for r in rows[endpoint]]):
+            results = openF1Source.get_race_result(2026, "Race", None)
+
+        self.assertEqual(
+            [(r["driver_number"], r["position"], r["status"]) for r in results],
+            [(3, 1, "Finished"), (11, 2, "Lapped"), (23, 3, "Retired"), (18, 4, "Retired"), (5, 5, "Disqualified")],
+        )
+        self.assertEqual(results[0]["points"], 25)
+        self.assertEqual((results[0]["best_lap"], results[0]["fast_lap"]), (3, timedelta(seconds=94.25)))
+        self.assertIsNone(results[1]["fast_lap"])
 
 
 class LegacyUrlRedirectTests(TestCase):
