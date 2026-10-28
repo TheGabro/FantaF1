@@ -4,10 +4,22 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added
+- Airflow: DAG `fantaf1_pair_events`, elabora una coppia qualifica + gara dello stesso tipo per run. Attende l'`eligible_after` di ogni evento con un sensore deferrable (`DateTimeSensorAsync`), poi controlla ogni 15 minuti, per al massimo 36 ore, se i risultati sono pubblicati. A fine coppia lancia da solo la run successiva; la prima va avviata a mano.
+- Comando `next_pair_events`: restituisce la prima coppia qualifica + gara con eventi non ancora processati, errori compresi, anche se l'evento è nel futuro.
+- Airflow: servizio `airflow-triggerer` nel `docker-compose.yaml`, necessario per i sensori deferrable.
+
+### Changed
+- `mark()` non trasforma più l'attesa in errore dopo un numero massimo di tentativi: il limite è il timeout del sensore e `attempts` è solo un contatore.
+- `process_pending_events` spostato in `commands/manual/`: non è più eseguibile con `manage.py`.
+
+### Removed
+- DAG `fantaf1_qualifying` e `fantaf1_race` (polling ogni 15 minuti) e comando `next_pending_event`.
+- Costante `MAX_WAITING_ATTEMPTS`.
+
 ### Fixed
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
-- `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
-- Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.
+- Una qualifica in errore non blocca più in silenzio le gare successive: la dipendenza qualifica → gara è un arco del DAG e un fallimento è visibile in Airflow.
 
 ## [0.4.1] - 2026-10-12
 
