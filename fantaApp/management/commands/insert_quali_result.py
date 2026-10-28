@@ -1,18 +1,13 @@
-from django.utils.dateparse import parse_duration
-
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from fantaApp.models import Weekend, Qualifying, Driver, QualifyingResult
-from fantaApp.services.sources.jolpicaSource import (
-    ResultsNotAvailable,
+from fantaApp.models import Weekend, Qualifying, QualifyingResult
+from fantaApp.services import drivers
+from fantaApp.services.sources.base import ResultsNotAvailable
+from fantaApp.services.sources.openF1Source import (
+    QUALIFYING_SESSION,
     get_qualifying_result,
 )
-from fantaApp.services.sources.fastf1Source import (
-    ResultsNotAvailableFastf1,
-    get_sprint_qualifying_result,
-)
-from fantaApp.services import drivers
 
 
 def get_best_lap(*times):
@@ -40,18 +35,13 @@ class Command(BaseCommand):
             help="round to call",
         )
 
-        parser.add_argument("--type", type=str, help="type of the event")
+        parser.add_argument("--type", type=str, choices=QUALIFYING_SESSION.keys())
 
         parser.add_argument(
             "--dry-run",  # it's a boolean flag, if present it will roll back at the end
             action="store_true",
             help="Execute command without final commit",
         )
-
-    TYPES = [
-        ("regular", "Regular Race Qualifying"),
-        ("sprint", "Sprint Race Qualifying"),
-    ]
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -61,65 +51,37 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
         qualifying = Qualifying.objects.get(weekend=weekend, type=q_type)
-        # Jolpica has no sprint qualifying: each type has its own source
-        get_results = (
-            get_qualifying_result if q_type == "regular" else get_sprint_qualifying_result
-        )
+
+        session_name, start_field = QUALIFYING_SESSION[q_type]
         try:
-            results = list(get_results(season, round))
-        except (ResultsNotAvailable, ResultsNotAvailableFastf1) as exc:
+            results = get_qualifying_result(
+                season, session_name, getattr(weekend, start_field)
+            )
+        except ResultsNotAvailable as exc:
             raise CommandError(str(exc), returncode=3)
 
         quali_objs: list[QualifyingResult] = []
-        if q_type == "regular":
-            self.stdout.write(self.style.SUCCESS("=== Import regular qualigfying ==="))
-            for data in results:
-                q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
-                q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
-                q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None
-                # self.stdout.write(
-                #     f"Looking up regular driver with api_id={data['driver_api_id']}"
-                # )
-                driver = Driver.objects.get(api_id=data["driver_api_id"])
-                # self.stdout.write(
-                #     f"Saving regular qualifying result for driver: "
-                #     f"{driver.first_name} {driver.last_name} "
-                #     f"(api_id={driver.api_id}, season={driver.season})"
-                # )
-                quali_objs.append(
-                    QualifyingResult(
-                        qualifying=qualifying,
-                        driver=driver,
-                        q1_time=q1_time,
-                        q2_time=q2_time,
-                        q3_time=q3_time,
-                        best_lap=get_best_lap(q1_time, q2_time, q3_time),
-                        position=data["position"],
-                    )
+        for data in results:
+            quali_objs.append(
+                QualifyingResult(
+                    qualifying=qualifying,
+                    driver=drivers.get_driver_by_number(
+                        season=season, number=data["driver_number"]
+                    ),
+                    q1_time=data["q1_time"],
+                    q2_time=data["q2_time"],
+                    q3_time=data["q3_time"],
+                    best_lap=get_best_lap(
+                        data["q1_time"], data["q2_time"], data["q3_time"]
+                    ),
+                    position=data["position"],
                 )
-        else:
-            self.stdout.write(self.style.SUCCESS("=== Import sprint qualigfying ==="))
-            for data in results:
-                q1_time = parse_duration(data["q1_time"]) if data["q1_time"] else None
-                q2_time = parse_duration(data["q2_time"]) if data["q2_time"] else None
-                q3_time = parse_duration(data["q3_time"]) if data["q3_time"] else None
-                driver = drivers.resolve_fastf1_driver(season=season, data=data)
-                quali_objs.append(
-                    QualifyingResult(
-                        qualifying=qualifying,
-                        driver=driver,
-                        q1_time=q1_time,
-                        q2_time=q2_time,
-                        q3_time=q3_time,
-                        best_lap=get_best_lap(q1_time, q2_time, q3_time),
-                        position=data["position"],
-                    )
-                )
+            )
 
         # Inserimento veloce: una singola INSERT
         QualifyingResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
         self.stdout.write(
-            self.style.SUCCESS(f"• Races qualifying imported: {len(quali_objs)}")
+            self.style.SUCCESS(f"• {q_type} qualifying imported: {len(quali_objs)}")
         )
 
         # ------------------------------------------------------------------

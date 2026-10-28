@@ -1,10 +1,10 @@
-from django.utils.dateparse import parse_duration
-
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from fantaApp.models import Weekend, Race, Driver, RaceResult
-from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable, get_race_result
+from fantaApp.models import Weekend, Race, RaceResult, RaceStartingGrid
+from fantaApp.services import drivers
+from fantaApp.services.sources.base import ResultsNotAvailable
+from fantaApp.services.sources.openF1Source import RACE_SESSION, get_race_result
 
 
 class Command(BaseCommand):
@@ -26,6 +26,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
+            choices=RACE_SESSION.keys(),
             help="sprint o regular",
         )
 
@@ -43,24 +44,33 @@ class Command(BaseCommand):
         dry_run: bool = options["dry_run"]
         weekend = Weekend.objects.get(season=season, round_number=round)
         race = Race.objects.get(weekend=weekend, type=r_type)
+
+        session_name, start_field = RACE_SESSION[r_type]
         try:
-            results = list(get_race_result(season, round, r_type == "sprint"))
+            results = get_race_result(season, session_name, getattr(weekend, start_field))
         except ResultsNotAvailable as exc:
             raise CommandError(str(exc), returncode=3)
 
+        # The official grid is imported after the qualifying (insert_starting_grid)
+        grid = dict(
+            RaceStartingGrid.objects.filter(race=race).values_list("driver_id", "position")
+        )
+
         race_objs: list[RaceResult] = []
         for data in results:
-            fast_lap = parse_duration(data["fast_lap"]) if data["fast_lap"] else None
+            driver = drivers.get_driver_by_number(
+                season=season, number=data["driver_number"]
+            )
             race_objs.append(
                 RaceResult(
                     race=race,
-                    driver=Driver.objects.get(api_id=data["driver_api_id"]),
+                    driver=driver,
                     position=data["position"],
                     status=data["status"],
-                    starting_grid=data["starting_grid"],
+                    starting_grid=grid.get(driver.id),
                     points=data["points"],
                     best_lap=data["best_lap"],
-                    fast_lap=fast_lap,
+                    fast_lap=data["fast_lap"],
                 )
             )
 
