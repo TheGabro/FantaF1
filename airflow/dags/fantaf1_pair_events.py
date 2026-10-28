@@ -9,8 +9,9 @@ from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
 
 MANAGE = ["python", "/opt/fantaf1/manage.py"]
 
-# Results publication delay budget, measured from the first poke
-WAIT_FOR_RESULTS = dict(poke_interval=15 * 60, timeout=36 * 3600, mode="reschedule")
+# Results publication delay budget, measured from the first poke.
+# OpenF1 publishes ~30' after the session, but answers 401 during any live session
+WAIT_FOR_RESULTS = dict(poke_interval=15 * 60, timeout=6 * 3600, mode="reschedule")
 
 
 def run_manage(*args: str) -> subprocess.CompletedProcess:
@@ -43,7 +44,7 @@ def run_steps(ev: dict, steps: list[list[str]]) -> PokeReturnValue:
             return PokeReturnValue(is_done=False)
         if result.returncode != 0:
             mark(ev, "error", f"{step[0]} failed (rc {result.returncode}), see Airflow task log")
-            # A bug does not fix itself: fail now instead of poking for 36h
+            # A bug does not fix itself: fail now instead of poking until the timeout
             raise AirflowFailException(f"{step[0]} failed (rc {result.returncode})")
 
     mark(ev, "processed")

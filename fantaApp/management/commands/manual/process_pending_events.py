@@ -18,7 +18,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from fantaApp.models import EventProcessingStatus, Qualifying, Status
-from fantaApp.services.sources.jolpicaSource import ResultsNotAvailable
+from fantaApp.services.sources.base import ResultsNotAvailable
 from fantaApp.services.event_processing import qualifying_ready, mark, eligible_events
 
 
