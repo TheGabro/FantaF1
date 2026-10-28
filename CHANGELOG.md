@@ -4,6 +4,9 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 
 ## [Unreleased]
 
+### Removed
+- Dipendenza `fastf1`.
+
 ### Added
 - Smoke test che apre ogni pagina del sito, da loggati e da anonimi; fallisce se si aggiunge una rotta senza coprirla.
 - Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
@@ -19,6 +22,9 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
 - Header e footer uguali su tutto il sito. Nell'header solo il logo, che porta alla home, il tema e Accedi/Registrati oppure il menu utente (Account, I miei campionati, Esci), anche su mobile; Classifiche F1 e Il gioco sono nella home e nel footer. Menu accessibile da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
 - Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.
+- Risultati di qualifiche, sprint e gare presi da OpenF1 invece che da Jolpica (e da FastF1 per le qualifiche sprint). OpenF1 li pubblica circa 30 minuti dopo la fine della sessione; Jolpica resta per anagrafiche, calendario e classifica piloti. I piloti si riconoscono dal numero di gara. I non classificati vanno in fondo all'ordine di arrivo, come faceva Jolpica.
+- `RaceResult.starting_grid` viene dalla griglia ufficiale già importata da `insert_starting_grid`.
+- Airflow: l'attesa dei risultati scende da 36 a 6 ore.
 
 ### Added
 - Airflow: DAG `fantaf1_pair_events`, elabora una coppia qualifica + gara dello stesso tipo per run. Attende l'`eligible_after` di ogni evento con un sensore deferrable (`DateTimeSensorAsync`), poi controlla ogni 15 minuti, per al massimo 36 ore, se i risultati sono pubblicati. A fine coppia lancia da solo la run successiva; la prima va avviata a mano.
