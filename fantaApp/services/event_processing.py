@@ -3,10 +3,6 @@ from django.utils import timezone
 
 from ..models import EventProcessingStatus, Status
 
-# Airflow retries every 15 minutes: 32 attempts cover ~8h, Jolpica and OpenF1
-# can take 3-4h after the session to publish
-MAX_WAITING_ATTEMPTS = 32
-
 
 def qualifying_ready(race) -> bool:
     return EventProcessingStatus.objects.filter(
@@ -18,12 +14,7 @@ def qualifying_ready(race) -> bool:
 
 def mark(event_status, *, status, now, error="") -> str:
     """Registra l'esito di un tentativo sull'EventProcessingStatus."""
-    if (
-        status == Status.WAITING_FOR_RESULTS
-        and event_status.attempts + 1 >= MAX_WAITING_ATTEMPTS
-    ):
-        status = Status.ERROR
-        error = "Max attempts reached, marking as ERROR"
+    # attempts is only a counter: the waiting budget is the Airflow sensor timeout
     event_status.status = status
     event_status.attempts += 1
     event_status.last_attempt_at = now
