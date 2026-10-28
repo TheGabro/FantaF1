@@ -98,5 +98,15 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   postgres-db-volume:

@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from datetime import timedelta
 from io import StringIO
@@ -1664,39 +1665,58 @@ class EventProcessingServiceTests(TestCase):
         self.assertTrue(ep.qualifying_ready(self.race))
         self.assertFalse(ep.qualifying_ready(self.sprint_race))
 
-    def test_mark_waiting_turns_into_error_after_max_attempts(self):
-        event_status = self._status(event=self.race)
-
-        for attempt in range(1, ep.MAX_WAITING_ATTEMPTS):
-            result = ep.mark(
-                event_status, status=Status.WAITING_FOR_RESULTS, now=self.now
-            )
-            self.assertEqual(result, Status.WAITING_FOR_RESULTS)
-            self.assertEqual(event_status.attempts, attempt)
+    def test_mark_waiting_never_turns_into_error(self):
+        # An event resumed after an ERROR may already have many attempts
+        event_status = self._status(event=self.race, status=Status.ERROR, attempts=32)
 
         result = ep.mark(event_status, status=Status.WAITING_FOR_RESULTS, now=self.now)
         event_status.refresh_from_db()
-        self.assertEqual(result, Status.ERROR)
-        self.assertEqual(event_status.status, Status.ERROR)
-        self.assertEqual(event_status.attempts, ep.MAX_WAITING_ATTEMPTS)
+        self.assertEqual(result, Status.WAITING_FOR_RESULTS)
+        self.assertEqual(event_status.status, Status.WAITING_FOR_RESULTS)
+        self.assertEqual(event_status.attempts, 33)
         self.assertEqual(event_status.last_attempt_at, self.now)
-        self.assertNotEqual(event_status.last_error, "")
+        self.assertEqual(event_status.last_error, "")
 
-    def test_mark_processed_and_error_ignore_attempt_rule(self):
-        event_status = self._status(
-            event=self.qualifying, attempts=ep.MAX_WAITING_ATTEMPTS
-        )
+    def test_mark_records_error_and_processed(self):
+        event_status = self._status(event=self.qualifying, attempts=5)
 
         ep.mark(event_status, status=Status.ERROR, now=self.now, error="boom")
         event_status.refresh_from_db()
         self.assertEqual(event_status.status, Status.ERROR)
         self.assertEqual(event_status.last_error, "boom")
-        self.assertEqual(event_status.attempts, ep.MAX_WAITING_ATTEMPTS + 1)
+        self.assertEqual(event_status.attempts, 6)
 
         ep.mark(event_status, status=Status.PROCESSED, now=self.now)
         event_status.refresh_from_db()
         self.assertEqual(event_status.status, Status.PROCESSED)
         self.assertEqual(event_status.last_error, "")
+
+    def _next_pair(self):
+        out = StringIO()
+        call_command("next_pair_events", stdout=out)
+        return json.loads(out.getvalue().strip().splitlines()[-1])
+
+    def test_next_pair_events_returns_oldest_unprocessed_pair(self):
+        self._status(event=self.sprint_qualifying, status=Status.PROCESSED, hours_ago=30)
+        self._status(event=self.sprint_race, status=Status.PROCESSED, hours_ago=20)
+        quali = self._status(event=self.qualifying, status=Status.ERROR, hours_ago=10)
+        # race still in the future: the planner must see it to wait for it
+        race = self._status(event=self.race, hours_ago=-12)
+
+        pair = self._next_pair()
+
+        self.assertEqual(pair["qualifying"]["status_id"], quali.id)
+        self.assertEqual(pair["qualifying"]["status"], Status.ERROR)
+        self.assertEqual(pair["race"]["status_id"], race.id)
+        self.assertEqual(pair["race"]["type"], "regular")
+
+    def test_next_pair_events_exits_99_when_everything_is_processed(self):
+        self._status(event=self.qualifying, status=Status.PROCESSED)
+        self._status(event=self.race, status=Status.PROCESSED)
+
+        with self.assertRaises(CommandError) as ctx:
+            call_command("next_pair_events", stdout=StringIO())
+        self.assertEqual(ctx.exception.returncode, 99)
 
 
 class InsertSprintQualifyingResultTests(TestCase):
