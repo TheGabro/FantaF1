@@ -86,34 +86,9 @@ def save_drivers(*, season: int, payload: list[dict]) -> list[Driver]:
     return saved
 
 
-def resolve_fastf1_driver(*, season: int, data: dict) -> Driver:
-    queryset = Driver.objects.filter(season=season)
-
-    short_name = data.get("short_name")
-    if short_name:
-        driver = queryset.filter(short_name__iexact=short_name).first()
-        if driver:
-            return driver
-
-    number = data.get("number")
-    if number:
-        driver = queryset.filter(number=number).first()
-        if driver:
-            return driver
-
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
-    if first_name and last_name:
-        driver = queryset.filter(
-            first_name__iexact=first_name,
-            last_name__iexact=last_name,
-        ).first()
-        if driver:
-            return driver
-
-    raise CommandError(
-        "Impossibile fare match del pilota FastF1: "
-        f"short_name={short_name}, number={number}, "
-        f"first_name={first_name}, last_name={last_name}, "
-        f"fastf1_driver_id={data.get('fastf1_driver_id')}, season={season}"
-    )
+def get_driver_by_number(*, season: int, number: int) -> Driver:
+    """OpenF1 identifies drivers by race number only."""
+    driver = find_driver(season=season, number=number)
+    if driver is None:
+        raise CommandError(f"Driver #{number} not found for season {season}")
+    return driver
