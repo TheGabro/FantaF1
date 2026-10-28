@@ -34,11 +34,15 @@
           </h3>
           <p class="text-sm text-muted">Stagione {{ e.championship.year }} · {{ e.league.name }}</p>
         </div>
-        {% if e.championship.active %}
-          <span class="badge-ok shrink-0">In corso</span>
-        {% else %}
-          <span class="badge-muted shrink-0">Concluso</span>
-        {% endif %}
+        <div class="flex shrink-0 flex-col items-end gap-1">
+          {% if e.championship.active %}
+            <span class="badge-ok">In corso</span>
+          {% else %}
+            <span class="badge-muted">Concluso</span>
+          {% endif %}
+          {# Giochi e lo gestisci: una scheda sola, con il badge (#62). #}
+          {% if e.is_manager %}<span class="badge-accent">Manager</span>{% endif %}
+        </div>
       </div>
 
       <p class="mb-4 text-sm text-muted">Giochi come <span class="font-semibold text-ink">{{ e.player_name }}</span></p>
@@ -79,7 +83,7 @@
       type="text"
       name="invite_code"
       class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
-      placeholder="https://…/campionati/invito/…"
+      placeholder="https://…/championships/invite/…"
       aria-label="Codice o link di invito"
       required
     />
@@ -87,26 +91,33 @@
   </form>
 </section>
 
-{# Campionati in cui l'utente è manager: letti dal template perché la view non li passa. #}
-{# Nota: qui compaiono anche se non si è iscritti come giocatori (si può gestire senza giocare). #}
-{% if user.championshipmanager_set.all %}
-  <h2 class="mb-4 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
+{# Campionati che l'utente gestisce senza giocarci: quelli in cui gioca hanno il badge Manager qui sopra (#62). #}
+{% if managed_championships %}
+  <h2 class="mb-1 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
+  <p class="mb-4 text-sm text-muted">Qui ci sono quelli in cui non giochi; gli altri hanno il badge Manager nella loro scheda.</p>
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {% for m in user.championshipmanager_set.all %}
-      <a href="{% url 'championship_dashboard' m.championship.id %}"
+    {% for c in managed_championships %}
+      <a href="{% url 'championship_dashboard' c.id %}"
          class="card-pad group transition-shadow hover:shadow-md hover:border-accent/50">
         <div class="mb-3 flex items-start justify-between gap-2">
           <div>
             <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
-              {{ m.championship.name }}
+              {{ c.name }}
             </h3>
-            <p class="text-sm text-muted">Stagione {{ m.championship.year }}</p>
+            <p class="text-sm text-muted">Stagione {{ c.year }}</p>
           </div>
-          <span class="badge-accent shrink-0">Manager</span>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            {% if c.active %}
+              <span class="badge-ok">In corso</span>
+            {% else %}
+              <span class="badge-muted">Concluso</span>
+            {% endif %}
+            <span class="badge-accent">Manager</span>
+          </div>
         </div>
         <div class="flex gap-6 border-t border-line pt-3 text-sm text-muted">
-          <span><strong class="text-ink">{{ m.championship.leagues.count }}</strong> legh{{ m.championship.leagues.count|pluralize:"a,e" }}</span>
-          <span><strong class="text-ink">{{ m.championship.participants.count }}</strong> giocator{{ m.championship.participants.count|pluralize:"e,i" }}</span>
+          <span><strong class="text-ink">{{ c.leagues_count }}</strong> {% if c.leagues_count == 1 %}lega{% else %}leghe{% endif %}</span>
+          <span><strong class="text-ink">{{ c.players_count }}</strong> {% if c.players_count == 1 %}giocatore{% else %}giocatori{% endif %}</span>
         </div>
       </a>
     {% endfor %}

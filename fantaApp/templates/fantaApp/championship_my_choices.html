@@ -35,7 +35,7 @@
         <div class="min-w-0 flex-1">
           <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
           <p class="truncate text-sm text-muted">
-            {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y" }}{% endif %}
+            {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y"|lower }}{% endif %}
           </p>
         </div>
         {% if item.spent %}
@@ -124,7 +124,7 @@
     <div class="card-pad text-center text-base text-muted">
       {% if current_championship_player %}
         Non hai ancora scelte registrate per la stagione {{ championship.year }}.
-        Le sessioni ancora aperte sono nella sezione <a href="{% url 'championship_dashboard' championship.id %}" class="font-semibold text-accent hover:underline">Prossimo weekend</a>.
+        Le sessioni ancora aperte sono nella sezione <a href="{% url 'championship_next_weekend' championship.id %}" class="font-semibold text-accent hover:underline">Prossimo weekend</a>.
       {% else %}
         Non sei iscritto a questo campionato, quindi non c'è nessuno storico di scelte da mostrare.
       {% endif %}

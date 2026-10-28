@@ -1,4 +1,6 @@
-{% load static %}
+{% load static i18n tz nav %}
+{# Il backend resta in inglese e in UTC: qui la pagina si mostra in italiano e in ora italiana (#91). #}
+{% language "it" %}{% timezone "Europe/Rome" %}
 <!doctype html>
 <html lang="it">
   <head>
@@ -29,41 +31,46 @@
   </head>
 
   <body class="flex min-h-screen flex-col">
+    {% nav_section as section %}
     <header class="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
-      <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
-        {# Per chi e' autenticato la "casa" e' la dashboard: puntarci dritto evita il rimbalzo da /. #}
-        <a href="{% if user.is_authenticated %}{% url 'user_dashboard' %}{% else %}{% url 'home' %}{% endif %}"
+      <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Menu principale">
+        {# Il logo è il link alla home (#92). Classifiche F1 e Il gioco stanno nella home e nel footer (#131). #}
+        <a href="{% url 'home' %}"
            class="flex items-center gap-2 text-lg font-black uppercase italic tracking-tight">
           Fanta<span class="text-accent">F1</span>
         </a>
 
+        {# Solo accesso e iscrizione, o il menu utente: uguale su desktop e mobile (#131). #}
         <div class="flex items-center gap-2">
-          <div id="nav-menu" class="hidden absolute left-0 right-0 top-14 flex-col gap-1 border-b border-line bg-surface p-3 sm:static sm:flex sm:flex-row sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
-            {% if user.is_authenticated %}
-              <a href="{% url 'user_dashboard' %}" class="btn-ghost">I miei campionati</a>
-              <span class="badge-muted hidden sm:inline-flex" title="Utente connesso">{{ user.username }}</span>
-              <form method="post" action="{% url 'logout' %}" class="contents">
-                {% csrf_token %}
-                <button type="submit" class="btn-secondary">Esci</button>
-              </form>
-            {% else %}
-              <a href="{% url 'login' %}" class="btn-ghost">Accedi</a>
-              <a href="{% url 'register' %}" class="btn-primary">Registrati</a>
-            {% endif %}
-          </div>
+          {% if user.is_authenticated %}
+            <div class="relative">
+              <button id="user-menu-toggle" type="button" data-menu-toggle aria-controls="user-menu" aria-expanded="false"
+                      class="btn-secondary max-sm:!px-3">
+                <span class="max-w-28 truncate sm:max-w-48">{{ user.username }}</span>
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div id="user-menu" class="absolute right-0 top-full mt-2 hidden w-56 flex-col gap-1 rounded-xl border border-line bg-surface p-2 shadow-lg data-[open]:flex">
+                <a href="{% url 'account' %}" class="nav-link"{% if section == "account" %} aria-current="page"{% endif %}>Account</a>
+                <a href="{% url 'user_dashboard' %}" class="nav-link"{% if section == "championships" %} aria-current="page"{% endif %}>I miei campionati</a>
+                <form method="post" action="{% url 'logout' %}" class="contents">
+                  {% csrf_token %}
+                  <button type="submit" class="nav-link text-left">Esci</button>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <a href="{% url 'login' %}" class="btn-ghost max-sm:!px-3"{% if request.resolver_match.url_name == "login" %} aria-current="page"{% endif %}>Accedi</a>
+            <a href="{% url 'register' %}" class="btn-primary max-sm:!px-3">Registrati</a>
+          {% endif %}
 
           <button id="theme-toggle" type="button" class="btn-ghost !px-2" aria-label="Cambia tema chiaro/scuro">
-            <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
-            <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
-
-          <button id="nav-toggle" type="button" class="btn-ghost !px-2 sm:hidden" aria-label="Apri menu">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
@@ -71,9 +78,10 @@
     </header>
 
     {% if messages %}
-      <div class="pointer-events-none fixed right-4 top-16 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+      {# Annunciati dagli screen reader: gli errori subito (role="alert"), gli altri appena possibile. #}
+      <div class="pointer-events-none fixed right-4 top-16 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" role="status" aria-live="polite">
         {% for message in messages %}
-          <div data-toast class="pointer-events-auto toast {% if message.tags == 'error' %}toast-error{% else %}toast-success{% endif %}">
+          <div data-toast class="pointer-events-auto toast {% if message.tags == 'error' %}toast-error{% else %}toast-success{% endif %}"{% if message.tags == 'error' %} role="alert"{% endif %}>
             <span class="mt-0.5 h-2 w-2 shrink-0 rounded-full {% if message.tags == 'error' %}bg-accent{% else %}bg-ok{% endif %}"></span>
             <p class="flex-1">{{ message }}</p>
             <button type="button" data-toast-close class="text-muted hover:text-ink" aria-label="Chiudi">&times;</button>
@@ -87,9 +95,16 @@
     </main>
 
     <footer class="border-t border-line py-4">
-      <p class="mx-auto max-w-6xl px-4 text-xs text-muted">
-        Fanta F1 — gioco tra amici, non affiliato a Formula 1&reg;
-      </p>
+      <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <p>Fanta F1 — gioco tra amici, non affiliato a Formula 1&reg;</p>
+        {# Chi siamo, Privacy, Termini e Supportaci si aggiungono qui quando esistono le pagine (#107–#110). #}
+        <nav aria-label="Link del sito" class="flex flex-wrap gap-x-4 gap-y-1">
+          <a href="{% url 'home' %}" class="hover:text-ink">Home</a>
+          <a href="{% url 'f1_drivers_standings' %}" class="hover:text-ink">Classifica piloti F1</a>
+          <a href="{% url 'game' %}" class="hover:text-ink">Il gioco</a>
+        </nav>
+      </div>
     </footer>
   </body>
 </html>
+{% endtimezone %}{% endlanguage %}

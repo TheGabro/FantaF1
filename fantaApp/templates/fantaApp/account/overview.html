@@ -1,0 +1,39 @@
+{% extends 'fantaApp/account/base.html' %}
+
+{% block title %}Account — Fanta F1{% endblock %}
+
+{% block account_content %}
+<section class="card-pad" aria-labelledby="account-data-title">
+  <h2 id="account-data-title" class="text-sm font-bold uppercase tracking-wide text-muted">Il tuo account</h2>
+  <dl class="mt-4 grid gap-y-3 text-sm">
+    <div class="flex flex-wrap justify-between gap-x-6 gap-y-1 border-b border-line pb-3">
+      <dt class="text-muted">Username</dt>
+      <dd class="font-semibold">{{ user.username }}</dd>
+    </div>
+    <div class="flex flex-wrap justify-between gap-x-6 gap-y-1 border-b border-line pb-3">
+      <dt class="text-muted">Email</dt>
+      <dd class="font-semibold break-all">{{ user.email|default:"—" }}</dd>
+    </div>
+    {% if user.first_name or user.last_name %}
+      <div class="flex flex-wrap justify-between gap-x-6 gap-y-1 border-b border-line pb-3">
+        <dt class="text-muted">Nome</dt>
+        <dd class="font-semibold">{{ user.get_full_name }}</dd>
+      </div>
+    {% endif %}
+    <div class="flex flex-wrap justify-between gap-x-6 gap-y-1">
+      <dt class="text-muted">Iscritto dal</dt>
+      <dd class="font-semibold">{{ user.date_joined|date:"j F Y"|lower }}</dd>
+    </div>
+  </dl>
+</section>
+
+<section class="card-pad mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="account-championships-title">
+  <div>
+    <h2 id="account-championships-title" class="font-bold">I miei campionati</h2>
+    <p class="mt-1 text-sm text-muted">
+      {% if championships_count == 0 %}Non giochi ancora in nessun campionato.{% elif championships_count == 1 %}Giochi in 1 campionato.{% else %}Giochi in {{ championships_count }} campionati.{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'user_dashboard' %}" class="btn-secondary shrink-0">Vai ai campionati</a>
+</section>
+{% endblock %}

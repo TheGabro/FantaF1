@@ -3,20 +3,56 @@ from ..models import CustomUser, Championship, League, ChampionshipPlayer
 from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from django.contrib.auth import password_validation
 from django.forms import inlineformset_factory
+from django.utils import translation
 
 from datetime import datetime
 
 CURRENT_YEAR = datetime.now().year
 
 
+def password_rules():
+    """Regole dei validatori di AUTH_PASSWORD_VALIDATORS, in italiano.
+
+    Il sito gira in inglese e solo i template passano all'italiano (#91), ma
+    questi testi sono tradotti appena chiamati: si forza l'italiano qui. Con il
+    multilingua (#112) "it" diventa la lingua dell'utente.
+    """
+    with translation.override("it"):
+        return password_validation.password_validators_help_texts()
+
+
 class CustomUserRegistrationForm(forms.ModelForm):
-    password = forms.CharField(label="Password", widget=forms.PasswordInput)
-    password2 = forms.CharField(label="Ripeti la password", widget=forms.PasswordInput)
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
+    password2 = forms.CharField(
+        label="Ripeti la password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
 
     class Meta:
         model = CustomUser
         fields = ["username", "email"]
+        labels = {"username": "Username", "email": "Email"}
+        help_texts = {
+            "username": "Lo usi per accedere ed è il tuo nome di partenza nei campionati: "
+            "in ognuno puoi sceglierne un altro. Lettere, cifre e @ . + - _, "
+            "fino a 150 caratteri.",
+            "email": "La usi per accedere e, più avanti, per recuperare la password.",
+        }
+        widgets = {
+            "username": forms.TextInput(attrs={"autocomplete": "username"}),
+            "email": forms.EmailInput(attrs={"autocomplete": "email"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Il testo d'aiuto (per la password, le regole) viene letto dagli screen reader.
+        for name in ("username", "email", "password"):
+            self.fields[name].widget.attrs["aria-describedby"] = f"id_{name}_help"
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
@@ -36,6 +72,18 @@ class CustomUserRegistrationForm(forms.ModelForm):
         p2 = cleaned_data.get("password2")
         if p1 and p2 and p1 != p2:
             raise ValidationError("Le due password non corrispondono.")
+        if p1:
+            # Utente provvisorio: serve al controllo "troppo simile a username/email".
+            user = CustomUser(
+                username=cleaned_data.get("username") or "",
+                email=cleaned_data.get("email") or "",
+            )
+            try:
+                with translation.override("it"):
+                    password_validation.validate_password(p1, user)
+            except ValidationError as error:
+                self.add_error("password", error)
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -47,8 +95,18 @@ class CustomUserRegistrationForm(forms.ModelForm):
 
 
 class UsernameOrEmailAuthenticationForm(forms.Form):
-    identifier = forms.CharField(label="Username o Email")
-    password = forms.CharField(widget=forms.PasswordInput)
+    identifier = forms.CharField(
+        label="Username o email",
+        widget=forms.TextInput(attrs={"autocomplete": "username", "autofocus": True}),
+    )
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+    # Un solo messaggio per utente inesistente e password errata: così la pagina
+    # non rivela quali username o email sono registrati.
+    INVALID_LOGIN = "Username, email o password non corretti."
 
     def clean(self):
         cleaned_data = super().clean()
@@ -63,11 +121,11 @@ class UsernameOrEmailAuthenticationForm(forms.Form):
             try:
                 user = UserModel.objects.get(username=identifier)
             except UserModel.DoesNotExist:
-                raise ValidationError("Utente non trovato con questo username o email.")
+                raise ValidationError(self.INVALID_LOGIN)
 
         self.user = authenticate(username=user.username, password=password)
         if self.user is None:
-            raise ValidationError("Password errata.")
+            raise ValidationError(self.INVALID_LOGIN)
 
         return cleaned_data
 

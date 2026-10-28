@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
 from ..models import (
@@ -36,17 +36,38 @@ SUCATA_POINTS = 5
 
 @login_required
 def user_dashboard(request):
+    """I miei campionati: quelli in cui si gioca e, a parte, quelli che si gestiscono
+    senza giocare (#62). Un campionato in cui si gioca e si è manager compare una
+    volta sola, con il badge Manager. Query costanti, qualunque sia il numero di
+    campionati."""
     user = request.user
 
     championship = (
         ChampionshipPlayer.objects.filter(user=user)
         .select_related("championship", "league")
+        .annotate(
+            is_manager=Exists(
+                ChampionshipManager.objects.filter(
+                    user=user, championship_id=OuterRef("championship_id")
+                )
+            )
+        )
         .order_by("championship__active", "-championship__year")
+    )
+    managed_championships = (
+        Championship.objects.filter(managers__user=user)
+        .exclude(participants__user=user)
+        .annotate(
+            leagues_count=Count("leagues", distinct=True),
+            players_count=Count("participants", distinct=True),
+        )
+        .order_by("-active", "-year", "name")
     )
 
     context = {
         "user": user,
         "championship": championship,
+        "managed_championships": managed_championships,
         "is_admin": user.user_type == "admin",
         "is_staff": user.user_type == "staff",
         "is_premium": user.user_type == "premium",
@@ -113,31 +134,13 @@ def create_championship(request):
 # Navigazione a due livelli: gruppo (tab principale) → sezioni (sotto-tab).
 # È l'unico posto dove la struttura è descritta: il template la legge da qui,
 # quindi aggiungere una sezione resta una voce sola più view e URL.
+# Si entra dalle classifiche (#113): la tab del gruppo porta all'ingresso del
+# campionato, che sceglie Lega o Generale; le altre tab aprono la prima sezione.
 CHAMPIONSHIP_NAV = (
-    {
-        "group": "play",
-        "label": "Gioca",
-        "sections": (
-            {
-                "section": "next_weekend",
-                "label": "Prossimo weekend",
-                "url_name": "championship_dashboard",
-            },
-            {
-                "section": "my_choices",
-                "label": "Le mie scelte",
-                "url_name": "championship_my_choices",
-            },
-            {
-                "section": "calendar",
-                "label": "Calendario gare",
-                "url_name": "championship_calendar",
-            },
-        ),
-    },
     {
         "group": "standings",
         "label": "Classifiche",
+        "url_name": "championship_dashboard",
         "sections": (
             {
                 "section": "standings_league",
@@ -158,6 +161,27 @@ CHAMPIONSHIP_NAV = (
                 "section": "standings_sprint",
                 "label": "Sprint",
                 "url_name": "championship_sprint_standings",
+            },
+        ),
+    },
+    {
+        "group": "play",
+        "label": "Gioca",
+        "sections": (
+            {
+                "section": "next_weekend",
+                "label": "Prossimo weekend",
+                "url_name": "championship_next_weekend",
+            },
+            {
+                "section": "my_choices",
+                "label": "Le mie scelte",
+                "url_name": "championship_my_choices",
+            },
+            {
+                "section": "calendar",
+                "label": "Calendario gare",
+                "url_name": "championship_calendar",
             },
         ),
     },
@@ -186,6 +210,7 @@ def _nav_context(active_section):
     return {
         "nav_groups": CHAMPIONSHIP_NAV,
         "active_group": active_group["group"],
+        "active_group_label": active_group["label"],
         "nav_subsections": active_group["sections"]
         if len(active_group["sections"]) > 1
         else (),
@@ -196,6 +221,11 @@ def _section_context(request, championship_id, active_section):
     """
     Contesto comune a tutte le sezioni: campionato, giocatore corrente (None se
     l'utente non è iscritto), sezione attiva e navigazione.
+
+    Si entra dalle classifiche (#113), quindi le scadenze restano visibili con
+    un contatore sulla tab Gioca: le scelte ancora da fare nel prossimo weekend,
+    lo stesso numero di «Prossimo weekend». Per calcolarlo servono i weekend
+    aperti, che restano nel contesto per la pagina «Prossimo weekend».
     """
     championship = get_object_or_404(Championship, pk=championship_id)
 
@@ -204,11 +234,21 @@ def _section_context(request, championship_id, active_section):
         .select_related("league")
         .first()
     )
+    open_weekends, pending_count = _open_weekends(
+        championship, current_championship_player
+    )
 
     context = {
         "championship": championship,
         "current_championship_player": current_championship_player,
         "active_section": active_section,
+        "open_weekends": open_weekends,
+        "pending_count": pending_count,
+        "play_pending": (
+            open_weekends[0]["pending"]
+            if current_championship_player and open_weekends
+            else 0
+        ),
     }
     context.update(_nav_context(active_section))
     return championship, current_championship_player, context
@@ -921,22 +961,15 @@ def _player_choice_index(player, season):
     return made
 
 
-@login_required
-def championship_next_weekend(request, championship_id):
+def _open_weekends(championship, player):
     """
-    Landing del campionato: il prossimo weekend da giocare, in evidenza, e in
-    coda gli altri weekend con scelte ancora aperte.
+    Weekend della stagione con sessioni ancora aperte, in ordine, e il numero
+    totale di scelte che il giocatore deve ancora fare (None = non iscritto:
+    nessuna scelta risulta fatta).
     """
-    championship, current_championship_player, context = _section_context(
-        request, championship_id, "next_weekend"
-    )
-    context.update(_credits_context(current_championship_player))
-
     already_chosen = set()
-    if current_championship_player:
-        already_chosen = _player_choice_index(
-            current_championship_player, championship.year
-        )
+    if player:
+        already_chosen = _player_choice_index(player, championship.year)
 
     open_weekends = []
     pending_count = 0
@@ -964,13 +997,26 @@ def championship_next_weekend(request, championship_id):
                     "deadline": sessions[0]["start"],
                 }
             )
+    return open_weekends, pending_count
 
-    next_weekend = open_weekends[0] if open_weekends else None
+
+@login_required
+def championship_next_weekend(request, championship_id):
+    """
+    Gioca → Prossimo weekend: il prossimo weekend da giocare, in evidenza, e in
+    coda gli altri weekend con scelte ancora aperte. I weekend aperti li calcola
+    già _section_context.
+    """
+    championship, current_championship_player, context = _section_context(
+        request, championship_id, "next_weekend"
+    )
+    context.update(_credits_context(current_championship_player))
+
+    open_weekends = context["open_weekends"]
     context.update(
         {
-            "next_weekend": next_weekend,
+            "next_weekend": open_weekends[0] if open_weekends else None,
             "other_weekends": open_weekends[1:],
-            "pending_count": pending_count,
         }
     )
     return render(request, "fantaApp/championship_next_weekend.html", context)

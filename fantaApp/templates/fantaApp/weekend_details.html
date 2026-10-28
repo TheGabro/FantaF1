@@ -9,7 +9,7 @@
     <h2 class="text-2xl font-black uppercase italic leading-tight">{{ weekend.event_name }}</h2>
     <p class="text-sm text-muted">
       {{ weekend.circuit.name }} · {{ weekend.circuit.country }}
-      {% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y" }}{% endif %}
+      {% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y"|lower }}{% endif %}
     </p>
   </div>
   {% if weekend.weekend_type == "sprint" %}

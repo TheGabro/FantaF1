@@ -5,6 +5,22 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 ## [Unreleased]
 
 ### Added
+- Smoke test che apre ogni pagina del sito, da loggati e da anonimi; fallisce se si aggiunge una rotta senza coprirla.
+- Pagina del gioco su `/game/`, aperta a tutti: chi ha già un account trova il link ai suoi campionati al posto delle schede di iscrizione e accesso. `/` la mostra ancora ai visitatori anonimi finché non arriva la home del sito.
+- Classifica piloti F1 su `/standings/drivers/`, aperta a tutti: posizione, pilota, scuderia del weekend, vittorie e punti dopo l'ultimo round importato. Raggiungibile dalla home e dal footer.
+- Home del sito su `/`, aperta a tutti: banner del gioco, prossimo Gran Premio con gli orari delle sessioni, programma della stagione (i weekend già corsi sono raccolti a parte), link alle classifiche F1 e spazio per le news. Chi ha fatto l'accesso non viene più rimandato ai suoi campionati.
+- Area account su `/account/` (voce «Account» nel menu utente): panoramica con username, email, data di iscrizione e link ai propri campionati. Menu laterale su desktop, in alto su mobile.
+- Account → Dati personali: si cambiano username, nome e cognome (facoltativi); i nomi giocatore già scelti nei campionati restano gli stessi. L'email si vede ma per ora non si cambia.
+- Account → Sicurezza: cambio password con la password attuale, regole visibili e testi in italiano; dopo il cambio si resta collegati.
+
+### Changed
+- I miei campionati: un campionato in cui giochi e che gestisci compare una volta sola, con il badge Manager; «Campionati che gestisci» elenca quelli in cui non giochi, con il numero di leghe e di giocatori (prima compariva «1 legha»). La pagina fa lo stesso numero di query qualunque sia il numero di campionati.
+- Aprendo un campionato si vedono le classifiche: la classifica della propria lega per chi gioca, la generale per gli altri, anche a stagione finita. Le schede sono Classifiche · Gioca · Info; «Prossimo weekend» è su `/championships/<id>/play/` e la scheda Gioca mostra quante scelte restano da fare nel prossimo weekend.
+- Indirizzi delle pagine in inglese (`/championships/…`, `…/standings/…`, `…/weekends/…`, `/auth/register/`); i nomi delle URL non cambiano. I vecchi indirizzi della lista campionati, della pagina di un campionato e dei link d'invito rimandano ai nuovi.
+- Header e footer uguali su tutto il sito. Nell'header solo il logo, che porta alla home, il tema e Accedi/Registrati oppure il menu utente (Account, I miei campionati, Esci), anche su mobile; Classifiche F1 e Il gioco sono nella home e nel footer. Menu accessibile da tastiera e screen reader (Escape chiude, `aria-expanded`), messaggi annunciati agli screen reader.
+- Pagine di accesso e iscrizione rifatte: testi in italiano, regole della password visibili prima di inviare il form. Dopo l'iscrizione si entra subito e si va ai propri campionati (o all'invito da cui si arrivava), senza ripassare dal login.
+
+### Added
 - Airflow: DAG `fantaf1_pair_events`, elabora una coppia qualifica + gara dello stesso tipo per run. Attende l'`eligible_after` di ogni evento con un sensore deferrable (`DateTimeSensorAsync`), poi controlla ogni 15 minuti, per al massimo 36 ore, se i risultati sono pubblicati. A fine coppia lancia da solo la run successiva; la prima va avviata a mano.
 - Comando `next_pair_events`: restituisce la prima coppia qualifica + gara con eventi non ancora processati, errori compresi, anche se l'evento è nel futuro.
 - Airflow: servizio `airflow-triggerer` nel `docker-compose.yaml`, necessario per i sensori deferrable.
@@ -18,7 +34,14 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Costante `MAX_WAITING_ATTEMPTS`.
 
 ### Fixed
+- Iscrizione: le regole della password (lunghezza minima, password comuni, solo numeri, troppo simile ai dati dell'account) vengono applicate davvero; prima erano solo configurate.
+- Accesso: un solo messaggio per utente inesistente e password errata, così la pagina non rivela quali account esistono.
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
+- `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
+- Airflow: i DAG `fantaf1_qualifying` e `fantaf1_race` girano tutti i giorni.
+- Pagine dei risultati gara: chi non ha effettuato l'accesso viene mandato al login invece di ricevere un errore 500.
+- Date, orari, conti alla rovescia ed errori dei form in italiano e in ora italiana su tutte le pagine (prima in inglese e in UTC).
+- Build del CSS: Tailwind legge solo template e JS, quindi `main.css` è lo stesso da qualunque cartella si lanci la build (prima, dalla radice del repo, entravano classi inutili prese dai file Python e Markdown).
 - Una qualifica in errore non blocca più in silenzio le gare successive: la dipendenza qualifica → gara è un arco del DAG e un fallimento è visibile in Airflow.
 
 ## [0.4.1] - 2026-10-12

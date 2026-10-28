@@ -16,7 +16,7 @@
         <div class="min-w-0 flex-1">
           <h3 class="truncate font-bold leading-tight group-hover:text-accent">{{ w.event_name }}</h3>
           <p class="truncate text-xs text-muted">
-            {{ w.circuit.name }}{% if w.race_start %} · {{ w.race_start|date:"j M" }}{% endif %}
+            {{ w.circuit.name }}{% if w.race_start %} · {{ w.race_start|date:"j M"|lower }}{% endif %}
           </p>
         </div>
         {% if w.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}

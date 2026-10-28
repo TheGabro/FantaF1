@@ -3,10 +3,11 @@
 {% block title %}Accedi — Fanta F1{% endblock %}
 
 {% block content %}
-<div class="mx-auto mt-8 w-full max-w-sm sm:mt-16">
-  <div class="card-pad">
-    <h1 class="text-xl font-black uppercase italic">Accedi</h1>
-    <p class="mt-1 mb-5 text-sm text-muted">Entra nel paddock del tuo campionato.</p>
+<div class="mx-auto mt-6 w-full max-w-md sm:mt-12">
+  <div class="card-pad sm:p-8">
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
+    <h1 class="mt-1 text-2xl font-black uppercase italic">Accedi</h1>
+    <p class="mt-1 mb-6 text-sm text-muted">Entra con il tuo username o con l'email dell'account.</p>
 
     {% if form_login.non_field_errors %}
       <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
@@ -14,7 +15,7 @@
       </div>
     {% endif %}
 
-    <form method="post" class="space-y-4">
+    <form method="post" class="space-y-4" novalidate>
       {% csrf_token %}
       {# Destinazione di ritorno (es. un invito): la view la rivalida prima di usarla. #}
       {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
@@ -25,7 +26,8 @@
           {{ field.errors }}
         </div>
       {% endfor %}
-      <button type="submit" class="btn-primary w-full">Accedi</button>
+      {# Niente «Password dimenticata?» finché non c'è il recupero via email (#105). #}
+      <button type="submit" class="btn-primary w-full py-3">Accedi</button>
     </form>
   </div>
 

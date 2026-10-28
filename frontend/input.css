@@ -1,7 +1,9 @@
 /* FantaF1 design system — sorgente Tailwind v4.
    Build: vedi frontend/README.md (output in fantaApp/static/fantaApp/css/main.css) */
 
-@import "tailwindcss";
+/* source(none): si leggono solo i percorsi di @source, relativi a questo file, così la build
+   dà lo stesso main.css da qualunque cartella venga lanciata (#128). */
+@import "tailwindcss" source(none);
 
 @source "../fantaApp/templates/**/*.html";
 @source "../fantaApp/static/fantaApp/js/**/*.js";
@@ -98,6 +100,13 @@
   .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-surface-2; }
   .btn-ghost { @apply text-muted hover:text-ink hover:bg-surface-2; }
 
+  /* Voci del menu utente: la sezione aperta ha aria-current="page" (#93, #131) */
+  .nav-link {
+    @apply flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors
+      cursor-pointer hover:bg-surface-2 hover:text-ink;
+  }
+  .nav-link[aria-current="page"] { @apply bg-surface-2 text-ink; }
+
   /* Card */
   .card, .card-pad { @apply rounded-xl border border-line bg-surface shadow-sm; }
   .card-pad { @apply p-5; }
@@ -137,6 +146,7 @@
   }
   .form-field .errorlist { @apply mt-1 text-xs font-semibold text-accent list-none p-0; }
   .form-field .helptext { @apply mt-1 block text-xs text-muted; }
+  .form-field ul.helptext { @apply list-disc space-y-0.5 pl-4; }
 
   /* Toast dei Django messages */
   .toast { @apply flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm shadow-lg; }
