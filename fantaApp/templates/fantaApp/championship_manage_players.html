@@ -3,8 +3,8 @@
 
 {% comment %}
   Gestione → Giocatori (#70): gli iscritti divisi per lega, solo per i manager.
-  Da qui un manager rende manager un altro giocatore: non c'è gerarchia,
-  tutti i manager hanno gli stessi poteri.
+  Da qui un manager rende manager un altro giocatore o gli toglie il ruolo:
+  non c'è gerarchia, tutti i manager hanno gli stessi poteri.
   Richiede in context: leagues (con participants__user in prefetch),
   manager_user_ids (insieme degli user_id dei manager).
 {% endcomment %}
@@ -40,7 +40,20 @@
                     <td class="text-muted">{{ player.user.username }}</td>
                     <td class="text-right">
                       {% if player.user_id in manager_user_ids %}
-                        <span class="badge-accent">Manager</span>
+                        <div class="flex items-center justify-end gap-2">
+                          <span class="badge-accent">Manager</span>
+                          {% comment %} The last manager cannot step down: the view refuses it too. {% endcomment %}
+                          {% if manager_user_ids|length > 1 %}
+                            <form method="post" action="{% url 'championship_demote_manager' championship.id player.id %}" data-confirm-submit>
+                              {% csrf_token %}
+                              <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs"
+                                      data-confirm-text="{% if player.user_id == request.user.id %}Vuoi lasciare il ruolo di manager? Non potrai più gestire il campionato.{% else %}Vuoi togliere a {{ player.player_name }} il ruolo di manager?{% endif %}"
+                                      data-confirm-ok="Togli ruolo">
+                                Togli ruolo
+                              </button>
+                            </form>
+                          {% endif %}
+                        </div>
                       {% else %}
                         <form method="post" action="{% url 'championship_promote_manager' championship.id player.id %}" data-confirm-submit>
                           {% csrf_token %}

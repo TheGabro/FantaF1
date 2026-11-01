@@ -102,6 +102,11 @@ urlpatterns = [
         name="championship_promote_manager",
     ),
     path(
+        "championships/<int:championship_id>/manage/players/<int:player_id>/demote/",
+        championship_manage.demote_manager,
+        name="championship_demote_manager",
+    ),
+    path(
         "championships/<int:championship_id>/weekends/<int:weekend_id>/",
         weekend.weekend_detail,
         name="weekend_details",

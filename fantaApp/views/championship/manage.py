@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -68,4 +69,45 @@ def promote_manager(request, championship_id, player_id):
     else:
         messages.info(request, f"{player.player_name} era già manager del campionato.")
 
+    return redirect("championship_manage_players", championship_id=championship.id)
+
+
+@login_required
+@require_POST
+def demote_manager(request, championship_id, player_id):
+    """Take the manager role away from a player. The last manager cannot leave."""
+    championship = get_object_or_404(Championship, pk=championship_id)
+
+    if not helper.is_championship_manager(request.user, championship):
+        messages.error(request, "Solo un manager può togliere il ruolo a un altro manager.")
+        return redirect("championship_dashboard", championship_id=championship.id)
+
+    player = get_object_or_404(
+        ChampionshipPlayer.objects.select_related("user"),
+        pk=player_id,
+        championship=championship,
+    )
+
+    with transaction.atomic():
+        # Locking the championship row serializes demotions: two managers
+        # removing each other at the same time cannot leave it with none.
+        Championship.objects.select_for_update().get(pk=championship.pk)
+        managers = ChampionshipManager.objects.filter(championship=championship)
+        if not managers.filter(user=player.user).exists():
+            messages.info(request, f"{player.player_name} non è manager del campionato.")
+            return redirect("championship_manage_players", championship_id=championship.id)
+        if managers.count() == 1:
+            messages.error(
+                request,
+                "Il campionato deve avere almeno un manager: nominane un altro prima.",
+            )
+            return redirect("championship_manage_players", championship_id=championship.id)
+        managers.filter(user=player.user).delete()
+
+    if player.user == request.user:
+        # The page is no longer theirs to see.
+        messages.success(request, "Non sei più manager del campionato.")
+        return redirect("championship_dashboard", championship_id=championship.id)
+
+    messages.success(request, f"{player.player_name} non è più manager del campionato.")
     return redirect("championship_manage_players", championship_id=championship.id)

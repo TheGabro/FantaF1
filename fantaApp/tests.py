@@ -1676,6 +1676,63 @@ class ChampionshipManageTests(TestCase):
         self.assertEqual(response.status_code, 405)
         self.assertFalse(self.is_manager(self.player_user))
 
+    def demote_url(self, player):
+        return reverse(
+            "championship_demote_manager", args=[self.championship.id, player.id]
+        )
+
+    def test_manager_demotes_another_manager(self):
+        ChampionshipManager.objects.create(user=self.player_user, championship=self.championship)
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.demote_url(self.player))
+
+        self.assertRedirects(response, self.players_url)
+        self.assertFalse(self.is_manager(self.player_user))
+        self.assertTrue(self.is_manager(self.manager))
+
+    def test_manager_can_step_down_and_loses_the_page(self):
+        ChampionshipManager.objects.create(user=self.player_user, championship=self.championship)
+        me = ChampionshipPlayer.objects.get(user=self.manager, championship=self.championship)
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.demote_url(me))
+
+        self.assertRedirects(
+            response,
+            reverse("championship_dashboard", args=[self.championship.id]),
+            fetch_redirect_response=False,
+        )
+        self.assertFalse(self.is_manager(self.manager))
+
+    def test_last_manager_cannot_step_down(self):
+        me = ChampionshipPlayer.objects.get(user=self.manager, championship=self.championship)
+        self.client.force_login(self.manager)
+
+        self.client.post(self.demote_url(me))
+
+        self.assertTrue(self.is_manager(self.manager))
+
+    def test_remove_button_is_hidden_for_the_last_manager(self):
+        self.client.force_login(self.manager)
+
+        self.assertNotContains(self.client.get(self.players_url), "Togli ruolo")
+
+    def test_non_manager_cannot_demote(self):
+        ChampionshipManager.objects.create(user=self.player_user, championship=self.championship)
+        stranger = get_user_model().objects.create_user(
+            username="intruso", email="intruso@example.com", password="password123"
+        )
+        self.client.force_login(stranger)
+
+        self.client.post(
+            self.demote_url(
+                ChampionshipPlayer.objects.get(user=self.manager, championship=self.championship)
+            )
+        )
+
+        self.assertTrue(self.is_manager(self.manager))
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class RegularQualifyingPickerTests(TestCase):
@@ -1953,7 +2010,13 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     PUBLIC_PAGES = {"home", "game", "f1_drivers_standings", "login", "register"}
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
     # ChampionshipManageTests).
-    ACTIONS = {"logout", "invite_redeem", "invite_accept", "championship_promote_manager"}
+    ACTIONS = {
+        "logout",
+        "invite_redeem",
+        "invite_accept",
+        "championship_promote_manager",
+        "championship_demote_manager",
+    }
     # Indirizzi vecchi rimandati ai nuovi (#89): li prova LegacyUrlRedirectTests.
     LEGACY_REDIRECTS = {
         "legacy_user_dashboard",
