@@ -1,5 +1,5 @@
 from django.utils import timezone
-from ..models import Qualifying, Race
+from ..models import Qualifying, Race, ChampionshipManager
 
 
 def event_start(event):
@@ -38,3 +38,12 @@ def _event_has_started(event) -> bool:
         start = timezone.make_aware(start, timezone.utc)
 
     return timezone.now() >= start
+
+
+def is_championship_manager(user, championship) -> bool:
+    """
+    Return True if the user is a manager of a given Championship
+    """
+    return ChampionshipManager.objects.filter(
+        user=user, championship=championship
+    ).exists()
