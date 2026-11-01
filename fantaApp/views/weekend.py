@@ -423,18 +423,6 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     current_pupillo = next(
         (choice for choice in existing_choices if choice.is_pupillo), None
     )
-    previous_pupillo_choice = (
-        PlayerRaceChoice.objects.filter(
-            player=player,
-            race__type="regular",
-            race__weekend__season=weekend.season,
-            race__weekend__round_number__lt=weekend.round_number,
-            is_pupillo=True,
-        )
-        .select_related("driver", "race__weekend")
-        .order_by("-race__weekend__round_number")
-        .first()
-    )
 
     if request.method == "POST" and not event_started:
         submitted_driver_ids = [
@@ -541,7 +529,6 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
-        "previous_pupillo_choice": previous_pupillo_choice,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
