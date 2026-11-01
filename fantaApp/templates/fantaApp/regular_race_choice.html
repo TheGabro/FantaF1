@@ -130,7 +130,6 @@
     <div id="selected-drivers-list" class="mb-4 grid gap-2"></div>
 
     <dl class="space-y-1.5 border-t border-line pt-3 text-sm">
-      <div class="flex justify-between"><dt class="text-muted">Piloti selezionati</dt><dd class="font-bold"><span id="selected-count">0</span> / 2</dd></div>
       <div class="flex justify-between"><dt class="text-muted">Pupillo</dt><dd class="font-bold" id="selected-pupillo-name">Nessuno</dd></div>
       <div class="flex justify-between"><dt class="text-muted">Pupillo gara precedente</dt>
         <dd class="font-bold">{% if previous_pupillo_choice %}{{ previous_pupillo_choice.driver.first_name }} {{ previous_pupillo_choice.driver.last_name }}{% else %}Nessuno{% endif %}</dd>
