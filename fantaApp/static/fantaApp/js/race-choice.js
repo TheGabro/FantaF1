@@ -22,7 +22,6 @@
   var inputsBox = document.getElementById('selected-drivers-inputs');
   var listBox = document.getElementById('selected-drivers-list');
   var totalEl = document.getElementById('selected-total-cost');
-  var pupilloNameEl = document.getElementById('selected-pupillo-name');
   var pupilloInput = document.getElementById('pupillo-driver-input');
   var saveButton = document.getElementById('save-selection-button');
 
@@ -99,11 +98,6 @@
 
     totalEl.textContent = String(total);
     totalEl.classList.toggle('text-accent', spendableCredit > 0 && total > spendableCredit);
-
-    if (pupilloNameEl) {
-      var pupRow = pupilloId() ? rowById(pupilloId()) : null;
-      pupilloNameEl.textContent = pupRow ? pupRow.dataset.driverName : 'Nessuno';
-    }
 
     if (saveButton) {
       var canSave = selectedIds.length === maxDrivers &&
