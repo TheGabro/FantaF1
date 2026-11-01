@@ -22,8 +22,8 @@
   var inputsBox = document.getElementById('selected-drivers-inputs');
   var listBox = document.getElementById('selected-drivers-list');
   var totalEl = document.getElementById('selected-total-cost');
-  var countEl = document.getElementById('selected-count');
-  var pupilloNameEl = document.getElementById('selected-pupillo-name');
+  var driversCostEl = document.getElementById('selected-drivers-cost');
+  var pupilloDiscountEl = document.getElementById('selected-pupillo-discount');
   var pupilloInput = document.getElementById('pupillo-driver-input');
   var saveButton = document.getElementById('save-selection-button');
 
@@ -48,13 +48,13 @@
   function selectedCardHtml(row, index) {
     var d = row.dataset;
     var isPup = hasPupillo && pupilloId() === String(d.driverId);
-    var cost = isPup ? Number(d.driverPupilloCost || d.driverCost) : Number(d.driverCost || 0);
-    var discount = isPup ? Number(d.driverPupilloDiscount || 0) : 0;
+    /* Prezzo pieno: lo sconto pupillo è mostrato nel riepilogo */
+    var cost = Number(d.driverCost || 0);
 
     var action = '';
     if (!eventStarted && hasPupillo) {
       action = isPup
-        ? '<p class="mt-2 text-xs font-bold text-accent">★ Pupillo' + (discount ? ' · sconto ' + discount : '') + '</p>'
+        ? '<p class="mt-2 text-xs font-bold text-accent">★ Pupillo ×' + (Number(d.driverPreviousPupilloStreak || 0) + 1) + '</p>'
         : '<button type="button" data-set-pupillo="' + d.driverId + '" class="btn-secondary mt-2 !px-3 !py-1 text-xs">Imposta come pupillo</button>';
     }
 
@@ -93,6 +93,13 @@
         : Number(row.dataset.driverCost || 0));
     }, 0);
 
+    if (driversCostEl) {
+      driversCostEl.textContent = String(selectedIds.reduce(function (sum, id) {
+        var row = rowById(id);
+        return row ? sum + Number(row.dataset.driverCost || 0) : sum;
+      }, 0));
+    }
+
     /* Lo sconto qualifica si applica solo a selezione completa (come nel backend) */
     if (selectedIds.length === maxDrivers && bonusDiscount) {
       total = Math.max(total - bonusDiscount, 0);
@@ -100,11 +107,12 @@
 
     totalEl.textContent = String(total);
     totalEl.classList.toggle('text-accent', spendableCredit > 0 && total > spendableCredit);
-    if (countEl) countEl.textContent = String(selectedIds.length);
 
-    if (pupilloNameEl) {
-      var pupRow = pupilloId() ? rowById(pupilloId()) : null;
-      pupilloNameEl.textContent = pupRow ? pupRow.dataset.driverName : 'Nessuno';
+    if (pupilloDiscountEl) {
+      var pupRow = isSelected(pupilloId()) ? rowById(pupilloId()) : null;
+      var pupDiscount = pupRow ? Number(pupRow.dataset.driverPupilloDiscount || 0) : 0;
+      pupilloDiscountEl.textContent = pupDiscount ? '−' + pupDiscount + ' cr' : '—';
+      pupilloDiscountEl.classList.toggle('text-ok', pupDiscount > 0);
     }
 
     if (saveButton) {
