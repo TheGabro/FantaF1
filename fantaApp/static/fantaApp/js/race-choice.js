@@ -22,6 +22,7 @@
   var inputsBox = document.getElementById('selected-drivers-inputs');
   var listBox = document.getElementById('selected-drivers-list');
   var totalEl = document.getElementById('selected-total-cost');
+  var driversCostEl = document.getElementById('selected-drivers-cost');
   var pupilloDiscountEl = document.getElementById('selected-pupillo-discount');
   var pupilloInput = document.getElementById('pupillo-driver-input');
   var saveButton = document.getElementById('save-selection-button');
@@ -91,6 +92,13 @@
         ? Number(row.dataset.driverPupilloCost || row.dataset.driverCost)
         : Number(row.dataset.driverCost || 0));
     }, 0);
+
+    if (driversCostEl) {
+      driversCostEl.textContent = String(selectedIds.reduce(function (sum, id) {
+        var row = rowById(id);
+        return row ? sum + Number(row.dataset.driverCost || 0) : sum;
+      }, 0));
+    }
 
     /* Lo sconto qualifica si applica solo a selezione completa (come nel backend) */
     if (selectedIds.length === maxDrivers && bonusDiscount) {
