@@ -146,6 +146,7 @@ class ChampionshipForm(forms.ModelForm):
         max_length=50,
         required=False,
     )
+    
     # Le leghe nascono nella stessa richiesta: al render non esistono ancora e
     # una tendina legata al database è impossibile. Si sceglie per posizione e
     # le opzioni le popola il JavaScript dai nomi lega digitati; la view valida
@@ -159,7 +160,16 @@ class ChampionshipForm(forms.ModelForm):
 
     class Meta:
         model = Championship
-        fields = ["name", "year"]
+        fields = ["name", "year", "is_private"]
+        is_private = {"is_private": "Campionato privato"}
+        help_texts = {
+            "name": "Il nome del campionato, visibile a tutti. Non puoi cambiarlo in seguito"
+            , "is_private": "Se privato, solo chi conosce il link può iscriversi. Non puoi cambiarlo in seguito."
+        }
+        labels = {
+            "name": "Nome del campionato",
+            "is_private": "Campionato privato"
+        }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)

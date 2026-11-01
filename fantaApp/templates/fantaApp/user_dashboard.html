@@ -40,6 +40,7 @@
           {% else %}
             <span class="badge-muted">Concluso</span>
           {% endif %}
+          <span class="badge-muted">{% if e.championship.is_private %}Privato{% else %}Pubblico{% endif %}</span>
           {# Giochi e lo gestisci: una scheda sola, con il badge (#62). #}
           {% if e.is_manager %}<span class="badge-accent">Manager</span>{% endif %}
         </div>
@@ -112,6 +113,7 @@
             {% else %}
               <span class="badge-muted">Concluso</span>
             {% endif %}
+            <span class="badge-muted">{% if c.is_private %}Privato{% else %}Pubblico{% endif %}</span>
             <span class="badge-accent">Manager</span>
           </div>
         </div>
