@@ -1532,6 +1532,152 @@ class InviteAndJoinTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class ChampionshipManageTests(TestCase):
+    """Manage tab (#70): players by league, reserved to managers, who can promote players."""
+
+    def setUp(self):
+        self.client = Client()
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="capo", email="capo@example.com", password="password123"
+        )
+        self.player_user = User.objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+
+        self.championship = Championship.objects.create(name="Gestita", year=2026)
+        self.league_a = League.objects.create(championship=self.championship, name="Serie A")
+        self.league_b = League.objects.create(championship=self.championship, name="Serie B")
+        ChampionshipManager.objects.create(user=self.manager, championship=self.championship)
+        ChampionshipPlayer.objects.create(
+            user=self.manager,
+            championship=self.championship,
+            league=self.league_a,
+            player_name="Capo",
+        )
+        self.player = ChampionshipPlayer.objects.create(
+            user=self.player_user,
+            championship=self.championship,
+            league=self.league_b,
+            player_name="Pilota",
+        )
+
+        self.players_url = reverse("championship_manage_players", args=[self.championship.id])
+        self.info_url = reverse("championship_info", args=[self.championship.id])
+
+    def promote_url(self, player):
+        return reverse(
+            "championship_promote_manager", args=[self.championship.id, player.id]
+        )
+
+    def is_manager(self, user):
+        return ChampionshipManager.objects.filter(
+            user=user, championship=self.championship
+        ).exists()
+
+    def test_manager_sees_players_grouped_by_league(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.get(self.players_url)
+
+        self.assertEqual(response.status_code, 200)
+        leagues = {league.name: league.participants.all() for league in response.context["leagues"]}
+        self.assertEqual([p.player_name for p in leagues["Serie A"]], ["Capo"])
+        self.assertEqual([p.player_name for p in leagues["Serie B"]], ["Pilota"])
+        self.assertContains(response, "Rendi manager")
+
+    def test_players_page_query_count_does_not_grow_with_players(self):
+        self.client.force_login(self.manager)
+        self.client.get(self.players_url)  # warm up session and caches
+
+        with CaptureQueriesContext(connection) as before:
+            self.client.get(self.players_url)
+        for i in range(5):
+            user = get_user_model().objects.create_user(
+                username=f"extra{i}", email=f"extra{i}@example.com", password="password123"
+            )
+            ChampionshipPlayer.objects.create(
+                user=user,
+                championship=self.championship,
+                league=self.league_b,
+                player_name=f"Extra {i}",
+            )
+        with CaptureQueriesContext(connection) as after:
+            self.client.get(self.players_url)
+
+        self.assertEqual(len(after.captured_queries), len(before.captured_queries))
+
+    def test_non_manager_is_sent_back_to_the_championship(self):
+        self.client.force_login(self.player_user)
+
+        response = self.client.get(self.players_url)
+
+        self.assertRedirects(
+            response, reverse("championship_dashboard", args=[self.championship.id])
+        )
+
+    def test_manage_tab_is_shown_only_to_managers(self):
+        self.client.force_login(self.manager)
+        self.assertContains(self.client.get(self.info_url), self.players_url)
+
+        self.client.force_login(self.player_user)
+        self.assertNotContains(self.client.get(self.info_url), self.players_url)
+
+    def test_manager_promotes_a_player(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.promote_url(self.player))
+
+        self.assertRedirects(response, self.players_url)
+        self.assertTrue(self.is_manager(self.player_user))
+
+    def test_promoting_twice_does_not_duplicate_the_manager(self):
+        self.client.force_login(self.manager)
+
+        self.client.post(self.promote_url(self.player))
+        self.client.post(self.promote_url(self.player))
+
+        self.assertEqual(
+            ChampionshipManager.objects.filter(
+                user=self.player_user, championship=self.championship
+            ).count(),
+            1,
+        )
+
+    def test_non_manager_cannot_promote(self):
+        self.client.force_login(self.player_user)
+
+        self.client.post(self.promote_url(self.player))
+
+        self.assertFalse(self.is_manager(self.player_user))
+
+    def test_player_of_another_championship_cannot_be_promoted(self):
+        other = Championship.objects.create(name="Altro", year=2026)
+        stranger = ChampionshipPlayer.objects.create(
+            user=get_user_model().objects.create_user(
+                username="estraneo", email="estraneo@example.com", password="password123"
+            ),
+            championship=other,
+            league=League.objects.create(championship=other, name="Lega Estranea"),
+            player_name="Estraneo",
+        )
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self.promote_url(stranger))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(self.is_manager(stranger.user))
+
+    def test_promote_refuses_get(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.get(self.promote_url(self.player))
+
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(self.is_manager(self.player_user))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class RegularQualifyingPickerTests(TestCase):
     """La griglia della qualifica regular segue il roster del weekend e il
     limite di scelte per scuderia definiti dal backend."""
@@ -1787,6 +1933,7 @@ class WeekendPagesFixture:
             "championship_qualifying_standings": [c],
             "championship_sprint_standings": [c],
             "championship_info": [c],
+            "championship_manage_players": [c],
             "weekend_details": [c, rw],
             "sprint_race_qualifying_choice": [c, sw, self.sprint_qualifying.id],
             "race_qualifying_choice": [c, rw, self.regular_qualifying.id],
@@ -1804,8 +1951,9 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
 
     # Pagine aperte anche senza login.
     PUBLIC_PAGES = {"home", "game", "f1_drivers_standings", "login", "register"}
-    # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests).
-    ACTIONS = {"logout", "invite_redeem", "invite_accept"}
+    # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
+    # ChampionshipManageTests).
+    ACTIONS = {"logout", "invite_redeem", "invite_accept", "championship_promote_manager"}
     # Indirizzi vecchi rimandati ai nuovi (#89): li prova LegacyUrlRedirectTests.
     LEGACY_REDIRECTS = {
         "legacy_user_dashboard",
