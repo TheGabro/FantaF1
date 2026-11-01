@@ -14,7 +14,7 @@
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/confirm-submit.js' %}"></script>{% endblock %}
 
 {% block section_content %}
-<div class="space-y-6">
+<div class="grid gap-6">
   {% for league in leagues %}
     {% with players=league.participants.all %}
       <section class="card">
@@ -30,8 +30,6 @@
                 <tr>
                   <th>Giocatore</th>
                   <th>Utente</th>
-                  <th class="!text-right">Fantamilioni</th>
-                  <th class="!text-right">Punti</th>
                   <th class="!text-right"><span class="sr-only">Ruolo</span></th>
                 </tr>
               </thead>
@@ -40,8 +38,6 @@
                   <tr>
                     <td class="font-semibold">{{ player.player_name }}</td>
                     <td class="text-muted">{{ player.user.username }}</td>
-                    <td class="text-right tabular-nums">{{ player.available_credit }}</td>
-                    <td class="text-right tabular-nums font-bold">{{ player.total_score }}</td>
                     <td class="text-right">
                       {% if player.user_id in manager_user_ids %}
                         <span class="badge-accent">Manager</span>
