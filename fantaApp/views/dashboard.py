@@ -140,6 +140,7 @@ CHAMPIONSHIP_NAV = (
     {
         "group": "standings",
         "label": "Classifiche",
+        "managers_only": False,
         "url_name": "championship_dashboard",
         "sections": (
             {
@@ -167,6 +168,7 @@ CHAMPIONSHIP_NAV = (
     {
         "group": "play",
         "label": "Gioca",
+        "managers_only": False,
         "sections": (
             {
                 "section": "next_weekend",
@@ -188,27 +190,44 @@ CHAMPIONSHIP_NAV = (
     {
         "group": "info",
         "label": "Info",
+        "managers_only": False,
         "sections": (
             {"section": "info", "label": "Info", "url_name": "championship_info"},
+        ),
+    },
+    {
+        "group": "manage",
+        "label": "Gestione",
+        "managers_only": True,
+        "sections": (
+            {
+                "section": "manage_players",
+                "label": "Giocatori",
+                "url_name": "championship_manage_players",
+            },
         ),
     },
 )
 
 
-def _nav_context(active_section):
-    """Gruppo attivo e relativi sotto-tab (nessuno se il gruppo ha una sola sezione)."""
+def _nav_context(active_section, is_manager=False):
+    """Gruppo attivo e relativi sotto-tab (nessuno se il gruppo ha una sola sezione).
+    Se l'utente non è manager, le sezioni «managers_only» non compaiono."""
+    groups = [g for g in CHAMPIONSHIP_NAV if is_manager or not g.get("managers_only")]
+    
     active_group = next(
         (
             group
-            for group in CHAMPIONSHIP_NAV
+            for group in groups
             if any(
                 section["section"] == active_section for section in group["sections"]
             )
         ),
-        CHAMPIONSHIP_NAV[0],
+        groups[0],
     )
+
     return {
-        "nav_groups": CHAMPIONSHIP_NAV,
+        "nav_groups": groups,
         "active_group": active_group["group"],
         "active_group_label": active_group["label"],
         "nav_subsections": active_group["sections"]
@@ -237,10 +256,13 @@ def _section_context(request, championship_id, active_section):
     open_weekends, pending_count = _open_weekends(
         championship, current_championship_player
     )
-
+    
+    is_manager = helper.is_championship_manager(request.user, championship)
+    
     context = {
         "championship": championship,
         "current_championship_player": current_championship_player,
+        "is_manager": is_manager,
         "active_section": active_section,
         "open_weekends": open_weekends,
         "pending_count": pending_count,
@@ -250,7 +272,7 @@ def _section_context(request, championship_id, active_section):
             else 0
         ),
     }
-    context.update(_nav_context(active_section))
+    context.update(_nav_context(active_section, is_manager=is_manager))
     return championship, current_championship_player, context
 
 

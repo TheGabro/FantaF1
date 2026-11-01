@@ -6,6 +6,7 @@ from fantaApp.views.account import overview as account_overview
 from fantaApp.views.account import profile as account_profile
 from fantaApp.views.account import security as account_security
 from fantaApp.views.championship import entry as championship_entry
+from fantaApp.views.championship import manage as championship_manage
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.site import home, standings_drivers
 
@@ -88,6 +89,22 @@ urlpatterns = [
         "championships/<int:championship_id>/info/",
         dashboard.championship_info,
         name="championship_info",
+    ),
+    # Sezione Gestione: solo per i manager del campionato.
+    path(
+        "championships/<int:championship_id>/manage/players/",
+        championship_manage.players,
+        name="championship_manage_players",
+    ),
+    path(
+        "championships/<int:championship_id>/manage/players/<int:player_id>/promote/",
+        championship_manage.promote_manager,
+        name="championship_promote_manager",
+    ),
+    path(
+        "championships/<int:championship_id>/manage/players/<int:player_id>/demote/",
+        championship_manage.demote_manager,
+        name="championship_demote_manager",
     ),
     path(
         "championships/<int:championship_id>/weekends/<int:weekend_id>/",
