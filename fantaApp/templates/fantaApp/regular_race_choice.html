@@ -13,9 +13,7 @@
   <div class="flex flex-wrap items-center gap-2 text-sm">
     <span class="badge-muted">Crediti spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
     {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} prenotati su gare future</span>{% endif %}
-    {% if regular_race_bonus.credit_discount %}
-      <span class="badge-ok">Bonus qualifica: −{{ regular_race_bonus.credit_discount }} cr · punti ×{{ regular_race_bonus.points_multiplier }}</span>
-    {% endif %}
+    <span class="{% if regular_race_bonus.credit_change > 0 %}badge-warn{% elif regular_race_bonus.credit_change < 0 or regular_race_bonus.points_multiplier != 1 %}badge-ok{% else %}badge-muted{% endif %}">Risultato qualifica{% if regular_race_bonus.position %} (P{{ regular_race_bonus.position }}){% elif regular_race_bonus.level == "q1_pass" %} (Q1 superata){% elif regular_race_bonus.level == "q2_pass" %} (Q2 superata){% elif regular_race_bonus.level == "q3_top3" %} (top 3 centrata){% endif %}: {% if regular_race_bonus.credit_change < 0 %}sconto {% widthratio regular_race_bonus.credit_change 1 -1 %} cr{% elif regular_race_bonus.credit_change > 0 %}malus +{{ regular_race_bonus.credit_change }} cr{% elif regular_race_bonus.position or regular_race_bonus.level != "none" %}nessuna variazione di costo{% else %}nessuno{% endif %}{% if regular_race_bonus.points_multiplier != 1 %} · punti ×{{ regular_race_bonus.points_multiplier }}{% endif %}</span>
   </div>
 </div>
 
@@ -47,7 +45,7 @@
      data-max-drivers="2"
      data-has-pupillo="true"
      data-event-started="{{ event_started|yesno:'true,false' }}"
-     data-qualifying-bonus-credit-discount="{{ regular_race_bonus.credit_discount|default:0 }}"
+     data-qualifying-bonus-credit-discount="{% widthratio regular_race_bonus.credit_change 1 -1 %}"
      data-spendable-credit="{{ spendable_credit|default:0 }}"
      class="grid items-start gap-6 lg:grid-cols-3">
 
@@ -137,9 +135,9 @@
       <div class="flex justify-between"><dt class="text-muted">Pupillo gara precedente</dt>
         <dd class="font-bold">{% if previous_pupillo_choice %}{{ previous_pupillo_choice.driver.first_name }} {{ previous_pupillo_choice.driver.last_name }}{% else %}Nessuno{% endif %}</dd>
       </div>
+      <div class="flex justify-between"><dt class="text-muted">Modificatore qualifica</dt><dd class="font-bold {% if regular_race_bonus.credit_change < 0 %}text-ok{% elif regular_race_bonus.credit_change > 0 %}text-accent{% endif %}">{% if regular_race_bonus.credit_change < 0 %}−{% widthratio regular_race_bonus.credit_change 1 -1 %} cr{% elif regular_race_bonus.credit_change > 0 %}+{{ regular_race_bonus.credit_change }} cr{% else %}—{% endif %}</dd></div>
       <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> cr</dd></div>
     </dl>
-    <p class="mt-2 text-xs text-muted">Il totale include lo sconto pupillo e l'eventuale bonus qualifica.</p>
 
     <div id="selected-drivers-inputs">
       {% for choice in existing_choices %}
