@@ -29,6 +29,15 @@
       </div>
 
       <div>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          {{ form.is_private }}
+          <span>{{ form.is_private.label }}</span>
+        </label>
+        <p class="mt-1 text-xs text-muted">{{ form.is_private.help_text }}</p>
+        {{ form.is_private.errors }}
+      </div>
+
+      <div>
         <h2 class="mb-1 text-sm font-bold uppercase tracking-wide text-muted">Leghe (opzionali)</h2>
         <p class="mb-3 text-xs text-muted">
           Le leghe dividono i giocatori in classifiche separate all'interno dello stesso campionato.
