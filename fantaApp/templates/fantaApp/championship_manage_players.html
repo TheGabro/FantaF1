@@ -1,0 +1,73 @@
+{% extends "fantaApp/championship_section_base.html" %}
+{% load static %}
+
+{% comment %}
+  Gestione → Giocatori (#70): gli iscritti divisi per lega, solo per i manager.
+  Da qui un manager rende manager un altro giocatore: non c'è gerarchia,
+  tutti i manager hanno gli stessi poteri.
+  Richiede in context: leagues (con participants__user in prefetch),
+  manager_user_ids (insieme degli user_id dei manager).
+{% endcomment %}
+
+{% block title %}Giocatori — {{ championship.name }} — Fanta F1{% endblock %}
+
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/confirm-submit.js' %}"></script>{% endblock %}
+
+{% block section_content %}
+<div class="space-y-6">
+  {% for league in leagues %}
+    {% with players=league.participants.all %}
+      <section class="card">
+        <div class="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 class="text-lg font-bold">{{ league.name }}</h2>
+          <span class="badge-muted">{{ players|length }} giocator{{ players|length|pluralize:"e,i" }}</span>
+        </div>
+
+        {% if players %}
+          <div class="overflow-x-auto">
+            <table class="table-clean">
+              <thead>
+                <tr>
+                  <th>Giocatore</th>
+                  <th>Utente</th>
+                  <th class="!text-right">Fantamilioni</th>
+                  <th class="!text-right">Punti</th>
+                  <th class="!text-right"><span class="sr-only">Ruolo</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for player in players %}
+                  <tr>
+                    <td class="font-semibold">{{ player.player_name }}</td>
+                    <td class="text-muted">{{ player.user.username }}</td>
+                    <td class="text-right tabular-nums">{{ player.available_credit }}</td>
+                    <td class="text-right tabular-nums font-bold">{{ player.total_score }}</td>
+                    <td class="text-right">
+                      {% if player.user_id in manager_user_ids %}
+                        <span class="badge-accent">Manager</span>
+                      {% else %}
+                        <form method="post" action="{% url 'championship_promote_manager' championship.id player.id %}" data-confirm-submit>
+                          {% csrf_token %}
+                          <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs"
+                                  data-confirm-text="Vuoi rendere {{ player.player_name }} manager del campionato? Avrà i tuoi stessi poteri."
+                                  data-confirm-ok="Rendi manager">
+                            Rendi manager
+                          </button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="px-5 py-4 text-sm text-muted">Nessun giocatore in questa lega.</p>
+        {% endif %}
+      </section>
+    {% endwith %}
+  {% endfor %}
+</div>
+
+{% include "fantaApp/_confirm_dialog.html" %}
+{% endblock %}
