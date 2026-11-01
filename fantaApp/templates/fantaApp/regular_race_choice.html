@@ -130,10 +130,8 @@
     <div id="selected-drivers-list" class="mb-4 grid gap-2"></div>
 
     <dl class="space-y-1.5 border-t border-line pt-3 text-sm">
-      <div class="flex justify-between"><dt class="text-muted">Pupillo gara precedente</dt>
-        <dd class="font-bold">{% if previous_pupillo_choice %}{{ previous_pupillo_choice.driver.first_name }} {{ previous_pupillo_choice.driver.last_name }}{% else %}Nessuno{% endif %}</dd>
-      </div>
       <div class="flex justify-between"><dt class="text-muted">Modificatore qualifica</dt><dd class="font-bold {% if regular_race_bonus.credit_change < 0 %}text-ok{% elif regular_race_bonus.credit_change > 0 %}text-accent{% endif %}">{% if regular_race_bonus.credit_change < 0 %}−{% widthratio regular_race_bonus.credit_change 1 -1 %} cr{% elif regular_race_bonus.credit_change > 0 %}+{{ regular_race_bonus.credit_change }} cr{% else %}—{% endif %}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Sconto pupillo</dt><dd class="font-bold" id="selected-pupillo-discount">—</dd></div>
       <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> cr</dd></div>
     </dl>
 

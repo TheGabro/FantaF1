@@ -22,6 +22,7 @@
   var inputsBox = document.getElementById('selected-drivers-inputs');
   var listBox = document.getElementById('selected-drivers-list');
   var totalEl = document.getElementById('selected-total-cost');
+  var pupilloDiscountEl = document.getElementById('selected-pupillo-discount');
   var pupilloInput = document.getElementById('pupillo-driver-input');
   var saveButton = document.getElementById('save-selection-button');
 
@@ -46,13 +47,13 @@
   function selectedCardHtml(row, index) {
     var d = row.dataset;
     var isPup = hasPupillo && pupilloId() === String(d.driverId);
-    var cost = isPup ? Number(d.driverPupilloCost || d.driverCost) : Number(d.driverCost || 0);
-    var discount = isPup ? Number(d.driverPupilloDiscount || 0) : 0;
+    /* Prezzo pieno: lo sconto pupillo è mostrato nel riepilogo */
+    var cost = Number(d.driverCost || 0);
 
     var action = '';
     if (!eventStarted && hasPupillo) {
       action = isPup
-        ? '<p class="mt-2 text-xs font-bold text-accent">★ Pupillo' + (discount ? ' · sconto ' + discount : '') + '</p>'
+        ? '<p class="mt-2 text-xs font-bold text-accent">★ Pupillo ×' + (Number(d.driverPreviousPupilloStreak || 0) + 1) + '</p>'
         : '<button type="button" data-set-pupillo="' + d.driverId + '" class="btn-secondary mt-2 !px-3 !py-1 text-xs">Imposta come pupillo</button>';
     }
 
@@ -98,6 +99,13 @@
 
     totalEl.textContent = String(total);
     totalEl.classList.toggle('text-accent', spendableCredit > 0 && total > spendableCredit);
+
+    if (pupilloDiscountEl) {
+      var pupRow = isSelected(pupilloId()) ? rowById(pupilloId()) : null;
+      var pupDiscount = pupRow ? Number(pupRow.dataset.driverPupilloDiscount || 0) : 0;
+      pupilloDiscountEl.textContent = pupDiscount ? '−' + pupDiscount + ' cr' : '—';
+      pupilloDiscountEl.classList.toggle('text-ok', pupDiscount > 0);
+    }
 
     if (saveButton) {
       var canSave = selectedIds.length === maxDrivers &&
