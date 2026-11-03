@@ -42,6 +42,8 @@
             </p>
           </div>
 
+          {# Badge e pulsanti solo per chi gioca: gli altri finirebbero respinti dalla pagina di scelta. #}
+          {% if player %}
           {% if ev.has_choice %}
             <span class="badge-ok">✓ Scelta effettuata</span>
           {% else %}
@@ -64,6 +66,7 @@
             <a href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
               {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
             </a>
+          {% endif %}
           {% endif %}
         </div>
       {% empty %}

@@ -46,6 +46,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - `insert_quali_result`: la qualifica sprint viene importata solo da FastF1, senza richiedere la qualifica regular su Jolpica; se i risultati sprint non sono ancora disponibili il comando restituisce il codice 3.
 - `MAX_WAITING_ATTEMPTS` portato da 10 a 32.
 - Pagine dei risultati gara: chi non ha effettuato l'accesso viene mandato al login invece di ricevere un errore 500.
+- Pagine del weekend per chi non è iscritto al campionato (es. un manager che non gioca): le pagine di scelta rimandano al weekend con un messaggio invece di dare un errore 500, i risultati mostrano solo la classifica ufficiale e i pulsanti «Scegli» sono nascosti.
 - Date, orari, conti alla rovescia ed errori dei form in italiano e in ora italiana su tutte le pagine (prima in inglese e in UTC).
 - Build del CSS: Tailwind legge solo template e JS, quindi `main.css` è lo stesso da qualunque cartella si lanci la build (prima, dalla radice del repo, entravano classi inutili prese dai file Python e Markdown).
 - Una qualifica in errore non blocca più in silenzio le gare successive: la dipendenza qualifica → gara è un arco del DAG e un fallimento è visibile in Airflow.
