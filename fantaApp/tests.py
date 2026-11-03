@@ -1874,6 +1874,10 @@ class WeekendPagesFixture:
         self.user = get_user_model().objects.create_user(
             username="giocatore", email="giocatore@example.com", password="password123"
         )
+        # Ha un account ma non gioca nel campionato (#58).
+        self.outsider = get_user_model().objects.create_user(
+            username="spettatore", email="spettatore@example.com", password="password123"
+        )
 
         self.championship = Championship.objects.create(name="Smoke Cup", year=2026)
         self.league = League.objects.create(championship=self.championship, name="Lega")
@@ -2064,6 +2068,69 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
                     f"{reverse('login')}?next={url}",
                     fetch_redirect_response=False,
                 )
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class NotEnrolledWeekendPagesTests(WeekendPagesFixture, TestCase):
+    """Chi non gioca il campionato (es. un manager che non partecipa) non deve
+    prendere un 500 sulle pagine del weekend (#58)."""
+
+    CHOICE_PAGES = (
+        "sprint_race_qualifying_choice",
+        "race_qualifying_choice",
+        "race_qualifying_multi_choice",
+        "sprint_race_choice",
+        "regular_race_choice",
+    )
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.outsider)
+
+    def test_choice_pages_redirect_to_the_weekend_with_a_message(self):
+        pages = self.pages()
+        for name in self.CHOICE_PAGES:
+            championship_id, weekend_id, _ = pages[name]
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name, args=pages[name]), follow=True)
+
+                self.assertRedirects(
+                    response,
+                    reverse("weekend_details", args=[championship_id, weekend_id]),
+                )
+                self.assertContains(response, "Non sei iscritto")
+
+    def test_choice_pages_refuse_a_post(self):
+        url = reverse("regular_race_choice", args=self.pages()["regular_race_choice"])
+
+        response = self.client.post(url, {})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(PlayerRaceChoice.objects.exists())
+
+    def test_results_page_shows_the_classification_without_the_player_panel(self):
+        for name in ("sprint_race_results", "regular_race_results"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name, args=self.pages()[name]))
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Smoke1")
+                self.assertNotContains(response, "La tua gara")
+
+    def test_weekend_detail_hides_the_choice_buttons(self):
+        url = reverse("weekend_details", args=self.pages()["weekend_details"])
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Scegli")
+        self.assertNotContains(response, "Da scegliere")
+
+    def test_weekend_detail_still_shows_the_choice_buttons_to_players(self):
+        self.client.force_login(self.user)
+        url = reverse("weekend_details", args=self.pages()["weekend_details"])
+
+        self.assertContains(self.client.get(url), "Scegli")
 
 
 @override_settings(STORAGES=TEST_STORAGES)

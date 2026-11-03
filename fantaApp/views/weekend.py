@@ -141,6 +141,7 @@ def weekend_detail(request, championship_id, weekend_id):
             "weekend": weekend,
             "events": events,
             "results": results,
+            "player": player,
         },
     )
 
@@ -149,11 +150,27 @@ def weekend_detail(request, championship_id, weekend_id):
 #  Base helper (DRY)
 # ───────────────────────────────────────────────────────────────────────────────
 def _base_context(request, championship_id: int, weekend_id: int):
-    """Ritorna (championship, weekend, player) oppure solleva 404."""
+    """Ritorna (championship, weekend, player) oppure solleva 404.
+
+    player è None se l'utente non è iscritto al campionato (es. un manager
+    che non gioca): sta alla view decidere cosa mostrargli.
+    """
     championship = get_object_or_404(Championship, pk=championship_id)
     weekend = get_object_or_404(Weekend, pk=weekend_id)
-    player = request.user.championshipplayer_set.get(championship=championship)
+    player = request.user.championshipplayer_set.filter(
+        championship=championship
+    ).first()
     return championship, weekend, player
+
+
+def _not_enrolled_redirect(request, championship, weekend):
+    """Le pagine di scelta servono solo ai giocatori: gli altri tornano al weekend."""
+    messages.error(
+        request, f"Non sei iscritto a «{championship.name}»: non puoi fare scelte."
+    )
+    return redirect(
+        "weekend_details", championship_id=championship.pk, weekend_id=weekend.pk
+    )
 
 
 def _grid_preview_options(weekend):
@@ -193,6 +210,9 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     Ogni pilota può comparire in un solo slot.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    if player is None:
+        return _not_enrolled_redirect(request, champ, weekend)
+
     qualifying = get_object_or_404(
         Qualifying, pk=event_id, weekend=weekend, type="sprint"
     )
@@ -288,6 +308,8 @@ def race_qualifying_choice(request, championship_id, weekend_id, event_id):
     L'utente può salvare una scelta in un solo submit.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    if player is None:
+        return _not_enrolled_redirect(request, champ, weekend)
 
     if weekend.weekend_type == "regular":
         return regular_weekend_race_qualifying_choice(
@@ -310,6 +332,9 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     L'utente deve salvare entrambe le scelte in un solo submit.
     """
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    if player is None:
+        return _not_enrolled_redirect(request, champ, weekend)
+
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
 
     # blocco modifiche se l'evento è già iniziato (solo UI)
@@ -410,6 +435,9 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 @transaction.atomic
 def regular_race_choice(request, championship_id, weekend_id, event_id):
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
+    if player is None:
+        return _not_enrolled_redirect(request, champ, weekend)
+
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
 
     event_started = helper._event_has_started(race)
@@ -804,6 +832,7 @@ def _render_race_results_page(
         else:
             entry.position_delta = None
     classified_results = [entry for entry in results if entry.position is not None]
+    # Con player None i filtri restano vuoti: nessuna scelta, nessun punteggio.
     player_choices = list(
         race.playerracechoice_set.filter(player=player)
         .select_related("driver", "driver__team")
@@ -827,6 +856,8 @@ def _render_race_results_page(
         "weekend": weekend,
         "event": race,
         "race_label": race_label,
+        # None per chi non gioca: vede solo la classifica ufficiale.
+        "player": player,
         "results": results,
         "classified_count": len(classified_results),
         "results_count": len(results),

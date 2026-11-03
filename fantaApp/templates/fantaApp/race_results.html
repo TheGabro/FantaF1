@@ -10,9 +10,9 @@
 </h2>
 
 {% if results %}
-<div class="grid items-start gap-6 lg:grid-cols-3">
+<div class="grid items-start gap-6 {% if player %}lg:grid-cols-3{% endif %}">
   <!-- Classifica ufficiale -->
-  <div class="card overflow-x-auto lg:col-span-2">
+  <div class="card overflow-x-auto {% if player %}lg:col-span-2{% endif %}">
     <table class="table-clean min-w-[560px]">
       <thead>
         <tr>
@@ -59,7 +59,8 @@
     </table>
   </div>
 
-  <!-- La tua gara -->
+  {# Pannello del giocatore: chi non gioca il campionato vede solo la classifica. #}
+  {% if player %}
   <aside class="card-pad lg:sticky lg:top-20">
     <h3 class="mb-4 text-sm font-bold uppercase tracking-wide">La tua gara</h3>
 
@@ -92,6 +93,7 @@
       </div>
     </dl>
   </aside>
+  {% endif %}
 </div>
 {% else %}
   <div class="card-pad text-center text-sm text-muted">
