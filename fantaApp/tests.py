@@ -2811,8 +2811,8 @@ class AccountChangePasswordTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
-    """#113: aprendo un campionato si vedono le classifiche; le scadenze restano
-    visibili sulla scheda Gioca."""
+    """#155: si entra in un campionato per giocare (o per gestirlo); le schede
+    sono Gioca · Classifiche · Info · Gestione."""
 
     def _open(self, user):
         self.client.force_login(user)
@@ -2825,12 +2825,21 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
             username="ospite", email="ospite@example.com", password="password123"
         )
 
-    def test_player_lands_on_the_standings_of_their_league(self):
+    def test_player_lands_on_the_next_weekend(self):
         response = self._open(self.user)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["active_section"], "standings_league")
-        self.assertContains(response, "Classifica — Lega")
+        self.assertEqual(response.context["active_section"], "next_weekend")
+        self.assertContains(response, "GP Regular")
+
+    def test_manager_who_does_not_play_lands_on_the_manage_tab(self):
+        manager = self._guest()
+        ChampionshipManager.objects.create(user=manager, championship=self.championship)
+
+        response = self._open(manager)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_section"], "manage_players")
 
     def test_user_who_does_not_play_lands_on_the_general_standings(self):
         response = self._open(self._guest())
@@ -2838,19 +2847,34 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["active_section"], "standings_general")
 
-    def test_tabs_are_standings_then_play_then_info(self):
+    def test_tabs_are_play_then_standings_then_info_then_manage(self):
         html = self._open(self.user).content.decode()
         c = self.championship.id
 
         positions = [
             html.index(f'href="{reverse(name, args=[c])}"')
             for name in (
-                "championship_dashboard",
                 "championship_next_weekend",
+                "championship_league_standings",
                 "championship_info",
+                "championship_manage_players",
             )
         ]
         self.assertEqual(positions, sorted(positions))
+
+    def test_standings_tab_opens_the_general_standings_for_users_who_do_not_play(self):
+        html = self._open(self._guest()).content.decode()
+        c = self.championship.id
+
+        # La scheda viene prima delle sotto-schede: il primo link alle
+        # classifiche è quello della scheda, e porta alla Generale.
+        general = html.index(
+            f'href="{reverse("championship_general_standings", args=[c])}"'
+        )
+        league = html.index(
+            f'href="{reverse("championship_league_standings", args=[c])}"'
+        )
+        self.assertLess(general, league)
 
     def test_play_tab_counts_the_choices_left_for_the_next_weekend(self):
         # Primo weekend della fixture: qualifica e Gran Premio, nessuna scelta fatta.
@@ -2879,6 +2903,55 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
 
         self.assertEqual(response.context["active_section"], "next_weekend")
         self.assertContains(response, "GP Regular")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ChoiceBackLinkTests(WeekendPagesFixture, TestCase):
+    """#156: il link indietro delle pagine di scelta riporta alla pagina di partenza."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c = self.championship.id
+        self.choice_url = reverse(
+            "regular_race_choice",
+            args=[c, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.play_url = reverse("championship_next_weekend", args=[c])
+        self.weekend_url = reverse("weekend_details", args=[c, self.regular_weekend.id])
+
+    def test_next_weekend_links_to_the_choice_pages_with_from_play(self):
+        response = self.client.get(self.play_url)
+
+        self.assertContains(response, f'href="{self.choice_url}?from=play"')
+
+    def test_from_play_goes_back_to_the_next_weekend_even_after_saving(self):
+        page = self.client.get(f"{self.choice_url}?from=play")
+        self.assertEqual(page.context["back_link"]["url"], self.play_url)
+        self.assertContains(page, "← Prossimo weekend")
+
+        drivers = [grid.driver_id for grid in self.regular_race.starting_grid.all()]
+        response = self.client.post(
+            f"{self.choice_url}?from=play",
+            {"drivers": drivers, "pupillo_driver_id": drivers[0]},
+        )
+
+        self.assertRedirects(
+            response, f"{self.choice_url}?from=play", fetch_redirect_response=False
+        )
+        self.assertEqual(self.regular_race.playerracechoice_set.count(), 2)
+
+    def test_from_the_weekend_page_goes_back_to_the_weekend(self):
+        page = self.client.get(self.choice_url)
+
+        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
+        self.assertContains(page, "← Eventi del weekend")
+
+    def test_unknown_from_goes_back_to_the_weekend(self):
+        page = self.client.get(f"{self.choice_url}?from=https://example.com")
+
+        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
+        self.assertNotContains(page, "example.com")
 
 
 class SucateMagateTests(WeekendPagesFixture, TestCase):

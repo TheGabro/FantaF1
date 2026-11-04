@@ -53,7 +53,7 @@
           {% endif %}
 
           {% if current_championship_player %}
-            <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}" class="btn-secondary shrink-0">
+            <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">
               {% if s.has_choice %}Modifica{% else %}Scegli{% endif %}
             </a>
           {% endif %}

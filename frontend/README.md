@@ -76,7 +76,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | Crea un campionato | `/championships/create/` | `create_championship` | c'è |
 | | Iscriviti | `/championships/<id>/join/` | `join_championship` | c'è |
 | | Invito (nascosto per ora) | `/championships/invite/`, `/championships/invite/<token>/` | `invite_redeem`, `invite_accept` | c'è |
-| Campionato | Ingresso: le classifiche | `/championships/<id>/` | `championship_dashboard` | c'è: Lega per chi gioca, Generale per gli altri |
+| Campionato | Ingresso | `/championships/<id>/` | `championship_dashboard` | c'è: Prossimo weekend per chi gioca, Gestione per un manager che non gioca, Generale per gli altri |
 | | Classifiche: lega, generale, qualifiche, sprint | `/championships/<id>/standings/league/`, `…/general/`, `…/qualifying/`, `…/sprint/` | `championship_league_standings`, `…_general_…`, `…_qualifying_…`, `…_sprint_…` | c'è |
 | | Gioca: prossimo weekend | `/championships/<id>/play/` | `championship_next_weekend` | c'è |
 | | Gioca: le mie scelte | `/championships/<id>/my-choices/` | `championship_my_choices` | c'è |
@@ -86,7 +86,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | Weekend | Dettaglio del weekend | `/championships/<id>/weekends/<id>/` | `weekend_details` | c'è |
 | | Scelte e risultati delle sessioni | `/championships/<id>/weekends/<id>/qualifying/…`, `…/race/…` | invariati | c'è |
 
-Le schede del campionato sono in quest'ordine: **Classifiche · Gioca · Info** (#113), più **Gestione** per i manager (#70).
+Le schede del campionato sono in quest'ordine: **Gioca · Classifiche · Info** (#155), più **Gestione** per i manager (#70). La scheda Classifiche apre la Lega per chi gioca e la Generale per gli altri.
 
 Regole per gli URL:
 
