@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.db import transaction
 from ..models import (
     Championship,
@@ -173,6 +174,28 @@ def _not_enrolled_redirect(request, championship, weekend):
     )
 
 
+def _back_link(request, championship, weekend):
+    """
+    Link «indietro» delle pagine di scelta e dei risultati (#156).
+
+    Si torna da dove si è partiti: a Prossimo weekend se il link d'ingresso
+    porta ?from=play, altrimenti alla pagina del weekend. Il parametro accetta
+    solo valori fissi, mai un indirizzo, così non si può usare per mandare
+    l'utente su un altro sito. I form fanno il POST sullo stesso indirizzo e
+    le view rimandano a request.get_full_path(), quindi il parametro resta
+    anche dopo il salvataggio.
+    """
+    if request.GET.get("from") == "play":
+        return {
+            "url": reverse("championship_next_weekend", args=[championship.pk]),
+            "label": "Prossimo weekend",
+        }
+    return {
+        "url": reverse("weekend_details", args=[championship.pk, weekend.pk]),
+        "label": "Eventi del weekend",
+    }
+
+
 def _grid_preview_options(weekend):
     """
     Piloti da mostrare quando la griglia non è ancora stata importata.
@@ -249,13 +272,13 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                 request, "Non puoi selezionare lo stesso pilota più di una volta."
             )
             # tornare subito al form senza salvare
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             selected_ids = [int(s) for s in selected_clean]
         except (TypeError, ValueError):
             messages.error(request, "Formato pilota non valido.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
         drivers_by_id = Driver.objects.filter(
             driver_participations__weekend=weekend,
             id__in=selected_ids,
@@ -266,7 +289,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                 request,
                 "Uno o più piloti selezionati non sono validi per questa stagione.",
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         for code, _ in slots:
             drv = submitted_by_slot.get(code)
@@ -278,7 +301,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
                     slot=code,
                 )
         messages.success(request, "Scelte salvate con successo.")
-        return redirect(request.path)
+        return redirect(request.get_full_path())
 
     drivers_avail = (
         Driver.objects.filter(driver_participations__weekend=weekend)
@@ -289,6 +312,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": qualifying,
         "slots": slots,
         "existing": existing,  # dict slot -> choice
@@ -360,19 +384,19 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
             messages.error(
                 request, "Devi selezionare esattamente 1 pilota per la Sprint Race."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         if len(submitted_driver_ids) != len(set(submitted_driver_ids)):
             messages.error(
                 request, "Non puoi selezionare lo stesso pilota piu' di una volta."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             selected_ids = [int(value) for value in submitted_driver_ids]
         except (TypeError, ValueError):
             messages.error(request, "Pilota non valido.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         options_by_driver_id = {
             option["driver"].id: option for option in driver_options
@@ -382,7 +406,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
                 request,
                 "La griglia sprint non e' ancora disponibile per i piloti selezionati.",
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             total_spent_amount = pc.choose_sprint_race_drivers(
@@ -400,7 +424,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         except ValidationError as e:
             messages.error(request, e.message)
 
-        return redirect(request.path)
+        return redirect(request.get_full_path())
 
     reserved_credit = costs.get_player_reserved_credit(player=player, exclude_race=race)
     spendable_credit = costs.get_player_spendable_credit(
@@ -412,6 +436,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": race,
         # Senza griglia si mostrano comunque i piloti, in sola anteprima
         "driver_options": driver_options or _grid_preview_options(weekend),
@@ -462,30 +487,30 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
             messages.error(
                 request, "Devi selezionare esattamente 2 piloti per il Grand Prix."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         if len(submitted_driver_ids) != len(set(submitted_driver_ids)):
             messages.error(
                 request, "Non puoi selezionare lo stesso pilota piu' di una volta."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         if not pupillo_driver_id:
             messages.error(request, "Devi indicare quale dei 2 piloti e' il pupillo.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             selected_ids = [int(value) for value in submitted_driver_ids]
             pupillo_driver_id = int(pupillo_driver_id)
         except (TypeError, ValueError):
             messages.error(request, "Pilota non valido.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         if pupillo_driver_id not in selected_ids:
             messages.error(
                 request, "Il pupillo deve essere uno dei 2 piloti selezionati."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         options_by_driver_id = {
             option["driver"].id: option for option in driver_options
@@ -495,7 +520,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
                 request,
                 "La griglia del Grand Prix non e' ancora disponibile per i piloti selezionati.",
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             result = pc.choose_regular_race_drivers(
@@ -539,7 +564,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         except ValidationError as e:
             messages.error(request, e.message)
 
-        return redirect(request.path)
+        return redirect(request.get_full_path())
 
     reserved_credit = costs.get_player_reserved_credit(player=player, exclude_race=race)
     spendable_credit = costs.get_player_spendable_credit(
@@ -551,6 +576,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": race,
         # Senza griglia si mostrano comunque i piloti, in sola anteprima
         "driver_options": driver_options or _grid_preview_options(weekend),
@@ -612,13 +638,13 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
                     request,
                     f"Hai superato il limite per {code}: massimo {slot_limits[code]} piloti.",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
             elif len(submitted_by_slot[code]) < slot_limits[code]:
                 messages.error(
                     request,
                     f"Il numero di piloti non è sufficiente. Effeattua tutte le scelte",
                 )
-                return redirect(request.path)
+                return redirect(request.get_full_path())
 
         selected_clean = [
             driver_id for values in submitted_by_slot.values() for driver_id in values
@@ -627,13 +653,13 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
             messages.error(
                 request, "Non puoi selezionare lo stesso pilota più di una volta."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             selected_ids = [int(s) for s in selected_clean]
         except (TypeError, ValueError):
             messages.error(request, "Formato pilota non valido.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
         drivers_by_id = Driver.objects.filter(
             driver_participations__weekend=weekend,
             id__in=selected_ids,
@@ -644,7 +670,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
                 request,
                 "Uno o più piloti selezionati non sono validi per questa stagione.",
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         drivers_by_slot = {
             code: [
@@ -661,7 +687,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
         )
 
         messages.success(request, "Scelte salvate con successo.")
-        return redirect(request.path)
+        return redirect(request.get_full_path())
 
     drivers_avail = (
         Driver.objects.filter(driver_participations__weekend=weekend)
@@ -672,6 +698,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": qualifying,
         "slots": slots,
         "slot_limits": slot_limits,
@@ -731,17 +758,17 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             messages.success(
                 request, "Scelta cestinata: puoi selezionare un altro pilota."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         driver_id = request.POST.get("driver")
         if not driver_id:
             messages.error(request, "Devi selezionare un pilota.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
         try:
             driver_id = int(driver_id)
         except (TypeError, ValueError):
             messages.error(request, "Pilota non valido.")
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         driver = (
             Driver.objects.filter(
@@ -757,7 +784,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             messages.error(
                 request, "Pilota non valido o già usato in un'altra qualifica."
             )
-            return redirect(request.path)
+            return redirect(request.get_full_path())
 
         try:
             pc.choose_regular_quali_driver(
@@ -768,7 +795,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             messages.success(request, "Scelte salvate con successo.")
         except ValidationError as e:
             messages.error(request, e.message)
-        return redirect(request.path)
+        return redirect(request.get_full_path())
 
     existing = (
         PlayerQualifyingChoice.objects.filter(
@@ -803,6 +830,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": qualifying,
         "existing": existing,
         "drivers": drivers_available,  # griglia raggruppata per scuderia
@@ -854,6 +882,7 @@ def _render_race_results_page(
     context = {
         "championship": champ,
         "weekend": weekend,
+        "back_link": _back_link(request, champ, weekend),
         "event": race,
         "race_label": race_label,
         # None per chi non gioca: vede solo la classifica ufficiale.
