@@ -28,8 +28,9 @@ from ..services import rules
 from .invites import build_invite_url
 
 # Soglie delle statistiche di campionato.
-# Magata: Grand Prix sopra i 43 punti (le sprint non contano).
-# Sucata: gara sotto i 5 punti (sprint incluse).
+# Regolamento 2026, C.2 ed E.2 (#167): soglie incluse.
+# Magata: Grand Prix da 43 punti o più (le sprint non contano).
+# Sucata: gara da 5 punti o meno (sprint incluse).
 MAGATA_POINTS = 43
 SUCATA_POINTS = 5
 
@@ -355,9 +356,10 @@ def _season_standings_rows(championship, players):
                 races_scored=Count("id"),
                 spent=Sum("credit_spent"),
                 magate=Count(
-                    "id", filter=Q(race__type="regular", total_points__gt=MAGATA_POINTS)
+                    "id",
+                    filter=Q(race__type="regular", total_points__gte=MAGATA_POINTS),
                 ),
-                sucate=Count("id", filter=Q(total_points__lt=SUCATA_POINTS)),
+                sucate=Count("id", filter=Q(total_points__lte=SUCATA_POINTS)),
             )
         )
     }
@@ -451,8 +453,8 @@ def _season_standings_legend(total_races, remaining_races):
         {
             "term": "Magate e sucate",
             "description": (
-                f"Grand Prix sopra i {MAGATA_POINTS} punti (le sprint non contano) "
-                f"e gare sotto i {SUCATA_POINTS} punti."
+                f"Grand Prix da {MAGATA_POINTS} punti o più (le sprint non contano) "
+                f"e gare da {SUCATA_POINTS} punti o meno."
             ),
         },
         {
