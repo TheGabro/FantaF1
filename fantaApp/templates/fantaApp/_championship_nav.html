@@ -1,9 +1,9 @@
 {% comment %}
   Navigazione a due livelli della dashboard campionato: tab principali
-  (Classifiche, Gioca, Info) e, sotto, i sotto-tab del gruppo attivo.
-  La struttura arriva da CHAMPIONSHIP_NAV in views/dashboard.py: per aggiungere
-  una sezione si tocca quella, non questo file. Una tab porta al suo url_name
-  se ce l'ha (Classifiche → ingresso del campionato), altrimenti alla prima sezione.
+  (Gioca, Classifiche, Info, Gestione per i manager) e, sotto, i sotto-tab del
+  gruppo attivo. La struttura arriva da CHAMPIONSHIP_NAV in views/dashboard.py:
+  per aggiungere una sezione si tocca quella, non questo file. Ogni tab porta
+  a group.link, calcolato da _nav_context (#155).
   Sulla tab Gioca, le scelte ancora da fare nel prossimo weekend (#113).
   Richiede in context: championship, nav_groups, active_group, active_group_label,
   nav_subsections, active_section, play_pending.
@@ -11,16 +11,14 @@
 <div class="mb-6 space-y-2">
 <nav class="championship-tabs" aria-label="Sezioni del campionato">
   {% for group in nav_groups %}
-    {% with first=group.sections.0 %}
-      <a href="{% url group.url_name|default:first.url_name championship.id %}"
-         class="championship-tab {% if active_group == group.group %}championship-tab-active{% endif %}"
-         {% if active_group == group.group %}aria-current="page"{% endif %}>
-        {{ group.label }}
-        {% if group.group == "play" and play_pending %}
-          <span class="badge-warn ml-1.5">{{ play_pending }}<span class="sr-only"> {% if play_pending == 1 %}scelta da fare{% else %}scelte da fare{% endif %} nel prossimo weekend</span></span>
-        {% endif %}
-      </a>
-    {% endwith %}
+    <a href="{% url group.link championship.id %}"
+       class="championship-tab {% if active_group == group.group %}championship-tab-active{% endif %}"
+       {% if active_group == group.group %}aria-current="page"{% endif %}>
+      {{ group.label }}
+      {% if group.group == "play" and play_pending %}
+        <span class="badge-warn ml-1.5">{{ play_pending }}<span class="sr-only"> {% if play_pending == 1 %}scelta da fare{% else %}scelte da fare{% endif %} nel prossimo weekend</span></span>
+      {% endif %}
+    </a>
   {% endfor %}
 </nav>
 

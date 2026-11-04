@@ -135,14 +135,35 @@ def create_championship(request):
 # Navigazione a due livelli: gruppo (tab principale) → sezioni (sotto-tab).
 # È l'unico posto dove la struttura è descritta: il template la legge da qui,
 # quindi aggiungere una sezione resta una voce sola più view e URL.
-# Si entra dalle classifiche (#113): la tab del gruppo porta all'ingresso del
-# campionato, che sceglie Lega o Generale; le altre tab aprono la prima sezione.
+# Si entra da Gioca (#155). Ogni tab apre la prima sezione del suo gruppo, tranne
+# Classifiche: Lega per chi gioca, Generale per gli altri (vedi _nav_context).
 CHAMPIONSHIP_NAV = (
+    {
+        "group": "play",
+        "label": "Gioca",
+        "managers_only": False,
+        "sections": (
+            {
+                "section": "next_weekend",
+                "label": "Prossimo weekend",
+                "url_name": "championship_next_weekend",
+            },
+            {
+                "section": "my_choices",
+                "label": "Le mie scelte",
+                "url_name": "championship_my_choices",
+            },
+            {
+                "section": "calendar",
+                "label": "Calendario gare",
+                "url_name": "championship_calendar",
+            },
+        ),
+    },
     {
         "group": "standings",
         "label": "Classifiche",
         "managers_only": False,
-        "url_name": "championship_dashboard",
         "sections": (
             {
                 "section": "standings_league",
@@ -163,28 +184,6 @@ CHAMPIONSHIP_NAV = (
                 "section": "standings_sprint",
                 "label": "Sprint",
                 "url_name": "championship_sprint_standings",
-            },
-        ),
-    },
-    {
-        "group": "play",
-        "label": "Gioca",
-        "managers_only": False,
-        "sections": (
-            {
-                "section": "next_weekend",
-                "label": "Prossimo weekend",
-                "url_name": "championship_next_weekend",
-            },
-            {
-                "section": "my_choices",
-                "label": "Le mie scelte",
-                "url_name": "championship_my_choices",
-            },
-            {
-                "section": "calendar",
-                "label": "Calendario gare",
-                "url_name": "championship_calendar",
             },
         ),
     },
@@ -211,10 +210,19 @@ CHAMPIONSHIP_NAV = (
 )
 
 
-def _nav_context(active_section, is_manager=False):
+def _nav_context(active_section, is_manager=False, is_player=False):
     """Gruppo attivo e relativi sotto-tab (nessuno se il gruppo ha una sola sezione).
-    Se l'utente non è manager, le sezioni «managers_only» non compaiono."""
-    groups = [g for g in CHAMPIONSHIP_NAV if is_manager or not g.get("managers_only")]
+    Se l'utente non è manager, le sezioni «managers_only» non compaiono.
+    «link» è la pagina aperta dalla tab: la prima sezione del gruppo, ma per
+    Classifiche la Generale a chi non gioca, che in Lega non avrebbe niente."""
+    groups = []
+    for group in CHAMPIONSHIP_NAV:
+        if group["managers_only"] and not is_manager:
+            continue
+        link = group["sections"][0]["url_name"]
+        if group["group"] == "standings" and not is_player:
+            link = "championship_general_standings"
+        groups.append({**group, "link": link})
     
     active_group = next(
         (
@@ -242,10 +250,10 @@ def _section_context(request, championship_id, active_section):
     Contesto comune a tutte le sezioni: campionato, giocatore corrente (None se
     l'utente non è iscritto), sezione attiva e navigazione.
 
-    Si entra dalle classifiche (#113), quindi le scadenze restano visibili con
-    un contatore sulla tab Gioca: le scelte ancora da fare nel prossimo weekend,
-    lo stesso numero di «Prossimo weekend». Per calcolarlo servono i weekend
-    aperti, che restano nel contesto per la pagina «Prossimo weekend».
+    Sulla tab Gioca c'è un contatore delle scelte ancora da fare nel prossimo
+    weekend, lo stesso numero di «Prossimo weekend», che serve quando si è nelle
+    altre tab. Per calcolarlo servono i weekend aperti, che restano nel contesto
+    per la pagina «Prossimo weekend».
     """
     championship = get_object_or_404(Championship, pk=championship_id)
 
@@ -273,7 +281,13 @@ def _section_context(request, championship_id, active_section):
             else 0
         ),
     }
-    context.update(_nav_context(active_section, is_manager=is_manager))
+    context.update(
+        _nav_context(
+            active_section,
+            is_manager=is_manager,
+            is_player=current_championship_player is not None,
+        )
+    )
     return championship, current_championship_player, context
 
 

@@ -2811,8 +2811,8 @@ class AccountChangePasswordTests(TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
-    """#113: aprendo un campionato si vedono le classifiche; le scadenze restano
-    visibili sulla scheda Gioca."""
+    """#155: si entra in un campionato per giocare (o per gestirlo); le schede
+    sono Gioca · Classifiche · Info · Gestione."""
 
     def _open(self, user):
         self.client.force_login(user)
@@ -2825,12 +2825,21 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
             username="ospite", email="ospite@example.com", password="password123"
         )
 
-    def test_player_lands_on_the_standings_of_their_league(self):
+    def test_player_lands_on_the_next_weekend(self):
         response = self._open(self.user)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["active_section"], "standings_league")
-        self.assertContains(response, "Classifica — Lega")
+        self.assertEqual(response.context["active_section"], "next_weekend")
+        self.assertContains(response, "GP Regular")
+
+    def test_manager_who_does_not_play_lands_on_the_manage_tab(self):
+        manager = self._guest()
+        ChampionshipManager.objects.create(user=manager, championship=self.championship)
+
+        response = self._open(manager)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["active_section"], "manage_players")
 
     def test_user_who_does_not_play_lands_on_the_general_standings(self):
         response = self._open(self._guest())
@@ -2838,19 +2847,34 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["active_section"], "standings_general")
 
-    def test_tabs_are_standings_then_play_then_info(self):
+    def test_tabs_are_play_then_standings_then_info_then_manage(self):
         html = self._open(self.user).content.decode()
         c = self.championship.id
 
         positions = [
             html.index(f'href="{reverse(name, args=[c])}"')
             for name in (
-                "championship_dashboard",
                 "championship_next_weekend",
+                "championship_league_standings",
                 "championship_info",
+                "championship_manage_players",
             )
         ]
         self.assertEqual(positions, sorted(positions))
+
+    def test_standings_tab_opens_the_general_standings_for_users_who_do_not_play(self):
+        html = self._open(self._guest()).content.decode()
+        c = self.championship.id
+
+        # La scheda viene prima delle sotto-schede: il primo link alle
+        # classifiche è quello della scheda, e porta alla Generale.
+        general = html.index(
+            f'href="{reverse("championship_general_standings", args=[c])}"'
+        )
+        league = html.index(
+            f'href="{reverse("championship_league_standings", args=[c])}"'
+        )
+        self.assertLess(general, league)
 
     def test_play_tab_counts_the_choices_left_for_the_next_weekend(self):
         # Primo weekend della fixture: qualifica e Gran Premio, nessuna scelta fatta.

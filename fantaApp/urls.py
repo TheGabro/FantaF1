@@ -40,7 +40,7 @@ urlpatterns = [
     path(
         "championships/invite/<str:token>/", invites.invite_accept, name="invite_accept"
     ),
-    # Ingresso del campionato: le classifiche (#113). Il nome 'championship_dashboard'
+    # Ingresso del campionato: Gioca, Gestione o Generale (#155). Il nome 'championship_dashboard'
     # resta per i link che "aprono il campionato": card dei miei campionati,
     # banner, rimandi dopo l'iscrizione.
     path(
