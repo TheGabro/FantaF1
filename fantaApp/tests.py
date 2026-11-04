@@ -20,7 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import urls as fanta_urls
-from .views import invites
+from .views import dashboard, invites
 
 # In test DEBUG è sempre False, quindi lo storage WhiteNoise pretende il manifest
 # prodotto da collectstatic e qualsiasi template con {% static %} esplode. I test
@@ -2879,6 +2879,52 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
 
         self.assertEqual(response.context["active_section"], "next_weekend")
         self.assertContains(response, "GP Regular")
+
+
+class SucateMagateTests(WeekendPagesFixture, TestCase):
+    """#167: sucata = 5 punti o meno, magata = 43 punti o più (regolamento C.2, E.2)."""
+
+    def _result(self, player, race, total_points):
+        PlayerRaceResult.objects.create(
+            player=player,
+            race=race,
+            credit_spent=0,
+            fia_points=0,
+            total_points=total_points,
+        )
+
+    def _stats(self):
+        players = ChampionshipPlayer.objects.filter(
+            championship=self.championship
+        ).order_by("player_name")
+        rows, _, _ = dashboard._season_standings_rows(self.championship, players)
+        return {
+            row["player"].player_name: (
+                row["values"]["magate"],
+                row["values"]["sucate"],
+            )
+            for row in rows
+        }
+
+    def test_thresholds_are_included(self):
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        other = ChampionshipPlayer.objects.create(
+            user=self.outsider,
+            championship=self.championship,
+            league=self.league,
+            player_name="Altro",
+        )
+        sprint_weekend_race = Race.objects.get(
+            weekend=self.sprint_weekend, type="regular"
+        )
+
+        self._result(player, self.regular_race, 43)  # magata
+        self._result(player, self.sprint_race, 5)  # sucata, anche se sprint
+        self._result(player, sprint_weekend_race, 6)  # né l'una né l'altra
+        self._result(other, self.regular_race, 42.9)
+        self._result(other, self.sprint_race, 5.1)
+
+        self.assertEqual(self._stats(), {"Giocatore": ("1", "1"), "Altro": ("0", "0")})
 
 
 @override_settings(STORAGES=TEST_STORAGES)
