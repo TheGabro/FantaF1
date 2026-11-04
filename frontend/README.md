@@ -83,10 +83,11 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | Gioca: calendario | `/championships/<id>/calendar/` | `championship_calendar` | c'è |
 | | Info | `/championships/<id>/info/` | `championship_info` | c'è |
 | | Gestione: giocatori (solo manager) | `/championships/<id>/manage/players/` | `championship_manage_players` | c'è (#70) |
+| | Disiscrizione (solo giocatori che non sono manager) | `/championships/<id>/leave/` | `championship_leave` | c'è (#160) |
 | Weekend | Dettaglio del weekend | `/championships/<id>/weekends/<id>/` | `weekend_details` | c'è |
 | | Scelte e risultati delle sessioni | `/championships/<id>/weekends/<id>/qualifying/…`, `…/race/…` | invariati | c'è |
 
-Le schede del campionato sono in quest'ordine: **Gioca · Classifiche · Info** (#155), più **Gestione** per i manager (#70). La scheda Classifiche apre la Lega per chi gioca e la Generale per gli altri.
+Le schede del campionato sono in quest'ordine: **Gioca · Classifiche · Info** (#155), più **Gestione** per i manager (#70) e **Disiscrizione** per i giocatori che non sono manager (#160). La scheda Classifiche apre la Lega per chi gioca e la Generale per gli altri.
 
 Regole per gli URL:
 
