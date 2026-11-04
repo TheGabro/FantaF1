@@ -2905,6 +2905,55 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, "GP Regular")
 
 
+@override_settings(STORAGES=TEST_STORAGES)
+class ChoiceBackLinkTests(WeekendPagesFixture, TestCase):
+    """#156: il link indietro delle pagine di scelta riporta alla pagina di partenza."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c = self.championship.id
+        self.choice_url = reverse(
+            "regular_race_choice",
+            args=[c, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.play_url = reverse("championship_next_weekend", args=[c])
+        self.weekend_url = reverse("weekend_details", args=[c, self.regular_weekend.id])
+
+    def test_next_weekend_links_to_the_choice_pages_with_from_play(self):
+        response = self.client.get(self.play_url)
+
+        self.assertContains(response, f'href="{self.choice_url}?from=play"')
+
+    def test_from_play_goes_back_to_the_next_weekend_even_after_saving(self):
+        page = self.client.get(f"{self.choice_url}?from=play")
+        self.assertEqual(page.context["back_link"]["url"], self.play_url)
+        self.assertContains(page, "← Prossimo weekend")
+
+        drivers = [grid.driver_id for grid in self.regular_race.starting_grid.all()]
+        response = self.client.post(
+            f"{self.choice_url}?from=play",
+            {"drivers": drivers, "pupillo_driver_id": drivers[0]},
+        )
+
+        self.assertRedirects(
+            response, f"{self.choice_url}?from=play", fetch_redirect_response=False
+        )
+        self.assertEqual(self.regular_race.playerracechoice_set.count(), 2)
+
+    def test_from_the_weekend_page_goes_back_to_the_weekend(self):
+        page = self.client.get(self.choice_url)
+
+        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
+        self.assertContains(page, "← Eventi del weekend")
+
+    def test_unknown_from_goes_back_to_the_weekend(self):
+        page = self.client.get(f"{self.choice_url}?from=https://example.com")
+
+        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
+        self.assertNotContains(page, "example.com")
+
+
 class SucateMagateTests(WeekendPagesFixture, TestCase):
     """#167: sucata = 5 punti o meno, magata = 43 punti o più (regolamento C.2, E.2)."""
 
