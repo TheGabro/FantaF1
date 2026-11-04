@@ -15,6 +15,7 @@ Tutte le modifiche rilevanti del progetto. Formato basato su [Keep a Changelog](
 - Area account su `/account/` (voce «Account» nel menu utente): panoramica con username, email, data di iscrizione e link ai propri campionati. Menu laterale su desktop, in alto su mobile.
 - Account → Dati personali: si cambiano username, nome e cognome (facoltativi); i nomi giocatore già scelti nei campionati restano gli stessi. L'email si vede ma per ora non si cambia.
 - Account → Sicurezza: cambio password con la password attuale, regole visibili e testi in italiano; dopo il cambio si resta collegati.
+- Scheda Disiscrizione del campionato, per i giocatori che non sono manager: avvisa che si perdono scelte, risultati e fantamilioni e che non ci si potrà reiscrivere; si conferma con «Sei sicuro?» e scrivendo il nome del campionato, che il server ricontrolla. I manager non possono disiscriversi.
 - Scheda Gestione del campionato, visibile solo ai manager: i giocatori iscritti divisi per lega. Un manager può nominare manager un altro giocatore del campionato o togliergli il ruolo, anche a sé stesso; il campionato resta sempre con almeno un manager. Tutti i manager hanno gli stessi poteri.
 
 ### Changed

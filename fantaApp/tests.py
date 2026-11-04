@@ -1995,6 +1995,7 @@ class WeekendPagesFixture:
             "championship_sprint_standings": [c],
             "championship_info": [c],
             "championship_manage_players": [c],
+            "championship_leave": [c],
             "weekend_details": [c, rw],
             "sprint_race_qualifying_choice": [c, sw, self.sprint_qualifying.id],
             "race_qualifying_choice": [c, rw, self.regular_qualifying.id],
@@ -2903,6 +2904,83 @@ class ChampionshipEntryTests(WeekendPagesFixture, TestCase):
 
         self.assertEqual(response.context["active_section"], "next_weekend")
         self.assertContains(response, "GP Regular")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class LeaveChampionshipTests(WeekendPagesFixture, TestCase):
+    """#160: un giocatore che non è manager lascia il campionato scrivendone il nome."""
+
+    def setUp(self):
+        super().setUp()
+        self.leaver = ChampionshipPlayer.objects.create(
+            user=self.outsider,
+            championship=self.championship,
+            league=self.league,
+            player_name="Uscente",
+        )
+        PlayerRaceResult.objects.create(
+            player=self.leaver,
+            race=self.regular_race,
+            credit_spent=50,
+            fia_points=10,
+            total_points=10,
+        )
+        self.url = reverse("championship_leave", args=[self.championship.id])
+
+    def _leave(self, user, name):
+        self.client.force_login(user)
+        return self.client.post(self.url, {"championship_name": name}, follow=True)
+
+    def test_tab_is_shown_only_to_players_who_are_not_managers(self):
+        self.client.force_login(self.outsider)
+        self.assertContains(self.client.get(self.url), f'href="{self.url}"')
+
+        self.client.force_login(self.user)  # gioca ed è manager
+        page = self.client.get(
+            reverse("championship_info", args=[self.championship.id])
+        )
+        self.assertNotContains(page, f'href="{self.url}"')
+
+    def test_right_name_removes_the_player_with_choices_and_results(self):
+        response = self._leave(self.outsider, f"  {self.championship.name} ")
+
+        self.assertRedirects(response, reverse("user_dashboard"))
+        self.assertContains(response, "Disiscrizione da «Smoke Cup» completata.")
+        self.assertFalse(ChampionshipPlayer.objects.filter(pk=self.leaver.pk).exists())
+        self.assertFalse(
+            PlayerRaceResult.objects.filter(player_id=self.leaver.pk).exists()
+        )
+
+        standings = self.client.get(
+            reverse("championship_general_standings", args=[self.championship.id])
+        )
+        self.assertNotContains(standings, "Uscente")
+
+    def test_wrong_name_leaves_everything_as_it_was(self):
+        response = self._leave(self.outsider, "Smoke")
+
+        self.assertContains(response, "la disiscrizione non è avvenuta")
+        self.assertTrue(ChampionshipPlayer.objects.filter(pk=self.leaver.pk).exists())
+
+    def test_manager_cannot_leave(self):
+        response = self._leave(self.user, self.championship.name)
+
+        self.assertContains(response, "I manager non possono disiscriversi")
+        self.assertTrue(
+            ChampionshipPlayer.objects.filter(
+                user=self.user, championship=self.championship
+            ).exists()
+        )
+
+    def test_user_not_enrolled_gets_a_clear_error(self):
+        guest = get_user_model().objects.create_user(
+            username="ospite", email="ospite@example.com", password="password123"
+        )
+
+        response = self._leave(guest, self.championship.name)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Non sei iscritto a «Smoke Cup».")
 
 
 @override_settings(STORAGES=TEST_STORAGES)

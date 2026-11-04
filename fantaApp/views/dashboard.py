@@ -207,6 +207,20 @@ CHAMPIONSHIP_NAV = (
             },
         ),
     },
+    {
+        "group": "leave",
+        "label": "Disiscrizione",
+        "managers_only": False,
+        # Solo per chi gioca e non è manager: un manager non può disiscriversi (#160).
+        "non_manager_players_only": True,
+        "sections": (
+            {
+                "section": "leave",
+                "label": "Disiscrizione",
+                "url_name": "championship_leave",
+            },
+        ),
+    },
 )
 
 
@@ -218,6 +232,8 @@ def _nav_context(active_section, is_manager=False, is_player=False):
     groups = []
     for group in CHAMPIONSHIP_NAV:
         if group["managers_only"] and not is_manager:
+            continue
+        if group.get("non_manager_players_only") and (is_manager or not is_player):
             continue
         link = group["sections"][0]["url_name"]
         if group["group"] == "standings" and not is_player:
