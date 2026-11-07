@@ -26,6 +26,7 @@ from ..services import costs
 from ..services import helper
 from ..services import rules
 from .invites import build_invite_url
+from .weekend_teams import use_weekend_teams, weekend_teams
 
 # Soglie delle statistiche di campionato.
 # Regolamento 2026, C.2 ed E.2 (#167): soglie incluse.
@@ -1119,6 +1120,9 @@ def championship_my_choices(request, championship_id):
         for qualifying_id, labels in slots_by_qualifying.items()
     }
 
+    # Scuderia di ogni pilota weekend per weekend (#82), in una query sola.
+    teams = weekend_teams(weekend__season=season)
+
     weekend_summaries = []
     skipped_weekends = []
     season_points = 0.0
@@ -1146,9 +1150,21 @@ def championship_my_choices(request, championship_id):
                     weekend_points += result.total_points
                     is_scored = True
                 has_activity = has_activity or bool(choices) or result is not None
+                use_weekend_teams(
+                    weekend, (choice.driver for choice in choices), teams=teams
+                )
             else:
                 session["slots"] = qualifying_slots.get(event_id, [])
                 has_activity = has_activity or bool(session["slots"])
+                use_weekend_teams(
+                    weekend,
+                    (
+                        choice.driver
+                        for slot in session["slots"]
+                        for choice in slot["choices"]
+                    ),
+                    teams=teams,
+                )
 
             sessions.append(session)
 

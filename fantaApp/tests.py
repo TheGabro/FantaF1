@@ -3001,6 +3001,83 @@ class SucateMagateTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class WeekendTeamColourTests(WeekendPagesFixture, TestCase):
+    """#82: colore ed etichetta del pilota vengono dalla scuderia del weekend
+    (WeekendParticipant), non da quella di inizio stagione (Driver.team)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        # Nel weekend regular il pilota 2 corre per un'altra scuderia (come Lawson
+        # in Red Bull in Olanda); nel weekend sprint torna nella sua.
+        self.loan_team = Team.objects.create(
+            name="Alfa Prestito",
+            short_name="PRS",
+            api_id="team-loan",
+            nationality="IT",
+        )
+        self.moved = Driver.objects.get(api_id="drv-smoke-2")
+        self.season_team = self.moved.team
+        WeekendParticipant.objects.filter(
+            weekend=self.regular_weekend, driver=self.moved
+        ).update(team=self.loan_team)
+
+    def _get(self, name, weekend, event):
+        return self.client.get(
+            reverse(name, args=[self.championship.id, weekend.id, event.id])
+        )
+
+    def test_race_results_use_the_team_of_that_weekend(self):
+        regular = self._get(
+            "regular_race_results", self.regular_weekend, self.regular_race
+        )
+        sprint = self._get("sprint_race_results", self.sprint_weekend, self.sprint_race)
+
+        self.assertContains(regular, 'class="team-prs"')
+        self.assertNotContains(sprint, "team-prs")
+
+    def test_race_choice_uses_the_team_of_that_weekend(self):
+        response = self._get(
+            "regular_race_choice", self.regular_weekend, self.regular_race
+        )
+
+        self.assertContains(response, 'data-driver-team-slug="prs"')
+
+    def test_qualifying_picker_groups_the_driver_under_the_weekend_team(self):
+        response = self._get(
+            "race_qualifying_choice", self.regular_weekend, self.regular_qualifying
+        )
+
+        html = response.content.decode()
+        loan_group = html.split('team-group team-prs">', 1)[1].split("</section>")[0]
+        self.assertIn("Smoke2", loan_group)
+        self.assertNotIn("Smoke1", loan_group)
+
+    def test_my_choices_use_the_team_of_each_weekend(self):
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        for race in (self.regular_race, self.sprint_race):
+            PlayerRaceChoice.objects.create(
+                player=player, race=race, driver=self.moved, spent_amount=10
+            )
+
+        response = self.client.get(
+            reverse("championship_my_choices", args=[self.championship.id])
+        )
+
+        self.assertContains(response, "team-chip team-prs", count=1)
+        self.assertContains(response, "team-chip team-smk", count=1)
+
+    def test_the_season_team_is_not_changed(self):
+        self._get("regular_race_results", self.regular_weekend, self.regular_race)
+        self._get(
+            "race_qualifying_choice", self.regular_weekend, self.regular_qualifying
+        )
+
+        self.moved.refresh_from_db()
+        self.assertEqual(self.moved.team, self.season_team)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class UserDashboardTests(TestCase):
     """#62: i campionati gestiti li prepara la view, senza schede doppie e con un
     numero di query che non cresce con i campionati."""
