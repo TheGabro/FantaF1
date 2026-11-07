@@ -20,6 +20,7 @@ from ..models import (
 )
 from ..services import player_choices as pc
 from ..services import bonuses, costs, rules, helper
+from .weekend_teams import use_weekend_teams
 from django.db.models import Count
 
 
@@ -303,11 +304,16 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
         messages.success(request, "Scelte salvate con successo.")
         return redirect(request.get_full_path())
 
-    drivers_avail = (
+    drivers_avail = list(
         Driver.objects.filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
+    # Colori ed etichette con la scuderia di questo weekend (#82).
+    use_weekend_teams(
+        weekend, [*drivers_avail, *(choice.driver for choice in existing.values())]
+    )
+    drivers_avail.sort(key=lambda driver: driver.team.name)
 
     context = {
         "championship": champ,
@@ -433,13 +439,20 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
     grid_available = bool(driver_options)
+    # Senza griglia si mostrano comunque i piloti, in sola anteprima
+    shown_options = driver_options or _grid_preview_options(weekend)
+    # Colori ed etichette con la scuderia di questo weekend (#82).
+    use_weekend_teams(
+        weekend,
+        [option["driver"] for option in shown_options]
+        + [choice.driver for choice in existing_choices],
+    )
     context = {
         "championship": champ,
         "weekend": weekend,
         "back_link": _back_link(request, champ, weekend),
         "event": race,
-        # Senza griglia si mostrano comunque i piloti, in sola anteprima
-        "driver_options": driver_options or _grid_preview_options(weekend),
+        "driver_options": shown_options,
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
@@ -573,13 +586,20 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
     grid_available = bool(driver_options)
+    # Senza griglia si mostrano comunque i piloti, in sola anteprima
+    shown_options = driver_options or _grid_preview_options(weekend)
+    # Colori ed etichette con la scuderia di questo weekend (#82).
+    use_weekend_teams(
+        weekend,
+        [option["driver"] for option in shown_options]
+        + [choice.driver for choice in existing_choices],
+    )
     context = {
         "championship": champ,
         "weekend": weekend,
         "back_link": _back_link(request, champ, weekend),
         "event": race,
-        # Senza griglia si mostrano comunque i piloti, in sola anteprima
-        "driver_options": driver_options or _grid_preview_options(weekend),
+        "driver_options": shown_options,
         "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
@@ -689,11 +709,20 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
         messages.success(request, "Scelte salvate con successo.")
         return redirect(request.get_full_path())
 
-    drivers_avail = (
+    drivers_avail = list(
         Driver.objects.filter(driver_participations__weekend=weekend)
         .select_related("team")
         .order_by("team__name", "first_name", "last_name")
     )
+    # Colori ed etichette con la scuderia di questo weekend (#82).
+    use_weekend_teams(
+        weekend,
+        [
+            *drivers_avail,
+            *(choice.driver for choices in existing.values() for choice in choices),
+        ],
+    )
+    drivers_avail.sort(key=lambda driver: driver.team.name)
 
     context = {
         "championship": champ,
@@ -826,6 +855,12 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             driver.locked_reason = f"scuderia già scelta {max_picks_per_team} volte"
         else:
             driver.locked_reason = None
+    # Colori e gruppi della griglia con la scuderia di questo weekend (#82), solo
+    # dopo i blocchi: il limite per scuderia resta su Driver.team.
+    use_weekend_teams(
+        weekend, [*drivers_available, *([existing.driver] if existing else [])]
+    )
+    drivers_available.sort(key=lambda driver: driver.team.name)
 
     context = {
         "championship": champ,
@@ -877,6 +912,12 @@ def _render_race_results_page(
     ).first()
     player_weekend_points = (
         player_race_result.total_points if player_race_result else None
+    )
+    # Colori ed etichette con la scuderia di questo weekend (#82).
+    use_weekend_teams(
+        weekend,
+        [entry.driver for entry in results]
+        + [choice.driver for choice in player_choices],
     )
 
     context = {
