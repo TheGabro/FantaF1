@@ -4400,6 +4400,107 @@ class DynamicTextsTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class ManagerPendingPicksTests(WeekendPagesFixture, TestCase):
+    """#71: in Gestione → Giocatori il manager vede chi deve ancora fare le
+    scelte del prossimo weekend, sessione per sessione."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)  # manager e giocatore nel fixture
+        self.url = reverse("championship_manage_players", args=[self.championship.id])
+        self.player = ChampionshipPlayer.objects.get(user=self.user)
+        self.driver = Driver.objects.get(api_id="drv-smoke-1")
+
+    def _player(self, username):
+        user = get_user_model().objects.create_user(
+            username=username, email=f"{username}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=self.championship,
+            league=self.league,
+            player_name=username,
+        )
+
+    def _choose_gp(self, player):
+        PlayerRaceChoice.objects.create(
+            player=player, race=self.regular_race, driver=self.driver, spent_amount=10
+        )
+
+    def _choose_qualifying(self, player):
+        PlayerQualifyingChoice.objects.create(
+            player=player, qualifying=self.regular_qualifying, driver=self.driver
+        )
+
+    def _rows(self, response):
+        return {
+            row["player"].player_name: row["cells"]
+            for row in response.context["board"]["rows"]
+        }
+
+    def test_shows_who_still_has_to_choose(self):
+        self._choose_gp(self._player("secondo"))
+
+        response = self.client.get(self.url)
+
+        board = response.context["board"]
+        self.assertEqual(board["weekend"], self.regular_weekend)
+        self.assertEqual(
+            [s["label"] for s in board["sessions"]], ["Qualifiche", "Gran Premio"]
+        )
+        self.assertEqual(
+            self._rows(response),
+            {"Giocatore": [False, False], "secondo": [False, True]},
+        )
+        self.assertContains(response, "2 giocatori devono ancora scegliere")
+
+    def test_who_has_chosen_everything_goes_last(self):
+        done = self._player("aaa")
+        self._choose_gp(done)
+        self._choose_qualifying(done)
+
+        response = self.client.get(self.url)
+
+        names = [row["player"].player_name for row in response.context["board"]["rows"]]
+        self.assertEqual(names, ["Giocatore", "aaa"])
+        self.assertContains(response, "1 giocatore deve ancora scegliere")
+
+    def test_everyone_up_to_date(self):
+        self._choose_gp(self.player)
+        self._choose_qualifying(self.player)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Tutti in pari")
+
+    def test_started_sessions_are_left_out(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(
+            [s["label"] for s in response.context["board"]["sessions"]],
+            ["Gran Premio"],
+        )
+
+    def test_a_race_without_grid_is_marked(self):
+        self.regular_race.starting_grid.all().delete()
+
+        self.assertContains(self.client.get(self.url), "senza griglia")
+
+    def test_queries_do_not_grow_with_the_players(self):
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(self.url)
+        for n in range(3):
+            self._choose_gp(self._player(f"extra{n}"))
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class UserDashboardTests(TestCase):
     """#62: i campionati gestiti li prepara la view, senza schede doppie e con un
     numero di query che non cresce con i campionati."""
