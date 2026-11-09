@@ -66,6 +66,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 |---|---|---|---|---|
 | Sito | Home: stagione F1, classifiche, news, banner del gioco | `/` | `home` | c'è |
 | | Classifica piloti F1 | `/standings/drivers/` | `f1_drivers_standings` | c'è |
+| | Risultati F1 di un weekend (GP e Sprint) | `/results/<stagione>/<round>/` | `f1_race_results` | c'è (#134); dalla home, weekend già corsi |
 | | Classifica costruttori F1 | `/standings/constructors/` | `f1_constructors_standings` | futura (#104) |
 | | News | `/news/`, `/news/<slug>/` | `news_list`, `news_detail` | futura (#111) |
 | | Chi siamo, privacy, termini, supportaci | `/about/`, `/privacy/`, `/terms/`, `/support/` | `about`, `privacy`, `terms`, `support` | futura (#107–#110) |

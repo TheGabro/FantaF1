@@ -1,7 +1,8 @@
+from django.db.models import Exists, OuterRef
 from django.shortcuts import render
 from django.utils import timezone
 
-from fantaApp.models import Weekend
+from fantaApp.models import RaceResult, Weekend
 
 # Sessioni del weekend: campo orario di Weekend -> nome nelle pagine (glossario in
 # frontend/README.md). Si mostrano in ordine di orario, saltando quelle vuote.
@@ -35,6 +36,14 @@ def home(request):
     weekends = list(
         Weekend.objects.filter(deleted_at__isnull=True)
         .select_related("circuit")
+        # Link «Risultati» solo con la classifica del GP importata (#134).
+        .annotate(
+            has_results=Exists(
+                RaceResult.objects.filter(
+                    race__weekend=OuterRef("pk"), race__type="regular"
+                )
+            )
+        )
         .order_by("-season", "round_number")
     )
     season = weekends[0].season if weekends else None

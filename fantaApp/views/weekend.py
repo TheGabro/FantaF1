@@ -19,6 +19,7 @@ from ..models import (
 from ..services import player_choices as pc
 from ..services import bonuses, costs, rules, helper
 from .weekend_teams import use_weekend_teams
+from .race_classification import race_classification
 from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
 from . import session_state as ss
 from django.db.models import Count
@@ -907,11 +908,7 @@ def _render_race_results_page(
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
 
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type=race_type)
-    results = list(
-        race.entries.select_related("driver", "driver__team").order_by(
-            "position", "driver__team__name", "driver__first_name", "driver__last_name"
-        )
-    )
+    results = race_classification(race)
     state = ss.session_state(race, has_results=bool(results))
     if state == ss.NOT_STARTED:
         messages.info(request, "I risultati si vedono dal via.")
@@ -919,11 +916,6 @@ def _render_race_results_page(
             reverse("weekend_details", args=[champ.pk, weekend.pk])
             + _origin_query(request)
         )
-    for entry in results:
-        if entry.starting_grid is not None and entry.position is not None:
-            entry.position_delta = entry.starting_grid - entry.position
-        else:
-            entry.position_delta = None
     classified_results = [entry for entry in results if entry.position is not None]
     # Con player None i filtri restano vuoti: nessuna scelta, nessun punteggio.
     player_choices = list(

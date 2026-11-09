@@ -1,0 +1,37 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Risultati F1 di un weekend (#134), pagina pubblica: Gran Premio e, nei weekend
+sprint, Sprint. La tabella è la stessa della pagina dei risultati del gioco.
+{% endcomment %}
+
+{% block title %}{{ weekend.event_name }} {{ weekend.season }} · Risultati — Fanta F1{% endblock %}
+
+{% block content %}
+<a href="{% url 'home' %}" class="btn-ghost mb-4 -ml-2">← Home</a>
+
+<div class="mb-6 flex flex-wrap items-center gap-3">
+  <span class="pos-badge !h-12 !w-12 text-base">R{{ weekend.round_number }}</span>
+  <div class="min-w-0">
+    <p class="eyebrow">Risultati F1 · stagione {{ weekend.season }}</p>
+    <h1 class="heading mt-1">{{ weekend.event_name }}</h1>
+    <p class="text-muted">
+      {{ weekend.circuit.name }}{% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y"|lower }}{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6">
+  {% for race in races %}
+    <section class="min-w-0">
+      <h2 class="section-title mb-3">{{ race.label }}</h2>
+      {% if race.results %}
+        {% include "fantaApp/_race_classification.html" with results=race.results %}
+      {% else %}
+        <div class="card-pad text-muted">Risultati non ancora disponibili.</div>
+      {% endif %}
+    </section>
+  {% empty %}
+    <div class="card-pad text-muted">Nessuna gara per questo weekend.</div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -2100,6 +2100,8 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "legacy_championship_dashboard",
         "legacy_invite_accept",
     }
+    # Pagine pubbliche con argomenti (#134): rotta -> args nel fixture.
+    PUBLIC_PAGES_WITH_ARGS = {"f1_race_results": [2026, 1]}
 
     def test_every_route_is_covered(self):
         routes = {p.name for p in fanta_urls.urlpatterns}
@@ -2109,8 +2111,15 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
             set(self.pages())
             | self.PUBLIC_PAGES
             | self.ACTIONS
-            | self.LEGACY_REDIRECTS,
+            | self.LEGACY_REDIRECTS
+            | set(self.PUBLIC_PAGES_WITH_ARGS),
         )
+
+    def test_public_pages_with_arguments_open_for_anonymous_users(self):
+        for name, args in self.PUBLIC_PAGES_WITH_ARGS.items():
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name, args=args))
+                self.assertEqual(response.status_code, 200)
 
     def test_public_pages_open_for_anonymous_users(self):
         for name in self.PUBLIC_PAGES:
@@ -2522,6 +2531,59 @@ class SiteHeaderTests(TestCase):
 
         self.assertIn('role="status" aria-live="polite"', html)
         self.assertEqual(html.count('role="alert"'), 1)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class F1RaceResultsPageTests(WeekendPagesFixture, TestCase):
+    """#134: risultati F1 di un weekend, pagina pubblica; dalla home ci si arriva
+    dai weekend già corsi con i risultati importati."""
+
+    def test_open_to_everyone_with_the_grand_prix(self):
+        response = self.client.get(reverse("f1_race_results", args=[2026, 1]))
+
+        self.assertContains(response, "Gran Premio")
+        self.assertContains(response, "Smoke1")
+        self.assertContains(response, "Pos.")
+        # Weekend classico: niente sezione Sprint.
+        labels = [race["label"] for race in response.context["races"]]
+        self.assertEqual(labels, ["Gran Premio"])
+
+    def test_sprint_weekend_shows_both_races(self):
+        response = self.client.get(reverse("f1_race_results", args=[2026, 2]))
+
+        self.assertEqual(
+            [r["label"] for r in response.context["races"]], ["Gran Premio", "Sprint"]
+        )
+        # Il GP del weekend sprint non ha ancora risultati nel fixture.
+        self.assertContains(response, "Risultati non ancora disponibili.")
+
+    def test_unknown_round_is_not_found(self):
+        response = self.client.get(reverse("f1_race_results", args=[2026, 99]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_home_links_past_weekends_with_results(self):
+        past = timezone.now() - timedelta(days=30)
+        for weekend in (self.regular_weekend, self.sprint_weekend):
+            for field in (
+                "sprint_qualifying_start",
+                "sprint_start",
+                "qualifying_start",
+                "race_start",
+            ):
+                if getattr(weekend, field):
+                    setattr(weekend, field, past)
+            weekend.save()
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(
+            response, f'href="{reverse("f1_race_results", args=[2026, 1])}"'
+        )
+        # Il GP del weekend sprint non ha risultati: niente link.
+        self.assertNotContains(
+            response, f'href="{reverse("f1_race_results", args=[2026, 2])}"'
+        )
 
 
 @override_settings(STORAGES=TEST_STORAGES)
