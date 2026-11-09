@@ -5,8 +5,8 @@
 {% block content %}
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
   <div>
-    <p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">La tua dashboard</p>
-    <h1 class="mt-1 text-3xl font-black uppercase italic">
+    <p class="eyebrow">La tua dashboard</p>
+    <h1 class="page-title mt-1">
       Ciao, {{ user.username }}
       {% if is_admin %}<span class="badge-accent ml-2 align-middle not-italic">Admin</span>
       {% elif is_staff %}<span class="badge-accent ml-2 align-middle not-italic">Staff</span>
@@ -21,7 +21,7 @@
   </div>
 </div>
 
-<h2 class="mb-4 text-sm font-bold uppercase tracking-wide text-muted">I miei campionati</h2>
+<h2 class="mb-4 section-title">I miei campionati</h2>
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
   {% for e in championship %}
@@ -32,7 +32,7 @@
           <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
             {{ e.championship.name }}
           </h3>
-          <p class="text-sm text-muted">Stagione {{ e.championship.year }} · {{ e.league.name }}</p>
+          <p class="note">Stagione {{ e.championship.year }} · {{ e.league.name }}</p>
         </div>
         <div class="flex shrink-0 flex-col items-end gap-1">
           {% if e.championship.active %}
@@ -46,15 +46,15 @@
         </div>
       </div>
 
-      <p class="mb-4 text-sm text-muted">Giochi come <span class="font-semibold text-ink">{{ e.player_name }}</span></p>
+      <p class="mb-4 text-muted">Giochi come <span class="font-semibold text-ink">{{ e.player_name }}</span></p>
 
       <div class="flex gap-6 border-t border-line pt-3">
         <div>
-          <p class="text-xs uppercase tracking-wide text-muted">Crediti</p>
+          <p class="label">Crediti</p>
           <p class="text-xl font-black">{{ e.available_credit }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-wide text-muted">Punti</p>
+          <p class="label">Punti</p>
           <p class="text-xl font-black">{{ e.total_score }}</p>
         </div>
       </div>
@@ -62,8 +62,8 @@
   {% empty %}
     <div class="card-pad sm:col-span-2 lg:col-span-3 text-center">
       <p class="text-4xl">🏁</p>
-      <h3 class="mt-2 text-lg font-bold">Non sei ancora iscritto a nessun campionato</h3>
-      <p class="mx-auto mt-1 max-w-md text-sm text-muted">
+      <h3 class="subheading mt-2">Non sei ancora iscritto a nessun campionato</h3>
+      <p class="mx-auto mt-1 max-w-md text-muted">
         Crea il tuo campionato e invita i tuoi amici, oppure entra in uno esistente
         col link che ti hanno mandato.
       </p>
@@ -75,7 +75,7 @@
 {# Serve a chi apre il sito dal segnalibro invece che dal link ricevuto in chat. #}
 <section class="card-pad mt-6">
   <h2 class="text-base font-bold">Hai un codice invito?</h2>
-  <p class="mt-1 text-sm text-muted">
+  <p class="mt-1 text-muted">
     Incolla il link che ti hanno mandato (o solo il codice finale) per entrare nel campionato.
   </p>
   <form method="post" action="{% url 'invite_redeem' %}" class="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -83,7 +83,7 @@
     <input
       type="text"
       name="invite_code"
-      class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-sm"
+      class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2"
       placeholder="https://…/championships/invite/…"
       aria-label="Codice o link di invito"
       required
@@ -94,8 +94,8 @@
 
 {# Campionati che l'utente gestisce senza giocarci: quelli in cui gioca hanno il badge Manager qui sopra (#62). #}
 {% if managed_championships %}
-  <h2 class="mb-1 mt-10 text-sm font-bold uppercase tracking-wide text-muted">Campionati che gestisci</h2>
-  <p class="mb-4 text-sm text-muted">Qui ci sono quelli in cui non giochi; gli altri hanno il badge Manager nella loro scheda.</p>
+  <h2 class="mb-1 mt-10 section-title">Campionati che gestisci</h2>
+  <p class="mb-4 text-muted">Qui ci sono quelli in cui non giochi; gli altri hanno il badge Manager nella loro scheda.</p>
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {% for c in managed_championships %}
       <a href="{% url 'championship_dashboard' c.id %}"
@@ -105,7 +105,7 @@
             <h3 class="text-lg font-bold leading-tight group-hover:text-accent">
               {{ c.name }}
             </h3>
-            <p class="text-sm text-muted">Stagione {{ c.year }}</p>
+            <p class="note">Stagione {{ c.year }}</p>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
             {% if c.active %}
@@ -117,7 +117,7 @@
             <span class="badge-accent">Manager</span>
           </div>
         </div>
-        <div class="flex gap-6 border-t border-line pt-3 text-sm text-muted">
+        <div class="flex gap-6 border-t border-line pt-3 note">
           <span><strong class="text-ink">{{ c.leagues_count }}</strong> {% if c.leagues_count == 1 %}lega{% else %}leghe{% endif %}</span>
           <span><strong class="text-ink">{{ c.players_count }}</strong> {% if c.players_count == 1 %}giocatore{% else %}giocatori{% endif %}</span>
         </div>

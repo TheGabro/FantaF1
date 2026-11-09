@@ -3,8 +3,8 @@
 {# Area account: menu laterale su desktop, elenco in alto su mobile (#96). #}
 {# Ogni pagina passa account_page per evidenziare la sua voce. #}
 {% block content %}
-<p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">Account</p>
-<h1 class="mb-6 mt-1 text-3xl font-black uppercase italic">{{ user.username }}</h1>
+<p class="eyebrow">Account</p>
+<h1 class="page-title mb-6 mt-1">{{ user.username }}</h1>
 
 <div class="grid items-start gap-6 md:grid-cols-[14rem_1fr]">
   <nav aria-label="Sezioni dell'account" class="card flex gap-1 overflow-x-auto p-2 md:flex-col">

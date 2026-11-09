@@ -12,16 +12,16 @@
 
 {% block section_content %}
 <section class="card-pad border-accent/40">
-  <h2 class="text-lg font-bold text-accent">Zona pericolosa</h2>
+  <h2 class="subheading text-accent">Zona pericolosa</h2>
 
   {% if is_manager %}
-    <p class="mt-2 text-sm text-muted">
+    <p class="mt-2 text-muted">
       Sei manager di questo campionato, quindi non puoi disiscriverti: un manager può solo
       chiudere il campionato, quando non ci sono più iscritti.
     </p>
   {% else %}
-    <p class="mt-2 text-sm">Disiscrivendoti da «{{ championship.name }}»:</p>
-    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+    <p class="mt-2">Disiscrivendoti da «{{ championship.name }}»:</p>
+    <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
       <li>perdi tutte le scelte, i risultati e i fantamilioni del campionato;</li>
       <li>sparisci da tutte le classifiche;</li>
       <li>non potrai più reiscriverti, perché le iscrizioni chiudono a stagione iniziata.</li>
@@ -51,7 +51,7 @@
 
     <dialog id="leave-confirm-dialog" class="confirm-dialog">
       <h2 class="text-base font-bold uppercase italic tracking-wide">Sei sicuro?</h2>
-      <p class="mt-2 text-sm text-muted">
+      <p class="mt-2 text-muted">
         Perderai scelte, risultati e fantamilioni di «{{ championship.name }}» e non potrai reiscriverti.
       </p>
       <div class="mt-5 flex justify-end gap-2">

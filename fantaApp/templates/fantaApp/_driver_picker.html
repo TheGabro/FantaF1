@@ -23,7 +23,7 @@ Contesto atteso:
             {% include "fantaApp/_driver_card.html" with card_selected=driver.is_selected card_locked=driver.locked_reason %}
           </button>
         {% empty %}
-          <p class="text-sm text-muted">Nessun pilota disponibile.</p>
+          <p class="text-muted">Nessun pilota disponibile.</p>
         {% endfor %}
       </div>
     </section>

@@ -16,9 +16,9 @@
     <div class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-4">
       <span class="pos-badge shrink-0 !h-12 !w-12 text-base">R{{ next_weekend.weekend.round_number }}</span>
       <div class="min-w-0 flex-1">
-        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Prossimo weekend</p>
-        <h2 class="truncate text-xl font-black uppercase italic leading-tight">{{ next_weekend.weekend.event_name }}</h2>
-        <p class="truncate text-sm text-muted">{{ next_weekend.weekend.circuit.name }}</p>
+        <p class="label">Prossimo weekend</p>
+        <h2 class="heading truncate">{{ next_weekend.weekend.event_name }}</h2>
+        <p class="truncate text-muted">{{ next_weekend.weekend.circuit.name }}</p>
       </div>
       {% if next_weekend.weekend.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
       {% if current_championship_player %}
@@ -31,7 +31,7 @@
     </div>
 
     {% if next_weekend.deadline %}
-      <p class="border-b border-line bg-surface-2 px-5 py-2 text-sm">
+      <p class="border-b border-line bg-surface-2 px-5 py-2">
         La prima sessione scatta <strong>{{ next_weekend.deadline|date:"l j F · H:i"|lower }}</strong>,
         fra {{ next_weekend.deadline|timeuntil }}: dopo il via quella scelta si blocca.
       </p>
@@ -43,7 +43,7 @@
           <span class="h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
           <div class="min-w-0 flex-1">
             <h3 class="font-bold">{{ s.label }}</h3>
-            <p class="text-sm text-muted">{{ s.start|date:"D j M · H:i"|default:"orario da definire" }}</p>
+            <p class="note">{{ s.start|date:"D j M · H:i"|default:"orario da definire" }}</p>
           </div>
 
           {% if s.has_choice %}
@@ -62,7 +62,7 @@
     </ul>
 
     <div class="border-t border-line px-5 py-3">
-      <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="btn-ghost -ml-2 text-sm">
+      <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="btn-ghost -ml-2">
         Dettaglio weekend →
       </a>
     </div>
@@ -72,8 +72,8 @@
     <section class="card">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
-          <h2 class="text-lg font-bold">Altri weekend già aperti</h2>
-          <p class="text-sm text-muted">Puoi portarti avanti: le scelte restano modificabili fino al via di ogni sessione.</p>
+          <h2 class="subheading">Altri weekend già aperti</h2>
+          <p class="text-muted">Puoi portarti avanti: le scelte restano modificabili fino al via di ogni sessione.</p>
         </div>
         {% if pending_count %}<span class="badge-muted">{{ pending_count }} scelt{{ pending_count|pluralize:"a,e" }} aperte in tutto</span>{% endif %}
       </div>
@@ -83,7 +83,7 @@
             <span class="pos-badge shrink-0">R{{ item.weekend.round_number }}</span>
             <div class="min-w-0 flex-1">
               <h3 class="truncate font-semibold">{{ item.weekend.event_name }}</h3>
-              <p class="truncate text-xs text-muted">
+              <p class="note truncate">
                 {{ item.weekend.circuit.name }}{% if item.deadline %} · dal {{ item.deadline|date:"j M"|lower }}{% endif %}
               </p>
             </div>

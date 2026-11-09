@@ -9,14 +9,14 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
 
 {% if event_started %}
   <div class="card-pad mb-5 border-accent/40">
-    <p class="text-sm font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
+    <p class="font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
   </div>
 {% else %}
-  <p class="mb-5 text-sm text-muted">
+  <p class="mb-5 text-muted">
     <strong class="text-ink">Regole:</strong> pronostica i piloti che passeranno il Q1 (fino a 6), quelli che passeranno il Q2 (fino a 5) e la top 3 del Q3.
     Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti crediti e moltiplicatori punti sul Grand Prix.
   </p>
@@ -27,7 +27,7 @@
 <div class="grid items-start gap-4 md:grid-cols-3">
   {% for code, label in slots %}
     <div class="card-pad">
-      <h3 class="mb-3 text-sm font-bold uppercase tracking-wide">{{ label }}</h3>
+      <h3 class="section-title mb-3">{{ label }}</h3>
 
       {% if event_started %}
         {% with choices=existing|get_item:code %}
@@ -35,13 +35,13 @@
             <ul class="space-y-2">
               {% for choice in choices %}
                 <li class="team-{{ choice.driver.team.short_name|slugify }}">
-                  <span class="team-chip text-sm">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</span>
-                  <span class="ml-1 text-xs text-muted">{{ choice.driver.team.short_name }}</span>
+                  <span class="team-chip">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</span>
+                  <span class="note ml-1">{{ choice.driver.team.short_name }}</span>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-sm text-muted">Nessun pronostico.</p>
+            <p class="text-muted">Nessun pronostico.</p>
           {% endif %}
         {% endwith %}
       {% else %}

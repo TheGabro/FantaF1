@@ -3,11 +3,11 @@
 {% block title %}Classifica piloti F1 — Fanta F1{% endblock %}
 
 {% block content %}
-<p class="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-accent">Formula 1{% if weekend %} · Stagione {{ weekend.season }}{% endif %}</p>
-<h1 class="text-3xl font-black uppercase italic sm:text-4xl">Classifica piloti</h1>
+<p class="mb-2 eyebrow">Formula 1{% if weekend %} · Stagione {{ weekend.season }}{% endif %}</p>
+<h1 class="page-title">Classifica piloti</h1>
 
 {% if weekend %}
-  <p class="mt-2 text-sm text-muted">Dopo il round {{ weekend.round_number }} · {{ weekend.event_name }}</p>
+  <p class="mt-2 text-muted">Dopo il round {{ weekend.round_number }} · {{ weekend.event_name }}</p>
 
   <div class="card mt-6 overflow-x-auto">
     <table class="table-clean">
@@ -30,7 +30,7 @@
           <td class="team-{{ row.team.short_name|slugify }}">
             <span class="team-chip">{{ row.driver.first_name }} {{ row.driver.last_name }}</span>
             {# Su mobile la colonna Scuderia è nascosta per lasciare spazio ai punti. #}
-            <span class="mt-0.5 block pl-2.5 text-xs text-muted sm:hidden">{{ row.team.name }}</span>
+            <span class="mt-0.5 block pl-2.5 note sm:hidden">{{ row.team.name }}</span>
           </td>
           <td class="hidden text-muted sm:table-cell">{{ row.team.name }}</td>
           <td class="text-center">{{ row.wins }}</td>

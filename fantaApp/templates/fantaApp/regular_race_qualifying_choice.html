@@ -8,14 +8,14 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
 
 {% if event_started %}
   <div class="card-pad mb-5 border-accent/40">
-    <p class="text-sm font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
+    <p class="font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
   </div>
 {% else %}
-  <p class="mb-5 text-sm text-muted">
+  <p class="mb-5 text-muted">
     <strong class="text-ink">Regole:</strong> pronostica il pilota che farà la pole position.
     Ogni pilota può essere scelto una sola volta nella stagione, e ogni scuderia
     al massimo {{ max_picks_per_team }} volte.
@@ -31,9 +31,9 @@
           {% include "fantaApp/_driver_card.html" with driver=existing.driver card_selected=True %}
         </div>
         <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-muted">Il tuo pronostico</p>
+          <p class="label">Il tuo pronostico</p>
           <p class="team-chip mt-1 text-lg">{{ existing.driver.first_name }} <span class="uppercase">{{ existing.driver.last_name }}</span></p>
-          <p class="mt-0.5 text-sm text-muted">{{ existing.driver.team.name }}</p>
+          <p class="note mt-0.5">{{ existing.driver.team.name }}</p>
           <span class="badge-ok mt-2">✓ Scelta salvata</span>
         </div>
       </div>
@@ -58,7 +58,7 @@
 
 {# ── Griglia piloti: selezionabile solo se non c'è già una scelta ── #}
 {% if picker_locked %}
-  <p class="mb-3 text-sm text-muted">
+  <p class="mb-3 text-muted">
     {% if event_started %}
       Griglia in sola lettura.
     {% else %}

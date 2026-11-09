@@ -89,10 +89,32 @@
 }
 
 @layer components {
+  /* ── Scala tipografica (#158) ───────────────────────────────────────
+     Unico punto per le dimensioni del testo: le pagine usano questi ruoli
+     invece di scegliere text-sm/text-xs caso per caso.
+       testo normale    16px (text-base, quello del body): nessuna classe
+       .page-title      30px, 36px da sm: titolo della pagina
+       .heading         24px corsivo: titolo di una pagina dentro un campionato
+                        (sotto il nome del campionato) o di una card in evidenza
+       .subheading      18px: titolo dentro una card
+       .section-title   16px maiuscolo: titolo di una sezione della pagina
+       .eyebrow         14px maiuscolo accent: sopratitolo
+       .note            14px muted: note, didascalie, dati secondari
+       .label           12px maiuscolo: etichette di dati e intestazioni di tabella
+     Pulsanti, menu, schede, campi dei form e messaggi stanno a 16px (a 16px i
+     campi evitano anche lo zoom automatico di iOS); badge a 14px. */
+  .page-title { @apply text-3xl font-black uppercase italic leading-tight sm:text-4xl; }
+  .heading { @apply text-2xl font-black uppercase italic leading-tight; }
+  .subheading { @apply text-lg font-bold leading-tight; }
+  .section-title { @apply text-base font-bold uppercase tracking-wide text-muted; }
+  .eyebrow { @apply text-sm font-bold uppercase tracking-[0.2em] text-accent; }
+  .note { @apply text-sm text-muted; }
+  .label { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
+
   /* Bottoni */
   .btn, .btn-primary, .btn-secondary, .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
-      text-sm font-semibold transition-colors cursor-pointer
+      text-base font-semibold transition-colors cursor-pointer
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
   /* In dark il fondo resta il rosso profondo: il bianco sul rosso chiaro non regge il contrasto */
@@ -102,7 +124,7 @@
 
   /* Voci del menu utente: la sezione aperta ha aria-current="page" (#93, #131) */
   .nav-link {
-    @apply flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors
+    @apply flex items-center rounded-lg px-3 py-2 text-base font-semibold text-muted transition-colors
       cursor-pointer hover:bg-surface-2 hover:text-ink;
   }
   .nav-link[aria-current="page"] { @apply bg-surface-2 text-ink; }
@@ -113,7 +135,7 @@
 
   /* Badge */
   .badge, .badge-ok, .badge-warn, .badge-accent, .badge-muted {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold;
   }
   .badge-ok { @apply bg-ok-soft text-ok; }
   .badge-warn { @apply bg-warn-soft text-warn; }
@@ -129,32 +151,32 @@
   }
 
   /* Tabelle */
-  .table-clean { @apply w-full border-collapse text-sm; }
+  .table-clean { @apply w-full border-collapse text-base; }
   .table-clean th { @apply px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted bg-surface-2 border-b border-line; }
   .table-clean td { @apply px-3 py-2.5 border-b border-line; }
   .table-clean tbody tr:last-child td { @apply border-b-0; }
 
   /* Campi form (gli input Django non hanno classi: si stilizzano per elemento) */
-  .form-field label { @apply block text-sm font-semibold mb-1; }
+  .form-field label { @apply block text-base font-semibold mb-1; }
   .form-field input[type="text"],
   .form-field input[type="email"],
   .form-field input[type="password"],
   .form-field input[type="number"],
   .form-field select {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-ink
       focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent;
   }
-  .form-field .errorlist { @apply mt-1 text-xs font-semibold text-accent list-none p-0; }
-  .form-field .helptext { @apply mt-1 block text-xs text-muted; }
+  .form-field .errorlist { @apply mt-1 text-sm font-semibold text-accent list-none p-0; }
+  .form-field .helptext { @apply mt-1 block text-sm text-muted; }
   .form-field ul.helptext { @apply list-disc space-y-0.5 pl-4; }
 
   /* Toast dei Django messages */
-  .toast { @apply flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-sm shadow-lg; }
+  .toast { @apply flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-base shadow-lg; }
   .toast-error { @apply border-accent/40; }
   .toast-success { @apply border-ok/40; }
 
   /* Badge posizione griglia */
-  .pos-badge { @apply inline-flex h-7 w-9 items-center justify-center rounded-md bg-surface-2 border border-line text-xs font-bold; }
+  .pos-badge { @apply inline-flex h-7 w-9 items-center justify-center rounded-md bg-surface-2 border border-line text-sm font-bold; }
 
   /* Riga pilota selezionata nelle pagine di scelta */
   .row-selected { @apply bg-accent-soft/50; }
@@ -167,7 +189,7 @@
     @apply flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1;
   }
   .championship-tab {
-    @apply shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold
+    @apply shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-base font-semibold
       text-muted transition-colors hover:bg-surface hover:text-ink;
   }
   .championship-tab-active {
@@ -181,7 +203,7 @@
   .championship-subtabs { @apply flex gap-4 overflow-x-auto border-b border-line px-1; }
   .championship-subtab {
     @apply shrink-0 whitespace-nowrap border-b-2 border-transparent px-1 pb-2 pt-1
-      text-sm font-semibold text-muted transition-colors hover:text-ink;
+      text-base font-semibold text-muted transition-colors hover:text-ink;
   }
   .championship-subtab-active { @apply border-accent text-accent; }
 

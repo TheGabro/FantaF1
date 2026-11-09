@@ -5,7 +5,7 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="mb-5 text-2xl font-black uppercase italic">
+<h2 class="heading mb-5">
   {{ weekend.event_name }} · <span class="text-accent">Risultati {{ race_label }}</span>
 </h2>
 
@@ -31,7 +31,7 @@
               {% if result.position %}P{{ result.position }}{% else %}—{% endif %}
             </span>
           </td>
-          <td class="text-center text-sm font-bold">
+          <td class="text-center font-bold">
             {% if result.position_delta is not None %}
               {% if result.position_delta > 0 %}
                 <span class="text-ok">▲ {{ result.position_delta }}</span>
@@ -48,7 +48,7 @@
             <span class="team-chip {% if result.driver_id in selected_driver_ids %}text-accent{% endif %}">
               {{ result.driver.first_name }} {{ result.driver.last_name }}
             </span>
-            <span class="ml-1 text-xs text-muted">{{ result.driver.team.short_name }}</span>
+            <span class="note ml-1">{{ result.driver.team.short_name }}</span>
             {% if result.driver_id in selected_driver_ids %}<span class="badge-accent ml-1">Tuo</span>{% endif %}
           </td>
           <td class="text-center text-muted">{% if result.starting_grid %}P{{ result.starting_grid }}{% else %}—{% endif %}</td>
@@ -62,7 +62,7 @@
   {# Pannello del giocatore: chi non gioca il campionato vede solo la classifica. #}
   {% if player %}
   <aside class="card-pad lg:sticky lg:top-20">
-    <h3 class="mb-4 text-sm font-bold uppercase tracking-wide">La tua gara</h3>
+    <h3 class="section-title mb-4">La tua gara</h3>
 
     <div class="mb-4 grid gap-2">
       {% if player_choices %}
@@ -72,11 +72,11 @@
               <p class="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-accent">★ Pupillo</p>
             {% endif %}
             <p class="team-chip">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</p>
-            <p class="mt-0.5 text-xs text-muted">{{ choice.driver.team.short_name }}</p>
+            <p class="note mt-0.5">{{ choice.driver.team.short_name }}</p>
           </div>
         {% endfor %}
       {% else %}
-        <div class="rounded-lg border border-dashed border-line p-3 text-sm text-muted">
+        <div class="rounded-lg border border-dashed border-line p-3 text-muted">
           Non hai effettuato nessuna scelta per questa gara.
         </div>
       {% endif %}
@@ -84,11 +84,11 @@
 
     <dl class="space-y-2 border-t border-line pt-3">
       <div class="flex items-center justify-between">
-        <dt class="text-sm text-muted">Crediti usati</dt>
+        <dt class="note">Crediti usati</dt>
         <dd class="text-xl font-black">{{ player_credit_used|default:0 }}</dd>
       </div>
       <div class="flex items-center justify-between">
-        <dt class="text-sm text-muted">Punti guadagnati</dt>
+        <dt class="note">Punti guadagnati</dt>
         <dd class="text-xl font-black text-ok">{{ player_weekend_points|default:0 }}</dd>
       </div>
     </dl>
@@ -96,7 +96,7 @@
   {% endif %}
 </div>
 {% else %}
-  <div class="card-pad text-center text-sm text-muted">
+  <div class="card-pad text-center text-muted">
     I risultati ufficiali della {{ race_label }} non sono ancora disponibili.
   </div>
 {% endif %}
