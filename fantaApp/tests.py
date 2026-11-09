@@ -3581,6 +3581,47 @@ class SprintStartingGridTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class SaturdayQualifyingChoiceAccessTests(WeekendPagesFixture, TestCase):
+    """#186: dopo il via la scelta della qualifica del sabato porta ai risultati."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c, w, q = (
+            self.championship.id,
+            self.regular_weekend.id,
+            self.regular_qualifying.id,
+        )
+        self.url = reverse("race_qualifying_choice", args=[c, w, q])
+        self.results_url = reverse("race_qualifying_results", args=[c, w, q])
+
+    def _start(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(minutes=5)
+        self.regular_weekend.save()
+
+    def test_opens_before_the_start(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_after_the_start_goes_to_the_results(self):
+        self._start()
+
+        response = self.client.get(f"{self.url}?from=play")
+
+        self.assertRedirects(
+            response, f"{self.results_url}?from=play", fetch_redirect_response=False
+        )
+
+    def test_a_post_after_the_start_saves_nothing(self):
+        self._start()
+        driver = Driver.objects.get(api_id="drv-smoke-1")
+
+        response = self.client.post(self.url, {"driver": driver.id})
+
+        self.assertRedirects(response, self.results_url, fetch_redirect_response=False)
+        self.assertFalse(PlayerQualifyingChoice.objects.exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     """#195: risultati della qualifica del sabato, con il proprio pronostico."""
 
