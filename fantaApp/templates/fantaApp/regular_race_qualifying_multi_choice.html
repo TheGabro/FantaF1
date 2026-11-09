@@ -9,67 +9,50 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+<div class="mb-2 flex flex-wrap items-center gap-3">
+  <h2 class="heading">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+  {# Sessioni già concluse del weekend (#200): ombreggiato finché mancano i risultati #}
+  {% if sprint_results.available %}
+    <a href="{{ sprint_results.url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Risultati Sprint</a>
+  {% elif sprint_results %}
+    <span class="btn-secondary !px-3 !py-1.5 text-sm" aria-disabled="true" title="Risultati della Sprint non ancora pubblicati">Risultati Sprint</span>
+  {% endif %}
+</div>
 
-{% if event_started %}
-  <div class="card-pad mb-5 border-accent/40">
-    <p class="font-bold text-accent">🏁 Le scelte per questa qualifica sono chiuse.</p>
-  </div>
-{% else %}
-  <p class="mb-5 text-muted">
-    <strong class="text-ink">Regole:</strong> pronostica i piloti che passeranno il Q1 (fino a 6), quelli che passeranno il Q2 (fino a 5) e la top 3 del Q3.
-    Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti crediti e moltiplicatori punti sul Grand Prix.
-  </p>
-{% endif %}
+<p class="mb-5 text-muted">
+  <strong class="text-ink">Regole:</strong> pronostica i piloti che passeranno il Q1 (fino a 6), quelli che passeranno il Q2 (fino a 5) e la top 3 del Q3.
+  Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti crediti e moltiplicatori punti sul Grand Prix.
+</p>
 
-{% if not event_started %}<form method="post">{% csrf_token %}{% endif %}
+<form method="post">{% csrf_token %}
 
 <div class="grid items-start gap-4 md:grid-cols-3">
   {% for code, label in slots %}
     <div class="card-pad">
       <h3 class="section-title mb-3">{{ label }}</h3>
 
-      {% if event_started %}
-        {% with choices=existing|get_item:code %}
-          {% if choices %}
-            <ul class="space-y-2">
-              {% for choice in choices %}
-                <li class="team-{{ choice.driver.team.short_name|slugify }}">
-                  <span class="team-chip">{{ choice.driver.first_name }} {{ choice.driver.last_name }}</span>
-                  <span class="note ml-1">{{ choice.driver.team.short_name }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted">Nessun pronostico.</p>
-          {% endif %}
-        {% endwith %}
-      {% else %}
-        {% with choices=existing|get_item:code %}
-          <div class="space-y-2">
-            {% for i in slot_limits|get_item:code|to_range %}
-              {% with selected_choice=choices|get_item:i %}
-                <div class="form-field">
-                  <select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}" data-dedupe>
-                    <option value="">— scegli pilota —</option>
-                    {% for d in drivers %}
-                      <option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
-                        {{ d.team.short_name }} · {{ d.first_name }} {{ d.last_name }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-              {% endwith %}
-            {% endfor %}
-          </div>
-        {% endwith %}
-      {% endif %}
+      {% with choices=existing|get_item:code %}
+        <div class="space-y-2">
+          {% for i in slot_limits|get_item:code|to_range %}
+            {% with selected_choice=choices|get_item:i %}
+              <div class="form-field">
+                <select name="drivers_{{ code }}" id="drivers_{{ code }}_{{ i }}" data-dedupe>
+                  <option value="">— scegli pilota —</option>
+                  {% for d in drivers %}
+                    <option value="{{ d.id }}" {% if selected_choice and selected_choice.driver_id == d.id %}selected{% endif %}>
+                      {{ d.team.short_name }} · {{ d.first_name }} {{ d.last_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      {% endwith %}
     </div>
   {% endfor %}
 </div>
 
-{% if not event_started %}
-  <button type="submit" class="btn-primary mt-5 w-full sm:w-auto">Salva tutti i pronostici</button>
+<button type="submit" class="btn-primary mt-5 w-full sm:w-auto">Salva tutti i pronostici</button>
 </form>
-{% endif %}
 {% endblock %}
