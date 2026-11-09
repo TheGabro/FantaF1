@@ -79,7 +79,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | I miei campionati | Campionati in corso | `/championships/` | `user_dashboard` | c'è |
 | | Cerca un campionato | `/championships/search/` | `championship_search` | nuova (#72) |
 | | Archivio | `/championships/archive/` | `championship_archive` | nuova (#100) |
-| | Crea un campionato | `/championships/create/` | `create_championship` | c'è |
+| | Crea un campionato | `/championships/create/` | `create_championship` | c'è: di solito si apre nel pop-up di I miei campionati (#157), la pagina resta per chi non ha JavaScript |
 | | Iscriviti | `/championships/<id>/join/` | `join_championship` | c'è |
 | | Invito (nascosto per ora) | `/championships/invite/`, `/championships/invite/<token>/` | `invite_redeem`, `invite_accept` | c'è |
 | Campionato | Ingresso | `/championships/<id>/` | `championship_dashboard` | c'è: Prossimo weekend per chi gioca, Gestione per un manager che non gioca, Generale per gli altri |

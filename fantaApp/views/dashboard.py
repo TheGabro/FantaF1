@@ -41,7 +41,17 @@ def user_dashboard(request):
     """I miei campionati: quelli in cui si gioca e, a parte, quelli che si gestiscono
     senza giocare (#62). Un campionato in cui si gioca e si è manager compare una
     volta sola, con il badge Manager. Query costanti, qualunque sia il numero di
-    campionati."""
+    campionati. Il form «Crea campionato» sta in un pop-up della pagina (#157)."""
+    return _render_user_dashboard(
+        request,
+        creations.ChampionshipForm(user=request.user),
+        creations.LeagueFormSet(),
+    )
+
+
+def _render_user_dashboard(request, create_form, create_formset, open_dialog=False):
+    """Disegna I miei campionati. Con open_dialog il pop-up «Crea campionato»
+    arriva già aperto: serve a create_championship per mostrarvi gli errori."""
     user = request.user
 
     championship = (
@@ -73,6 +83,9 @@ def user_dashboard(request):
         "is_admin": user.user_type == "admin",
         "is_staff": user.user_type == "staff",
         "is_premium": user.user_type == "premium",
+        "create_form": create_form,
+        "create_formset": create_formset,
+        "open_create_dialog": open_dialog,
     }
     return render(request, "fantaApp/user_dashboard.html", context)
 
@@ -121,6 +134,10 @@ def create_championship(request):
             messages.success(request, f"Campionato «{championship.name}» creato.")
             # Si atterra sulla sezione Info: è lì che sta il link d'invito.
             return redirect("championship_info", championship_id=championship.id)
+        # Inviato dal pop-up di I miei campionati (#157): gli errori si mostrano
+        # lì, col pop-up riaperto, invece che nella pagina del form.
+        if request.POST.get("from_dialog"):
+            return _render_user_dashboard(request, form, formset, open_dialog=True)
     else:
         form = creations.ChampionshipForm(user=request.user)
         formset = creations.LeagueFormSet()

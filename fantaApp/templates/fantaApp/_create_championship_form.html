@@ -1,0 +1,93 @@
+{% comment %}
+Form «Crea campionato», condiviso dalla pagina create_championship e dal pop-up
+di I miei campionati (#157). Il comportamento (righe lega, tendina «La tua lega»,
+campi del giocatore) sta in static/fantaApp/js/create-championship.js.
+
+Contesto atteso:
+  form, formset   ChampionshipForm e LeagueFormSet
+  in_dialog       (opz.) true nel pop-up: il POST porta from_dialog, così con
+                  errori la view ridisegna I miei campionati col pop-up aperto
+{% endcomment %}
+<p class="mt-1 mb-5 text-muted">
+  Diventerai automaticamente manager del campionato. Se non specifichi nessuna lega ne verrà creata una unica.
+</p>
+
+{% if form.non_field_errors %}
+  <div class="mb-4 space-y-1 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent" role="alert">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" action="{% url 'create_championship' %}" class="space-y-5"
+      data-create-championship-form data-formset-prefix="{{ formset.prefix }}">
+  {% csrf_token %}
+  {% if in_dialog %}<input type="hidden" name="from_dialog" value="1">{% endif %}
+  {{ form.year }}
+
+  <div class="form-field">
+    <label for="{{ form.name.id_for_label }}">Nome del campionato</label>
+    {{ form.name }}
+    {{ form.name.errors }}
+    <span class="helptext">{{ form.name.help_text }}</span>
+  </div>
+
+  <div>
+    <label class="flex items-center gap-2 font-semibold">
+      {{ form.is_private }}
+      <span>{{ form.is_private.label }}</span>
+    </label>
+    <p class="note mt-1">{{ form.is_private.help_text }}</p>
+    {{ form.is_private.errors }}
+  </div>
+
+  <div>
+    <h2 class="mb-1 section-title">Leghe (opzionali)</h2>
+    <p class="note mb-3">
+      Le leghe dividono i giocatori in classifiche separate all'interno dello stesso campionato.
+    </p>
+    {{ formset.management_form }}
+
+    <div data-league-forms class="space-y-2">
+      {% for subform in formset %}
+        <div class="form-field">
+          {{ subform.name }}
+          {{ subform.name.errors }}
+        </div>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-add-league class="btn-ghost mt-2">+ Aggiungi un'altra lega</button>
+
+    <template data-league-empty-form>
+      <div class="form-field">{{ formset.empty_form.name }}</div>
+    </template>
+  </div>
+
+  <div class="border-t border-line pt-5">
+    <label class="flex items-center gap-2 font-semibold">
+      {{ form.join_as_player }}
+      <span>{{ form.join_as_player.label }}</span>
+    </label>
+    <p class="note mt-1">
+      Essere manager non basta per giocare: senza iscrizione non compari in classifica
+      e non puoi fare scelte.
+    </p>
+
+    <div data-player-fields class="mt-3 space-y-3">
+      <div class="form-field">
+        <label for="{{ form.player_name.id_for_label }}">{{ form.player_name.label }}</label>
+        {{ form.player_name }}
+        {{ form.player_name.errors }}
+        <span class="helptext">Se lo lasci vuoto viene usato il tuo username.</span>
+      </div>
+
+      <div class="form-field hidden" data-player-league-field>
+        <label for="{{ form.player_league_index.id_for_label }}">{{ form.player_league_index.label }}</label>
+        {{ form.player_league_index }}
+        {{ form.player_league_index.errors }}
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-primary w-full">Crea campionato</button>
+</form>
