@@ -11,10 +11,7 @@ from ..models import (
     Race,
     Qualifying,
     Driver,
-    PlayerSprintQualifyingChoice,
-    PlayerRaceChoice,
     PlayerQualifyingChoice,
-    PlayerQualifyingMultiChoice,
     RaceResult,
     RaceStartingGrid,
     PlayerRaceResult,
@@ -22,120 +19,53 @@ from ..models import (
 from ..services import player_choices as pc
 from ..services import bonuses, costs, rules, helper
 from .weekend_teams import use_weekend_teams
+from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
 from . import session_state as ss
 from django.db.models import Count
 
 
 @login_required
 def weekend_detail(request, championship_id, weekend_id):
+    """Sessioni del weekend con orario, stato della scelta e un solo pulsante
+    secondo lo stato (#61), come Prossimo weekend (#193): «Scegli»/«Modifica»
+    finché si può scegliere, spento senza griglia, «Risultati» dal via.
+    Query costanti: sessioni e scelte arrivano dagli helper di dashboard."""
     championship = get_object_or_404(Championship, pk=championship_id)
-    weekend = get_object_or_404(Weekend, pk=weekend_id)
+    weekend = get_object_or_404(
+        Weekend.objects.select_related("circuit").prefetch_related(
+            "races", "qualifyings"
+        ),
+        pk=weekend_id,
+    )
     player = request.user.championshipplayer_set.filter(
         championship=championship
     ).first()
 
-    events = []
-    # Sprint-Qualifying
-    sq = weekend.qualifyings.filter(type="sprint").first()
-    if sq:
-        has_choice = False
-        if player:
-            has_choice = PlayerSprintQualifyingChoice.objects.filter(
-                player=player,
-                qualifying=sq,
-            ).exists()
-        events.append(
-            {
-                "label": "Sprint Qualifying",
-                "entity": "qualifying",
-                "subtype": "sprint",
-                "event_id": sq.id,
-                "has_choice": has_choice,
-            }
-        )
+    already_chosen = _player_choice_index(player, weekend.season) if player else set()
+    sessions = _weekend_sessions(weekend)
+    for session in sessions:
+        session["has_choice"] = (
+            session["entity"],
+            session["event"].id,
+        ) in already_chosen
+    _mark_missing_grids(sessions)
 
-    # Sprint Race
-    sr = weekend.races.filter(type="sprint").first()
-    if sr:
-        has_choice = False
-        if player:
-            has_choice = PlayerRaceChoice.objects.filter(
-                player=player,
-                race=sr,
-            ).exists()
-        events.append(
-            {
-                "label": "Sprint Race",
-                "entity": "race",
-                "subtype": "sprint",
-                "event_id": sr.id,
-                "has_choice": has_choice,
-            }
+    # Riquadro dei risultati ufficiali: le gare con la classifica importata.
+    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
+    with_results = set(
+        RaceResult.objects.filter(race_id__in=race_ids).values_list(
+            "race_id", flat=True
         )
-
-    # Qualifying (gara regolare)
-    q = weekend.qualifyings.filter(type="regular").first()
-    if q:
-        has_choice = False
-        if player:
-            has_choice = (
-                PlayerQualifyingChoice.objects.filter(
-                    player=player, qualifying=q
-                ).exists()
-                or PlayerQualifyingMultiChoice.objects.filter(
-                    player=player, qualifying=q
-                ).exists()
-            )
-        events.append(
-            {
-                "label": "Qualifying",
-                "entity": "qualifying",
-                "subtype": "regular",
-                "event_id": q.id,
-                "has_choice": has_choice,
-            }
-        )
-    # Race
-    r = weekend.races.filter(type="regular").first()
-    if r:
-        has_choice = False
-        if player:
-            has_choice = PlayerRaceChoice.objects.filter(
-                player=player,
-                race=r,
-            ).exists()
-        events.append(
-            {
-                "label": "Grand Prix",
-                "entity": "race",
-                "subtype": "regular",
-                "event_id": r.id,
-                "has_choice": has_choice,
-            }
-        )
-
-    results = []
-    # Sprint Race Results
-    if sr and sr.entries.exists():
-        results.append(
-            {
-                "label": "Risultati Sprint Race",
-                "subtype": "sprint",
-                "event_id": sr.id,
-                "url_name": "sprint_race_results",
-            }
-        )
-
-    # Grand Prix Results
-    if r and r.entries.exists():
-        results.append(
-            {
-                "label": "Risultati Grand Prix ",
-                "subtype": "regular",
-                "event_id": r.id,
-                "url_name": "regular_race_results",
-            }
-        )
+    )
+    results = [
+        {
+            "label": f"Risultati {session['label']}",
+            "url_name": session["results_url_name"],
+            "event_id": session["event"].id,
+        }
+        for session in sessions
+        if session["entity"] == "race" and session["event"].id in with_results
+    ]
 
     return render(
         request,
@@ -146,7 +76,7 @@ def weekend_detail(request, championship_id, weekend_id):
             "breadcrumb": _breadcrumb(request, championship, weekend),
             # Le sessioni restano nel percorso di partenza (#63, #156).
             "origin_query": _origin_query(request),
-            "events": events,
+            "sessions": sessions,
             "results": results,
             "player": player,
         },

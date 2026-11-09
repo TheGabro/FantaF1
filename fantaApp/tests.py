@@ -4148,6 +4148,99 @@ class SprintResultsStateTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class WeekendDetailSessionsTests(WeekendPagesFixture, TestCase):
+    """#61: pagina del weekend con orario, stato della scelta e un solo pulsante
+    per sessione, secondo lo stato, come Prossimo weekend (#193)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c = self.championship.id
+        rw, sw = self.regular_weekend.id, self.sprint_weekend.id
+        self.url = reverse("weekend_details", args=[c, rw])
+        self.sprint_url = reverse("weekend_details", args=[c, sw])
+        self.race_choice_url = reverse(
+            "regular_race_choice", args=[c, rw, self.regular_race.id]
+        )
+        self.qualifying_choice_url = reverse(
+            "race_qualifying_choice", args=[c, rw, self.regular_qualifying.id]
+        )
+        self.qualifying_results_url = reverse(
+            "race_qualifying_results", args=[c, rw, self.regular_qualifying.id]
+        )
+
+    def _start_qualifying(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+    def test_open_sessions_lead_to_the_choice(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.race_choice_url}"')
+        self.assertContains(response, "Da scegliere")
+
+    def test_a_saved_choice_can_be_changed(self):
+        PlayerRaceChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            race=self.regular_race,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+            spent_amount=10,
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "✓ Scelta effettuata")
+        self.assertContains(response, "Modifica")
+
+    def test_without_the_grid_the_choice_is_switched_off(self):
+        self.regular_race.starting_grid.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, f'href="{self.race_choice_url}"')
+        self.assertContains(response, "griglia non ancora disponibile")
+        self.assertContains(response, 'aria-disabled="true"')
+
+    def test_started_sessions_lead_to_the_results(self):
+        self._start_qualifying()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.qualifying_results_url}"')
+        self.assertNotContains(response, f'href="{self.qualifying_choice_url}"')
+        self.assertContains(response, "Scelte chiuse")
+        # Il GP del weekend è ancora da scegliere.
+        self.assertContains(response, f'href="{self.race_choice_url}"')
+
+    def test_non_players_see_the_results_but_not_the_choices(self):
+        self._start_qualifying()
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.qualifying_results_url}"')
+        self.assertNotContains(response, "Scegli")
+        self.assertNotContains(response, "Scelte chiuse")
+
+    def test_links_keep_the_way_back_to_next_weekend(self):
+        self._start_qualifying()
+
+        response = self.client.get(f"{self.url}?from=play")
+
+        self.assertContains(response, f'href="{self.qualifying_results_url}?from=play"')
+        self.assertContains(response, f'href="{self.race_choice_url}?from=play"')
+
+    def test_queries_do_not_grow_with_the_sessions(self):
+        # Il weekend regular ha 2 sessioni, quello sprint 4.
+        with CaptureQueriesContext(connection) as regular:
+            self.client.get(self.url)
+        with CaptureQueriesContext(connection) as sprint:
+            self.client.get(self.sprint_url)
+
+        self.assertEqual(len(regular.captured_queries), len(sprint.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class UserDashboardTests(TestCase):
     """#62: i campionati gestiti li prepara la view, senza schede doppie e con un
     numero di query che non cresce con i campionati."""
