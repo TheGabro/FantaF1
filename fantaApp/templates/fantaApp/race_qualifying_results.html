@@ -1,0 +1,113 @@
+{% extends 'fantaApp/championship_flow_base.html' %}
+
+{% block title %}{{ weekend.event_name }} · Risultati qualifica — Fanta F1{% endblock %}
+
+{% block championship_content %}
+{% include "fantaApp/_breadcrumb.html" %}
+
+<h2 class="heading mb-5">
+  {{ weekend.event_name }} · <span class="text-accent">Risultati qualifica</span>
+</h2>
+
+{# Stato della qualifica dal via, finché mancano i risultati (#195) #}
+{% if session_state == "running" %}
+  <div class="card-pad mb-5 border-accent/40" role="status">
+    <p class="font-bold text-accent">⏱ Qualifica in corso</p>
+    <p class="mt-1 text-muted">La classifica arriva a fine sessione.</p>
+  </div>
+{% elif session_state == "waiting_results" %}
+  <div class="card-pad mb-5 border-warn/40" role="status">
+    <p class="font-bold text-warn">Risultati non ancora pubblicati</p>
+    <p class="mt-1 text-muted">La qualifica è finita: la classifica compare qui appena viene importata.</p>
+  </div>
+{% endif %}
+
+<div class="grid items-start gap-6 {% if results and player %}lg:grid-cols-3{% endif %}">
+  {% if results %}
+  <!-- Classifica ufficiale -->
+  <div class="card overflow-x-auto {% if player %}lg:col-span-2{% endif %}">
+    <table class="table-clean min-w-[560px]">
+      <thead>
+        <tr>
+          <th class="w-16 !text-center">Pos</th>
+          <th>Pilota</th>
+          <th class="!text-right">Q1</th>
+          <th class="!text-right">Q2</th>
+          <th class="!text-right">Q3</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+        <tr {% if result.driver_id == selected_driver_id %}class="row-selected"{% endif %}>
+          <td class="text-center">
+            <span class="pos-badge {% if result.position == 1 %}!bg-accent-strong !text-white !border-accent-strong{% endif %}">
+              {% if result.position %}P{{ result.position }}{% else %}—{% endif %}
+            </span>
+          </td>
+          <td class="team-{{ result.driver.team.short_name|slugify }}">
+            <span class="team-chip {% if result.driver_id == selected_driver_id %}text-accent{% endif %}">
+              {{ result.driver.first_name }} {{ result.driver.last_name }}
+            </span>
+            <span class="note ml-1">{{ result.driver.team.short_name }}</span>
+            {% if result.driver_id == selected_driver_id %}<span class="badge-accent ml-1">Tuo</span>{% endif %}
+          </td>
+          <td class="text-right tabular-nums">{{ result.q1|default:"—" }}</td>
+          <td class="text-right tabular-nums">{{ result.q2|default:"—" }}</td>
+          <td class="text-right tabular-nums">{{ result.q3|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# Pannello del giocatore: chi non gioca il campionato vede solo la classifica. #}
+  {% if player %}
+  <aside class="card-pad {% if results %}lg:sticky lg:top-20{% else %}max-w-md{% endif %}">
+    <h3 class="section-title mb-4">Il tuo pronostico</h3>
+
+    {% if pick %}
+      <div class="team-{{ pick.driver.team.short_name|slugify }} rounded-lg border border-line bg-surface p-3">
+        <p class="team-chip">{{ pick.driver.first_name }} {{ pick.driver.last_name }}</p>
+        <p class="note mt-0.5">{{ pick.driver.team.short_name }}</p>
+      </div>
+
+      <dl class="mt-4 space-y-2 border-t border-line pt-3">
+        {% if results %}
+        <div class="flex items-center justify-between">
+          <dt class="note">Posizione in qualifica</dt>
+          <dd class="font-bold">{% if pick.position %}P{{ pick.position }}{% else %}—{% endif %}</dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="note">Punti qualifica</dt>
+          <dd class="text-xl font-black text-ok">{{ pick.qualifying_points }}</dd>
+        </div>
+        {% endif %}
+        {% if pick.grid_position %}
+        <div class="flex items-center justify-between">
+          <dt class="note">Griglia del Grand Prix</dt>
+          <dd class="font-bold">P{{ pick.grid_position }}</dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="note">Fantamilioni sul Grand Prix</dt>
+          <dd class="font-bold {% if pick.credit_change < 0 %}text-ok{% elif pick.credit_change > 0 %}text-accent{% endif %}">
+            {% if pick.credit_change < 0 %}sconto {% widthratio pick.credit_change 1 -1 %} FM{% elif pick.credit_change > 0 %}malus +{{ pick.credit_change }} FM{% else %}nessuna variazione{% endif %}
+          </dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="note">Moltiplicatore punti GP</dt>
+          <dd class="font-bold">×{{ pick.points_multiplier|floatformat:"-2" }}</dd>
+        </div>
+        {% else %}
+        <p class="note">Sconto o malus e moltiplicatore sul Grand Prix si conoscono con la griglia di partenza, penalità incluse.</p>
+        {% endif %}
+      </dl>
+    {% else %}
+      <div class="rounded-lg border border-dashed border-line p-3 text-muted">
+        Nessuna scelta per questa qualifica.
+      </div>
+    {% endif %}
+  </aside>
+  {% endif %}
+</div>
+{% endblock %}

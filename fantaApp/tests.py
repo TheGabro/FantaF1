@@ -2021,6 +2021,16 @@ class WeekendPagesFixture:
                 WeekendParticipant.objects.create(
                     weekend=weekend, driver=driver, team=team
                 )
+        # Classifica della qualifica del sabato: la pagina dei risultati (#195)
+        # si apre senza aspettare il via.
+        for position, driver in enumerate(drivers, start=1):
+            QualifyingResult.objects.create(
+                qualifying=self.regular_qualifying,
+                driver=driver,
+                position=position,
+                q1_position=position,
+                q1_time=timedelta(minutes=1, seconds=20 + position, milliseconds=123),
+            )
         for race in (self.regular_race, self.sprint_race):
             for position, driver in enumerate(drivers, start=1):
                 RaceStartingGrid.objects.create(
@@ -2064,6 +2074,7 @@ class WeekendPagesFixture:
             "regular_race_choice": [c, rw, self.regular_race.id],
             "sprint_race_results": [c, sw, self.sprint_race.id],
             "regular_race_results": [c, rw, self.regular_race.id],
+            "race_qualifying_results": [c, rw, self.regular_qualifying.id],
         }
 
 
@@ -3057,6 +3068,7 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
         "regular_race_choice",
         "sprint_race_results",
         "regular_race_results",
+        "race_qualifying_results",
     )
 
     def setUp(self):
@@ -3354,6 +3366,108 @@ class GrandPrixResultsStateTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, "Gara in corso")
         self.assertNotContains(response, "La tua gara")
 
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
+    """#195: risultati della qualifica del sabato, con il proprio pronostico."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "race_qualifying_results",
+            args=[
+                self.championship.id,
+                self.regular_weekend.id,
+                self.regular_qualifying.id,
+            ],
+        )
+
+    def _pick(self, api_id="drv-smoke-1"):
+        PlayerQualifyingChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            qualifying=self.regular_qualifying,
+            driver=Driver.objects.get(api_id=api_id),
+        )
+
+    def _started(self, ago):
+        self.regular_qualifying.qualifying_entries.all().delete()
+        self.regular_weekend.qualifying_start = timezone.now() - ago
+        self.regular_weekend.save()
+
+    def test_shows_classification_and_the_pick(self):
+        self._pick()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "1:21.123")
+        pick = response.context["pick"]
+        rule = bonuses.get_regular_qualifying_bonus_rule(1)
+        self.assertEqual(pick["position"], 1)
+        self.assertEqual(pick["qualifying_points"], rule["qualifying_points"])
+        # Sconto e moltiplicatore seguono la griglia del GP (P1 nel fixture).
+        self.assertEqual(pick["grid_position"], 1)
+        self.assertEqual(pick["credit_change"], rule["credit_change"])
+        self.assertContains(response, "Punti qualifica")
+        self.assertContains(response, "Griglia del Grand Prix")
+
+    def test_without_a_pick_says_so(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Nessuna scelta per questa qualifica.")
+
+    def test_during_the_session_says_qualifying_in_progress(self):
+        self._pick()
+        self._started(timedelta(hours=1, minutes=59))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Qualifica in corso")
+        self.assertContains(response, "Smoke1")
+        self.assertNotContains(response, "Punti qualifica")
+
+    def test_after_two_hours_without_results_says_not_published(self):
+        self._started(timedelta(hours=2, minutes=1))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Risultati non ancora pubblicati")
+
+    def test_before_the_start_goes_back_to_the_weekend(self):
+        self.regular_qualifying.qualifying_entries.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "weekend_details",
+                args=[self.championship.id, self.regular_weekend.id],
+            ),
+            fetch_redirect_response=False,
+        )
+
+    def test_sprint_weekend_qualifying_is_not_this_page(self):
+        """La qualifica a slot dei weekend sprint ha la sua pagina (#196)."""
+        url = reverse(
+            "race_qualifying_results",
+            args=[
+                self.championship.id,
+                self.sprint_weekend.id,
+                self.sprint_weekend_qualifying.id,
+            ],
+        )
+
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_non_players_see_only_the_classification(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "1:21.123")
+        self.assertNotContains(response, "Il tuo pronostico")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
