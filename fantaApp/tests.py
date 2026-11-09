@@ -3275,6 +3275,100 @@ class WeekendTeamColourTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class GrandPrixResultsStateTests(WeekendPagesFixture, TestCase):
+    """#191: i risultati del GP si aprono dal via, con la propria scelta e lo
+    stato della gara finché i risultati non sono importati."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "regular_race_results",
+            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+        )
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        PlayerRaceChoice.objects.create(
+            player=player,
+            race=self.regular_race,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+            spent_amount=120,
+            is_pupillo=True,
+        )
+
+    def _race_started(self, ago, *, with_results=False):
+        self.regular_weekend.race_start = timezone.now() - ago
+        self.regular_weekend.save()
+        if not with_results:
+            self.regular_race.entries.all().delete()
+
+    def test_before_the_start_goes_back_to_the_weekend(self):
+        self.regular_race.entries.all().delete()
+
+        response = self.client.get(f"{self.url}?from=play")
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "weekend_details",
+                args=[self.championship.id, self.regular_weekend.id],
+            )
+            + "?from=play",
+            fetch_redirect_response=False,
+        )
+
+    def test_during_the_race_shows_the_choice_and_race_in_progress(self):
+        self._race_started(timedelta(hours=2, minutes=59))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Gara in corso")
+        self.assertContains(response, "La tua gara")
+        self.assertContains(response, "Smoke1")
+        self.assertContains(response, "★ Pupillo")
+        self.assertNotContains(response, "Punti guadagnati")
+
+    def test_after_three_hours_without_results_says_not_published(self):
+        self._race_started(timedelta(hours=3, minutes=1))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Risultati non ancora pubblicati")
+        self.assertNotContains(response, "Gara in corso")
+        self.assertContains(response, "Smoke1")
+
+    def test_with_results_shows_the_classification(self):
+        self._race_started(timedelta(hours=1), with_results=True)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.context["session_state"], "results")
+        self.assertNotContains(response, "Gara in corso")
+        self.assertContains(response, "Punti guadagnati")
+
+    def test_non_players_see_only_the_race_state(self):
+        self._race_started(timedelta(hours=1))
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Gara in corso")
+        self.assertNotContains(response, "La tua gara")
+
+    def test_sprint_results_page_is_unchanged(self):
+        """La Sprint passa agli stati con #192."""
+        self.sprint_race.entries.all().delete()
+        url = reverse(
+            "sprint_race_results",
+            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
+        )
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "non sono ancora disponibili")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class UserDashboardTests(TestCase):
     """#62: i campionati gestiti li prepara la view, senza schede doppie e con un
     numero di query che non cresce con i campionati."""
