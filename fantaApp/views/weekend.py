@@ -677,7 +677,16 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
         Qualifying, pk=event_id, weekend=weekend, type="regular"
     )
 
-    event_started = helper._event_has_started(qualifying)
+    # Dal via la scelta è chiusa: si va ai risultati, anche con una POST (#187).
+    if helper._event_has_started(qualifying):
+        if request.method == "POST":
+            messages.error(request, "La qualifica è iniziata: le scelte sono chiuse.")
+        return redirect(
+            reverse(
+                "race_qualifying_results", args=[champ.pk, weekend.pk, qualifying.pk]
+            )
+            + _origin_query(request)
+        )
 
     slots = [
         ("q1_pass", "Passano il Q1"),
@@ -704,7 +713,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     ):
         existing.setdefault(choice.selection_slot, []).append(choice)
 
-    if request.method == "POST" and not event_started:
+    if request.method == "POST":
         submitted_by_slot = {
             code: [value for value in request.POST.getlist(f"drivers_{code}") if value]
             for code, _ in slots
@@ -791,15 +800,33 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
         "slot_limits": slot_limits,
         "existing": existing,  # dict slot -> choice
         "drivers": drivers_avail,  # per i select ancora vuoti
-        "event_started": event_started,
+        # La Sprint è già corsa: dalla scelta si vedono i suoi risultati (#200).
+        "sprint_results": _results_button(
+            request, champ, weekend, weekend.races.filter(type="sprint").first()
+        ),
     }
     return render(
         request, "fantaApp/regular_race_qualifying_multi_choice.html", context
     )
 
 
-def regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
+def _results_button(request, championship, weekend, race):
+    """Pulsante verso i risultati di una gara già corsa del weekend (#200):
+    {url, available}, None se la gara non c'è. Senza risultati il template lo
+    mostra ombreggiato."""
+    if race is None:
+        return None
+    url_name = (
+        "sprint_race_results" if race.type == "sprint" else "regular_race_results"
+    )
+    return {
+        "url": reverse(url_name, args=[championship.pk, weekend.pk, race.pk])
+        + _origin_query(request),
+        "available": race.entries.exists(),
+    }
 
+
+def regular_weekend_race_qualifying_choice(request, player, champ, weekend, event_id):
     qualifying = get_object_or_404(
         Qualifying, pk=event_id, weekend=weekend, type="regular"
     )
