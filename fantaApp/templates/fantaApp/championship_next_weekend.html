@@ -62,7 +62,7 @@
     </ul>
 
     <div class="border-t border-line px-5 py-3">
-      <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}" class="btn-ghost -ml-2 text-sm">
+      <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="btn-ghost -ml-2 text-sm">
         Dettaglio weekend →
       </a>
     </div>
@@ -93,7 +93,7 @@
             {% elif current_championship_player %}
               <span class="badge-ok shrink-0">✓</span>
             {% endif %}
-            <a href="{% url 'weekend_details' championship.id item.weekend.id %}" class="btn-ghost shrink-0">Apri →</a>
+            <a href="{% url 'weekend_details' championship.id item.weekend.id %}?from=play" class="btn-ghost shrink-0">Apri →</a>
           </li>
         {% endfor %}
       </ul>

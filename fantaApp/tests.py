@@ -2984,8 +2984,20 @@ class LeaveChampionshipTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
-class ChoiceBackLinkTests(WeekendPagesFixture, TestCase):
-    """#156: il link indietro delle pagine di scelta riporta alla pagina di partenza."""
+class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
+    """#63: percorso campionato › partenza › weekend › sessione sulle pagine del
+    weekend; #156: il secondo livello è la pagina da cui si è partiti."""
+
+    WEEKEND_PAGES = (
+        "weekend_details",
+        "sprint_race_qualifying_choice",
+        "race_qualifying_choice",
+        "race_qualifying_multi_choice",
+        "sprint_race_choice",
+        "regular_race_choice",
+        "sprint_race_results",
+        "regular_race_results",
+    )
 
     def setUp(self):
         super().setUp()
@@ -2995,18 +3007,41 @@ class ChoiceBackLinkTests(WeekendPagesFixture, TestCase):
             "regular_race_choice",
             args=[c, self.regular_weekend.id, self.regular_race.id],
         )
+        self.championship_url = reverse("championship_dashboard", args=[c])
         self.play_url = reverse("championship_next_weekend", args=[c])
+        self.calendar_url = reverse("championship_calendar", args=[c])
         self.weekend_url = reverse("weekend_details", args=[c, self.regular_weekend.id])
 
-    def test_next_weekend_links_to_the_choice_pages_with_from_play(self):
+    def _crumbs(self, page):
+        return [(crumb["label"], crumb["url"]) for crumb in page.context["breadcrumb"]]
+
+    def test_every_weekend_page_has_the_breadcrumb_and_no_back_link(self):
+        pages = self.pages()
+        for name in self.WEEKEND_PAGES:
+            with self.subTest(page=name):
+                response = self.client.get(reverse(name, args=pages[name]))
+
+                self.assertContains(response, '<nav aria-label="Percorso"', count=1)
+                self.assertContains(response, '<span aria-current="page"', count=1)
+                self.assertNotContains(response, "← Eventi del weekend")
+
+    def test_next_weekend_links_to_choices_and_weekend_with_from_play(self):
         response = self.client.get(self.play_url)
 
         self.assertContains(response, f'href="{self.choice_url}?from=play"')
+        self.assertContains(response, f'href="{self.weekend_url}?from=play"')
 
-    def test_from_play_goes_back_to_the_next_weekend_even_after_saving(self):
+    def test_from_play_goes_through_the_next_weekend_even_after_saving(self):
         page = self.client.get(f"{self.choice_url}?from=play")
-        self.assertEqual(page.context["back_link"]["url"], self.play_url)
-        self.assertContains(page, "← Prossimo weekend")
+        self.assertEqual(
+            self._crumbs(page),
+            [
+                ("Smoke Cup 2026", self.championship_url),
+                ("Prossimo weekend", self.play_url),
+                ("R1 GP Regular", f"{self.weekend_url}?from=play"),
+                ("Grand Prix", None),
+            ],
+        )
 
         drivers = [grid.driver_id for grid in self.regular_race.starting_grid.all()]
         response = self.client.post(
@@ -3019,17 +3054,42 @@ class ChoiceBackLinkTests(WeekendPagesFixture, TestCase):
         )
         self.assertEqual(self.regular_race.playerracechoice_set.count(), 2)
 
-    def test_from_the_weekend_page_goes_back_to_the_weekend(self):
+    def test_otherwise_goes_through_the_calendar(self):
         page = self.client.get(self.choice_url)
 
-        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
-        self.assertContains(page, "← Eventi del weekend")
+        self.assertEqual(
+            self._crumbs(page),
+            [
+                ("Smoke Cup 2026", self.championship_url),
+                ("Calendario gare", self.calendar_url),
+                ("R1 GP Regular", self.weekend_url),
+                ("Grand Prix", None),
+            ],
+        )
 
-    def test_unknown_from_goes_back_to_the_weekend(self):
+    def test_unknown_from_is_ignored(self):
         page = self.client.get(f"{self.choice_url}?from=https://example.com")
 
-        self.assertEqual(page.context["back_link"]["url"], self.weekend_url)
+        self.assertEqual(self._crumbs(page)[1], ("Calendario gare", self.calendar_url))
         self.assertNotContains(page, "example.com")
+
+    def test_weekend_page_keeps_the_origin_in_its_links(self):
+        page = self.client.get(f"{self.weekend_url}?from=play")
+
+        self.assertEqual(
+            self._crumbs(page),
+            [
+                ("Smoke Cup 2026", self.championship_url),
+                ("Prossimo weekend", self.play_url),
+                ("R1 GP Regular", None),
+            ],
+        )
+        self.assertContains(page, f'href="{self.choice_url}?from=play"')
+        results_url = reverse(
+            "regular_race_results",
+            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.assertContains(page, f'href="{results_url}?from=play"')
 
 
 class SucateMagateTests(WeekendPagesFixture, TestCase):

@@ -1,0 +1,23 @@
+{% comment %}
+Percorso in cima alle pagine del weekend (#63): campionato › pagina di partenza
+› weekend › sessione. Lo costruisce _breadcrumb in views/weekend.py.
+
+Contesto atteso:
+  breadcrumb   lista di {label, url}; l'ultimo livello (la pagina aperta) ha url None
+
+Su mobile i livelli vanno a capo e i nomi lunghi si troncano: niente scroll orizzontale.
+{% endcomment %}
+<nav aria-label="Percorso" class="mb-4 text-sm">
+  <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted">
+    {% for crumb in breadcrumb %}
+      <li class="flex min-w-0 max-w-full items-center gap-1.5">
+        {% if not forloop.first %}<span aria-hidden="true">›</span>{% endif %}
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}" class="truncate hover:text-accent">{{ crumb.label }}</a>
+        {% else %}
+          <span aria-current="page" class="truncate font-semibold text-ink">{{ crumb.label }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>

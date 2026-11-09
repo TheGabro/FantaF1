@@ -7,7 +7,7 @@
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/select-dedupe.js' %}"></script>{% endblock %}
 
 {% block championship_content %}
-<a href="{{ back_link.url }}" class="btn-ghost mb-4 -ml-2 text-sm">← {{ back_link.label }}</a>
+{% include "fantaApp/_breadcrumb.html" %}
 
 <h2 class="mb-2 text-2xl font-black uppercase italic">{{ weekend.event_name }} · <span class="text-warn">Sprint Qualifying</span></h2>
 
