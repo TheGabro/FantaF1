@@ -234,31 +234,6 @@ def _breadcrumb(request, championship, weekend, current=None):
     return crumbs + [weekend_crumb, {"label": current, "url": None}]
 
 
-def _grid_preview_options(weekend):
-    """
-    Piloti da mostrare quando la griglia non è ancora stata importata.
-
-    Stessi campi delle opzioni vere (costruite da costs.get_race_driver_options
-    su RaceStartingGrid), ma con posizione e costi a None: senza griglia non c'è
-    nessun prezzo da calcolare. Serve solo a non lasciare la pagina vuota — la
-    scelta resta bloccata, qui e nel POST.
-    """
-    return [
-        {
-            "driver": driver,
-            "grid_position": None,
-            "cost": None,
-            "grid_cost": None,
-            "standings_cost": None,
-        }
-        for driver in (
-            Driver.objects.filter(driver_participations__weekend=weekend)
-            .select_related("team")
-            .order_by("team__name", "number")
-        )
-    ]
-
-
 # ───────────────────────────────────────────────────────────────────────────────
 #  1) Sprint‑Qualifying
 # ───────────────────────────────────────────────────────────────────────────────
@@ -404,8 +379,25 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="sprint")
 
-    # blocco modifiche se l'evento è già iniziato (solo UI)
-    event_started = helper._event_has_started(race)
+    # Dal via la scelta è chiusa: si va ai risultati, anche con una POST (#185).
+    if helper._event_has_started(race):
+        if request.method == "POST":
+            messages.error(request, "La Sprint è iniziata: le scelte sono chiuse.")
+        return redirect(
+            reverse("sprint_race_results", args=[champ.pk, weekend.pk, race.pk])
+            + _origin_query(request)
+        )
+    # Senza griglia non c'è niente da scegliere: si torna al weekend (#190).
+    if not RaceStartingGrid.objects.filter(race=race).exists():
+        messages.info(
+            request,
+            "La griglia della Sprint non è ancora disponibile: "
+            "la scelta si apre quando arriva.",
+        )
+        return redirect(
+            reverse("weekend_details", args=[champ.pk, weekend.pk])
+            + _origin_query(request)
+        )
 
     driver_options = costs.get_sprint_race_driver_options(race=race)
     sprint_qualifying = weekend.qualifyings.filter(type="sprint").first()
@@ -418,7 +410,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         .order_by("driver__team__name", "driver__first_name", "driver__last_name")
     )
 
-    if request.method == "POST" and not event_started:
+    if request.method == "POST":
         submitted_driver_ids = [
             value for value in request.POST.getlist("drivers") if value
         ]
@@ -475,13 +467,10 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     )
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
-    grid_available = bool(driver_options)
-    # Senza griglia si mostrano comunque i piloti, in sola anteprima
-    shown_options = driver_options or _grid_preview_options(weekend)
     # Colori ed etichette con la scuderia di questo weekend (#82).
     use_weekend_teams(
         weekend,
-        [option["driver"] for option in shown_options]
+        [option["driver"] for option in driver_options]
         + [choice.driver for choice in existing_choices],
     )
     context = {
@@ -489,16 +478,12 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         "weekend": weekend,
         "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint Race"),
         "event": race,
-        "driver_options": shown_options,
+        "driver_options": driver_options,
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
         "existing_choices": existing_choices,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
-        "event_started": event_started,
-        "grid_available": grid_available,
-        # Unica condizione che abilita form, bottoni e salvataggio
-        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/sprint_race_choice.html", context)
 

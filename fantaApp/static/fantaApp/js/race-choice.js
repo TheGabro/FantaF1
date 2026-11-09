@@ -2,7 +2,6 @@
    Config via data-attribute su #race-choice-layout:
    - data-max-drivers: numero esatto di piloti da selezionare (1 sprint, 2 GP)
    - data-has-pupillo: "true" se la gara prevede il pupillo (solo GP)
-   - data-event-started: "true" per modalità sola lettura
    - data-qualifying-bonus-credit-discount: sconto crediti da pronostico qualifica
    - data-spendable-credit: crediti spendibili (per evidenziare lo sforamento)
    Le righe piloti espongono i dati in data-driver-* (vedi template). Nel GP le
@@ -17,7 +16,6 @@
 
   var maxDrivers = Number(layout.dataset.maxDrivers || 1);
   var hasPupillo = layout.dataset.hasPupillo === 'true';
-  var eventStarted = layout.dataset.eventStarted === 'true';
   var bonusDiscount = Number(layout.dataset.qualifyingBonusCreditDiscount || 0);
   var spendableCredit = Number(layout.dataset.spendableCredit || 0);
 
@@ -55,7 +53,7 @@
     var cost = Number(d.driverCost || 0);
 
     var action = '';
-    if (!eventStarted && hasPupillo) {
+    if (hasPupillo) {
       action = isPup
         ? '<p class="mt-2 text-sm font-bold text-accent">★ Pupillo ×' + (Number(d.driverPreviousPupilloStreak || 0) + 1) + '</p>'
         : '<button type="button" data-set-pupillo="' + d.driverId + '" class="btn-secondary mt-2 !px-3 !py-1 text-sm">Imposta come pupillo</button>';
@@ -177,37 +175,35 @@
     refreshRows();
   }
 
-  if (!eventStarted) {
-    rows.forEach(function (row) {
-      var button = row.querySelector('[data-select-driver]');
-      if (!button) return;
-      button.addEventListener('click', function () {
-        var id = String(row.dataset.driverId);
-        if (isSelected(id)) {
-          selectedIds.splice(selectedIds.indexOf(id), 1);
-          if (pupilloInput && pupilloId() === id) pupilloInput.value = '';
-        } else {
-          if (selectedIds.length >= maxDrivers) {
-            window.alert('Puoi selezionare massimo ' + maxDrivers + ' pilot' + (maxDrivers === 1 ? 'a' : 'i') + '. Rimuovine uno prima di aggiungerne un altro.');
-            return;
-          }
-          selectedIds.push(id);
+  rows.forEach(function (row) {
+    var button = row.querySelector('[data-select-driver]');
+    if (!button) return;
+    button.addEventListener('click', function () {
+      var id = String(row.dataset.driverId);
+      if (isSelected(id)) {
+        selectedIds.splice(selectedIds.indexOf(id), 1);
+        if (pupilloInput && pupilloId() === id) pupilloInput.value = '';
+      } else {
+        if (selectedIds.length >= maxDrivers) {
+          window.alert('Puoi selezionare massimo ' + maxDrivers + ' pilot' + (maxDrivers === 1 ? 'a' : 'i') + '. Rimuovine uno prima di aggiungerne un altro.');
+          return;
         }
-        refresh();
-      });
+        selectedIds.push(id);
+      }
+      refresh();
     });
+  });
 
-    /* Pupillo: pulsanti del pannello e stelline delle caselle della griglia */
-    if (hasPupillo && pupilloInput) {
-      layout.addEventListener('click', function (event) {
-        var target = event.target.closest('[data-set-pupillo]');
-        if (!target) return;
-        var id = String(target.getAttribute('data-set-pupillo'));
-        if (!isSelected(id)) return;
-        pupilloInput.value = id;
-        refresh();
-      });
-    }
+  /* Pupillo: pulsanti del pannello e stelline delle caselle della griglia */
+  if (hasPupillo && pupilloInput) {
+    layout.addEventListener('click', function (event) {
+      var target = event.target.closest('[data-set-pupillo]');
+      if (!target) return;
+      var id = String(target.getAttribute('data-set-pupillo'));
+      if (!isSelected(id)) return;
+      pupilloInput.value = id;
+      refresh();
+    });
   }
 
   refresh();
