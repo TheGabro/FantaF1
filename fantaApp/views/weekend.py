@@ -16,6 +16,7 @@ from ..models import (
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
     RaceResult,
+    RaceStartingGrid,
     PlayerRaceResult,
 )
 from ..services import player_choices as pc
@@ -514,7 +515,26 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
 
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type="regular")
 
-    event_started = helper._event_has_started(race)
+    # Dal via la scelta è chiusa: si va ai risultati, anche con una POST (#184).
+    if helper._event_has_started(race):
+        if request.method == "POST":
+            messages.error(request, "Il Grand Prix è iniziato: le scelte sono chiuse.")
+        return redirect(
+            reverse("regular_race_results", args=[champ.pk, weekend.pk, race.pk])
+            + _origin_query(request)
+        )
+    # Senza griglia non c'è niente da scegliere: si torna al weekend (#189).
+    if not RaceStartingGrid.objects.filter(race=race).exists():
+        messages.info(
+            request,
+            "La griglia del Grand Prix non è ancora disponibile: "
+            "la scelta si apre quando arriva.",
+        )
+        return redirect(
+            reverse("weekend_details", args=[champ.pk, weekend.pk])
+            + _origin_query(request)
+        )
+
     driver_options = costs.get_race_driver_options(race=race, player=player)
     regular_race_bonus = bonuses.get_race_bonus(player=player, race=race)
     existing_choices = list(
@@ -526,7 +546,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         (choice for choice in existing_choices if choice.is_pupillo), None
     )
 
-    if request.method == "POST" and not event_started:
+    if request.method == "POST":
         submitted_driver_ids = [
             value for value in request.POST.getlist("drivers") if value
         ]
@@ -621,31 +641,34 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     )
     current_choice_total = sum(choice.spent_amount for choice in existing_choices)
 
-    grid_available = bool(driver_options)
-    # Senza griglia si mostrano comunque i piloti, in sola anteprima
-    shown_options = driver_options or _grid_preview_options(weekend)
     # Colori ed etichette con la scuderia di questo weekend (#82).
     use_weekend_teams(
         weekend,
-        [option["driver"] for option in shown_options]
+        [option["driver"] for option in driver_options]
         + [choice.driver for choice in existing_choices],
     )
+    # La qualifica è già corsa: dalla scelta si vedono i suoi risultati (#198).
+    qualifying = weekend.qualifyings.filter(type="regular").first()
     context = {
         "championship": champ,
         "weekend": weekend,
         "breadcrumb": _breadcrumb(request, champ, weekend, "Grand Prix"),
         "event": race,
-        "driver_options": shown_options,
+        "qualifying_results": qualifying
+        and {
+            "url": reverse(
+                "race_qualifying_results", args=[champ.pk, weekend.pk, qualifying.pk]
+            )
+            + _origin_query(request),
+            "available": qualifying.qualifying_entries.exists(),
+        },
+        "driver_options": driver_options,
         "regular_race_bonus": regular_race_bonus,
         "existing_choices": existing_choices,
         "current_pupillo_id": current_pupillo.driver_id if current_pupillo else None,
         "reserved_credit": reserved_credit,
         "spendable_credit": spendable_credit,
         "current_choice_total": current_choice_total,
-        "event_started": event_started,
-        "grid_available": grid_available,
-        # Unica condizione che abilita form, bottoni e salvataggio
-        "selection_open": grid_available and not event_started,
     }
     return render(request, "fantaApp/regular_race_choice.html", context)
 

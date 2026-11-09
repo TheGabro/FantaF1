@@ -121,6 +121,12 @@
   .btn-primary { @apply bg-accent text-white hover:bg-accent-strong dark:bg-accent-strong dark:hover:brightness-90; }
   .btn-secondary { @apply border border-line bg-surface text-ink hover:bg-surface-2; }
   .btn-ghost { @apply text-muted hover:text-ink hover:bg-surface-2; }
+  /* Azione non ancora disponibile (#103): ombreggiata e non cliccabile. Si usa
+     su uno <span> con aria-disabled="true" e il motivo nel title. */
+  .btn[aria-disabled="true"], .btn-primary[aria-disabled="true"],
+  .btn-secondary[aria-disabled="true"], .btn-ghost[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-50 hover:bg-transparent;
+  }
 
   /* Voci del menu utente: la sezione aperta ha aria-current="page" (#93, #131) */
   .nav-link {
