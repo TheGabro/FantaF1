@@ -915,17 +915,10 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
 
 
 def _render_race_results_page(
-    request,
-    championship_id,
-    weekend_id,
-    event_id,
-    *,
-    race_type,
-    race_label,
-    with_state=False,
+    request, championship_id, weekend_id, event_id, *, race_type, race_label
 ):
-    """Risultati di una gara. Con with_state la pagina si apre dal via e, finché
-    mancano i risultati, mostra la propria scelta e lo stato della gara (#191)."""
+    """Risultati di una gara: si aprono dal via e, finché mancano i risultati,
+    mostrano la propria scelta e lo stato della gara (#191, #192)."""
     champ, weekend, player = _base_context(request, championship_id, weekend_id)
 
     race = get_object_or_404(Race, pk=event_id, weekend=weekend, type=race_type)
@@ -934,16 +927,13 @@ def _render_race_results_page(
             "position", "driver__team__name", "driver__first_name", "driver__last_name"
         )
     )
-    if with_state:
-        state = ss.session_state(race, has_results=bool(results))
-        if state == ss.NOT_STARTED:
-            messages.info(request, "I risultati si vedono dal via.")
-            return redirect(
-                reverse("weekend_details", args=[champ.pk, weekend.pk])
-                + _origin_query(request)
-            )
-    else:
-        state = ss.RESULTS if results else None
+    state = ss.session_state(race, has_results=bool(results))
+    if state == ss.NOT_STARTED:
+        messages.info(request, "I risultati si vedono dal via.")
+        return redirect(
+            reverse("weekend_details", args=[champ.pk, weekend.pk])
+            + _origin_query(request)
+        )
     for entry in results:
         if entry.starting_grid is not None and entry.position is not None:
             entry.position_delta = entry.starting_grid - entry.position
@@ -981,7 +971,6 @@ def _render_race_results_page(
         "breadcrumb": _breadcrumb(request, champ, weekend, f"Risultati {race_label}"),
         "event": race,
         "race_label": race_label,
-        # None: pagina senza stati (Sprint, finché non arriva #192) e senza risultati.
         "session_state": state,
         # None per chi non gioca: vede solo la classifica ufficiale.
         "player": player,
@@ -1019,5 +1008,4 @@ def regular_race_results(request, championship_id, weekend_id, event_id):
         event_id,
         race_type="regular",
         race_label="Grand Prix",
-        with_state=True,
     )

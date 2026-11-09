@@ -22,7 +22,6 @@
   </div>
 {% endif %}
 
-{% if session_state %}
 <div class="grid items-start gap-6 {% if results and player %}lg:grid-cols-3{% endif %}">
   {% if results %}
   <!-- Classifica ufficiale -->
@@ -112,9 +111,4 @@
   </aside>
   {% endif %}
 </div>
-{% else %}
-  <div class="card-pad text-center text-muted">
-    I risultati ufficiali della {{ race_label }} non sono ancora disponibili.
-  </div>
-{% endif %}
 {% endblock %}

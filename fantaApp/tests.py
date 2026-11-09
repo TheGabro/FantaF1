@@ -3354,18 +3354,69 @@ class GrandPrixResultsStateTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, "Gara in corso")
         self.assertNotContains(response, "La tua gara")
 
-    def test_sprint_results_page_is_unchanged(self):
-        """La Sprint passa agli stati con #192."""
-        self.sprint_race.entries.all().delete()
-        url = reverse(
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SprintResultsStateTests(WeekendPagesFixture, TestCase):
+    """#192: come il GP (#191), ma la Sprint resta «in corso» per 2 ore."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
             "sprint_race_results",
             args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
         )
+        PlayerRaceChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            race=self.sprint_race,
+            driver=Driver.objects.get(api_id="drv-smoke-2"),
+            spent_amount=60,
+        )
 
-        response = self.client.get(url)
+    def _sprint_started(self, ago, *, with_results=False):
+        self.sprint_weekend.sprint_start = timezone.now() - ago
+        self.sprint_weekend.save()
+        if not with_results:
+            self.sprint_race.entries.all().delete()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "non sono ancora disponibili")
+    def test_before_the_start_goes_back_to_the_weekend(self):
+        self.sprint_race.entries.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            reverse(
+                "weekend_details", args=[self.championship.id, self.sprint_weekend.id]
+            ),
+            fetch_redirect_response=False,
+        )
+
+    def test_during_the_sprint_shows_the_choice_and_race_in_progress(self):
+        self._sprint_started(timedelta(hours=1, minutes=59))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Gara in corso")
+        self.assertContains(response, "Smoke2")
+        self.assertNotContains(response, "Punti guadagnati")
+
+    def test_after_two_hours_without_results_says_not_published(self):
+        self._sprint_started(timedelta(hours=2, minutes=1))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Risultati non ancora pubblicati")
+        self.assertNotContains(response, "Gara in corso")
+
+    def test_with_results_shows_the_classification(self):
+        self._sprint_started(timedelta(hours=1), with_results=True)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.context["session_state"], "results")
+        self.assertContains(response, "Punti guadagnati")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
