@@ -1012,6 +1012,24 @@ def _weekend_sessions(weekend):
     return sessions
 
 
+def _mark_missing_grids(sessions):
+    """Pulsanti secondo lo stato (#193, #61): una gara senza griglia non si può
+    ancora scegliere. Aggiunge grid_missing a ogni sessione; una query per tutte
+    le gare."""
+    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
+    with_grid = set(
+        RaceStartingGrid.objects.filter(race_id__in=race_ids).values_list(
+            "race_id", flat=True
+        )
+    )
+    for session in sessions:
+        session["grid_missing"] = (
+            session["entity"] == "race"
+            and not session["has_started"]
+            and session["event"].id not in with_grid
+        )
+
+
 def _season_weekends(season):
     """Weekend della stagione, pronti per _weekend_sessions()."""
     return (
@@ -1115,20 +1133,7 @@ def championship_next_weekend(request, championship_id):
     next_weekend = open_weekends[0] if open_weekends else None
     if next_weekend:
         sessions = next_weekend["all_sessions"]
-        # Pulsanti secondo lo stato (#193): una gara senza griglia non si può
-        # ancora scegliere. Una query per tutte le gare del weekend.
-        race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
-        with_grid = set(
-            RaceStartingGrid.objects.filter(race_id__in=race_ids).values_list(
-                "race_id", flat=True
-            )
-        )
-        for session in sessions:
-            session["grid_missing"] = (
-                session["entity"] == "race"
-                and not session["has_started"]
-                and session["event"].id not in with_grid
-            )
+        _mark_missing_grids(sessions)
         context["choice_counts"] = _choice_counts(
             championship, current_championship_player, sessions
         )
