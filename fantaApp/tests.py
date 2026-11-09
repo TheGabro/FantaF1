@@ -3677,6 +3677,98 @@ class SprintWeekendQualifyingChoiceAccessTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class NextWeekendSessionsTests(WeekendPagesFixture, TestCase):
+    """Prossimo weekend: pulsanti secondo lo stato della sessione (#193) e quanti
+    giocatori hanno già scelto (#201)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c, w = self.championship.id, self.regular_weekend.id
+        self.url = reverse("championship_next_weekend", args=[c])
+        self.race_choice_url = reverse(
+            "regular_race_choice", args=[c, w, self.regular_race.id]
+        )
+        self.qualifying_results_url = reverse(
+            "race_qualifying_results", args=[c, w, self.regular_qualifying.id]
+        )
+
+    def _player(self, username, league):
+        user = get_user_model().objects.create_user(
+            username=username, email=f"{username}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=self.championship,
+            league=league,
+            player_name=username,
+        )
+
+    def test_open_sessions_lead_to_the_choice(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.race_choice_url}?from=play"')
+
+    def test_without_the_grid_the_choice_is_switched_off(self):
+        self.regular_race.starting_grid.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, f'href="{self.race_choice_url}?from=play"')
+        self.assertContains(response, "griglia non ancora disponibile")
+        self.assertContains(response, 'aria-disabled="true"')
+
+    def test_started_sessions_lead_to_the_results(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.qualifying_results_url}?from=play"')
+        self.assertContains(response, "Scelte chiuse")
+        # La gara del weekend è ancora da scegliere.
+        self.assertContains(response, f'href="{self.race_choice_url}?from=play"')
+
+    def test_counts_who_has_chosen_in_the_league_and_in_the_championship(self):
+        other_league = League.objects.create(championship=self.championship, name="B")
+        teammate = self._player("compagno", self.league)
+        rival = self._player("rivale", other_league)
+        driver = Driver.objects.get(api_id="drv-smoke-1")
+        for player in (teammate, rival):
+            PlayerRaceChoice.objects.create(
+                player=player, race=self.regular_race, driver=driver, spent_amount=10
+            )
+
+        response = self.client.get(self.url)
+
+        gp = next(
+            s
+            for s in response.context["next_weekend"]["all_sessions"]
+            if s["label"] == "Grand Prix"
+        )
+        self.assertEqual((gp["chosen_league"], gp["chosen_total"]), (1, 2))
+        self.assertEqual(
+            response.context["choice_counts"], {"league_size": 2, "total": 3}
+        )
+        self.assertContains(
+            response, '<strong class="text-ink">1/2</strong> nella tua lega'
+        )
+        self.assertContains(response, "2/3 nel campionato")
+        # Solo numeri: nessun nome di chi ha scelto.
+        self.assertNotContains(response, "rivale")
+
+    def test_queries_do_not_grow_with_the_players(self):
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(self.url)
+        for n in range(3):
+            self._player(f"extra{n}", self.league)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     """#195: risultati della qualifica del sabato, con il proprio pronostico."""
 
