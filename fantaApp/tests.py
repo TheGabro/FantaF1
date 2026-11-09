@@ -3448,19 +3448,6 @@ class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_sprint_weekend_qualifying_is_not_this_page(self):
-        """La qualifica a slot dei weekend sprint ha la sua pagina (#196)."""
-        url = reverse(
-            "race_qualifying_results",
-            args=[
-                self.championship.id,
-                self.sprint_weekend.id,
-                self.sprint_weekend_qualifying.id,
-            ],
-        )
-
-        self.assertEqual(self.client.get(url).status_code, 404)
-
     def test_non_players_see_only_the_classification(self):
         self.client.force_login(self.outsider)
 
@@ -3468,6 +3455,100 @@ class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
 
         self.assertContains(response, "1:21.123")
         self.assertNotContains(response, "Il tuo pronostico")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SprintWeekendQualifyingResultsTests(WeekendPagesFixture, TestCase):
+    """#196: qualifica a slot dei weekend sprint. Livelli a cascata sulla
+    classifica (punti qualifica) e sulla griglia del GP (sconto e moltiplicatore)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "race_qualifying_results",
+            args=[
+                self.championship.id,
+                self.sprint_weekend.id,
+                self.sprint_weekend_qualifying.id,
+            ],
+        )
+        team = Team.objects.create(
+            name="Scuderia Slot", short_name="SLT", api_id="team-slot", nationality="IT"
+        )
+        drivers = [
+            Driver.objects.create(
+                first_name=f"Slot{n}",
+                last_name=f"Pilota{n:02d}",
+                number=40 + n,
+                short_name=f"S{n:02d}",
+                team=team,
+                season=2026,
+                api_id=f"drv-slot-{n}",
+            )
+            for n in range(1, 15)
+        ]
+        q1, q2, q3 = drivers[:6], drivers[6:11], drivers[11:]
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        lap = timedelta(minutes=1, seconds=20)
+        for position, driver in enumerate(drivers, start=1):
+            # In classifica tutti i pronostici di Q1 e Q2 passano il Q1 (tempo in
+            # Q2), nessuno passa il Q2 (niente tempo in Q3): livello Q1.
+            QualifyingResult.objects.create(
+                qualifying=self.sprint_weekend_qualifying,
+                driver=driver,
+                position=position,
+                q1_time=lap,
+                q2_time=lap if driver in q1 + q2 else None,
+            )
+        for slot, slot_drivers in (("q1_pass", q1), ("q2_pass", q2), ("q3_top3", q3)):
+            for driver in slot_drivers:
+                PlayerQualifyingMultiChoice.objects.create(
+                    player=player,
+                    qualifying=self.sprint_weekend_qualifying,
+                    driver=driver,
+                    selection_slot=slot,
+                )
+        # Sulla griglia del GP i Q2 partono nei primi 10 e i Q1 entro il 16°,
+        # ma la top 3 è sbagliata: livello Q2.
+        gp = Race.objects.get(weekend=self.sprint_weekend, type="regular")
+        grid_order = q2 + q1 + q3
+        for position, driver in enumerate(grid_order, start=1):
+            RaceStartingGrid.objects.create(race=gp, driver=driver, position=position)
+
+    def test_levels_follow_the_classification_and_the_grid(self):
+        response = self.client.get(self.url)
+
+        pick = response.context["pick"]
+        self.assertEqual(
+            pick["qualifying_ticks"], [("Q1", True), ("Q2", False), ("Top 3", False)]
+        )
+        q1_rule = bonuses.get_qualifying_multichoice_bonus_rule("q1_pass")
+        self.assertEqual(pick["qualifying_points"], q1_rule["qualifying_points"])
+        self.assertEqual(
+            pick["grid_ticks"], [("Q1", True), ("Q2", True), ("Top 3", False)]
+        )
+        rule = bonuses.get_qualifying_multichoice_bonus_rule("q2_pass")
+        self.assertEqual(pick["credit_discount"], rule["credit_discount"])
+        self.assertEqual(pick["points_multiplier"], rule["points_multiplier"])
+        self.assertContains(response, "Passano il Q1")
+        self.assertContains(response, "Pilota01")
+        self.assertContains(response, "In qualifica")
+
+    def test_without_the_grid_the_gp_bonus_waits(self):
+        RaceStartingGrid.objects.filter(race__weekend=self.sprint_weekend).delete()
+
+        response = self.client.get(self.url)
+
+        self.assertFalse(response.context["pick"]["grid_available"])
+        self.assertContains(response, "si conoscono con la griglia di partenza")
+
+    def test_without_a_pick_says_so(self):
+        PlayerQualifyingMultiChoice.objects.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Nessuna scelta per questa qualifica.")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
