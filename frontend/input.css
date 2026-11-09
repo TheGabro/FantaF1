@@ -365,6 +365,8 @@
     @apply flex w-full cursor-pointer items-center gap-3 rounded-xl p-2 pr-3 text-left;
   }
   .grid-pick:disabled { @apply cursor-not-allowed; }
+  /* Griglia in sola lettura (risultati, #233): niente bottoni, niente manina */
+  div.grid-pick, span.grid-pupillo { @apply cursor-default; }
   .grid-slot-pos { @apply w-9 shrink-0 text-center text-lg font-black italic tabular-nums; }
   .grid-card { @apply block w-20 shrink-0; }
   .grid-card .driver-card-number { @apply top-1.5 left-2 text-lg; }
@@ -380,8 +382,8 @@
 
   /* Hover e focus accendono la casella nel colore scuderia; il pilota scelto
      ha un bordo fisso (bianco luminoso nel tema scuro, quasi nero nel chiaro). */
-  .grid-slot:has(.grid-pick:not(:disabled):hover),
-  .grid-slot:has(.grid-pick:focus-visible) {
+  .grid-slot:has(button.grid-pick:not(:disabled):hover),
+  .grid-slot:has(button.grid-pick:focus-visible) {
     box-shadow: 0 0 0 2px var(--team, #9ca3af),
                 0 12px 22px -12px color-mix(in srgb, var(--team, #9ca3af) 80%, transparent);
   }

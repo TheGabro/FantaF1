@@ -3764,6 +3764,70 @@ class SprintWeekendQualifyingResultsTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class GrandPrixResultsStartingGridTests(WeekendPagesFixture, TestCase):
+    """#233: nei risultati del GP la griglia di partenza in sola lettura, in una
+    seconda scheda con i risultati, da sola durante la gara."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "regular_race_results",
+            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.pupillo = Driver.objects.get(api_id="drv-smoke-2")
+        PlayerRaceChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            race=self.regular_race,
+            driver=self.pupillo,
+            spent_amount=50,
+            is_pupillo=True,
+        )
+
+    def test_with_results_the_grid_is_the_second_tab(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, 'role="tablist"')
+        self.assertContains(response, 'href="#arrivo"')
+        self.assertContains(response, 'href="#griglia"')
+        self.assertEqual(
+            [o["grid_position"] for o in response.context["start_grid"]], [1, 2]
+        )
+
+    def test_the_grid_is_read_only_and_shows_the_picks(self):
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "data-select-driver")
+        self.assertContains(response, " is-selected", count=1)
+        self.assertContains(
+            response, '<span class="grid-pupillo is-pupillo">★ Pupillo</span>'
+        )
+
+    def test_during_the_race_only_the_grid_is_shown(self):
+        self.regular_race.entries.all().delete()
+        self.regular_weekend.race_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Gara in corso")
+        self.assertContains(response, 'class="start-grid"')
+        self.assertNotContains(response, 'role="tablist"')
+
+    def test_sprint_results_have_no_grid_yet(self):
+        """La Sprint ci arriva con #234."""
+        url = reverse(
+            "sprint_race_results",
+            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
+        )
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.context["start_grid"], [])
+        self.assertNotContains(response, 'class="start-grid"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SprintResultsStateTests(WeekendPagesFixture, TestCase):
     """#192: come il GP (#191), ma la Sprint resta «in corso» per 2 ore."""
 

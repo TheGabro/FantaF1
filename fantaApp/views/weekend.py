@@ -980,11 +980,19 @@ def _render_race_results_page(
     player_weekend_points = (
         player_race_result.total_points if player_race_result else None
     )
+    # Griglia di partenza in sola lettura, come controprova della scelta (#233).
+    # I costi sono ricalcolati adesso: quanto pagato davvero è nel pannello.
+    start_grid = (
+        costs.get_race_driver_options(race=race, player=player)
+        if race_type == "regular"
+        else []
+    )
     # Colori ed etichette con la scuderia di questo weekend (#82).
     use_weekend_teams(
         weekend,
         [entry.driver for entry in results]
-        + [choice.driver for choice in player_choices],
+        + [choice.driver for choice in player_choices]
+        + [option["driver"] for option in start_grid],
     )
 
     context = {
@@ -994,6 +1002,9 @@ def _render_race_results_page(
         "event": race,
         "race_label": race_label,
         "session_state": state,
+        "start_grid": start_grid,
+        # Nel GP costo griglia, costo classifica e pupillo; nella Sprint il costo.
+        "start_grid_breakdown": race_type == "regular",
         # None per chi non gioca: vede solo la classifica ufficiale.
         "player": player,
         "results": results,

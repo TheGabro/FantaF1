@@ -1,6 +1,9 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
+{% load static %}
 
 {% block title %}{{ weekend.event_name }} · Risultati {{ race_label }} — Fanta F1{% endblock %}
+
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/tabs.js' %}"></script>{% endblock %}
 
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
@@ -22,10 +25,27 @@
   </div>
 {% endif %}
 
-<div class="grid items-start gap-6 {% if results and player %}lg:grid-cols-3{% endif %}">
-  {% if results %}
-  <!-- Classifica ufficiale -->
-  <div class="card overflow-x-auto {% if player %}lg:col-span-2{% endif %}">
+<div class="grid grid-cols-1 items-start gap-6 {% if player and results or player and start_grid %}lg:grid-cols-3{% endif %}">
+  {% if results or start_grid %}
+  {% comment %}
+  Colonna principale. Con risultati e griglia due schede (#233): si apre su
+  «Ordine d'arrivo»; durante la gara c'è solo la griglia. Senza JavaScript le due
+  sezioni restano una sotto l'altra (tabs.js ne mostra una alla volta).
+  {% endcomment %}
+  <div class="min-w-0 {% if player %}lg:col-span-2{% endif %}"{% if results and start_grid %} data-tabs{% endif %}>
+    {% if results and start_grid %}
+      <div class="championship-subtabs mb-5" role="tablist" aria-label="Risultati della gara">
+        <a href="#arrivo" id="tab-arrivo" role="tab" data-tab="arrivo" aria-controls="arrivo" aria-selected="true"
+           class="championship-subtab championship-subtab-active">Ordine d'arrivo</a>
+        <a href="#griglia" id="tab-griglia" role="tab" data-tab="griglia" aria-controls="griglia" aria-selected="false"
+           class="championship-subtab">Griglia di partenza</a>
+      </div>
+    {% endif %}
+
+    {% if results %}
+    <!-- Classifica ufficiale -->
+    <section id="arrivo" data-tab-panel="arrivo" class="scroll-mt-24" {% if start_grid %}role="tabpanel" aria-labelledby="tab-arrivo"{% endif %}>
+    <div class="card overflow-x-auto">
     <table class="table-clean min-w-[560px]">
       <thead>
         <tr>
@@ -70,12 +90,22 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
+    </section>
+    {% endif %}
+
+    {% if start_grid %}
+    <section id="griglia" data-tab-panel="griglia" class="scroll-mt-24{% if results %} mt-6{% endif %}" {% if results %}role="tabpanel" aria-labelledby="tab-griglia"{% endif %}>
+      {% if not results %}<h3 class="section-title mb-3">Griglia di partenza</h3>{% endif %}
+      {% include "fantaApp/_start_grid.html" with driver_options=start_grid readonly=True with_breakdown=start_grid_breakdown with_pupillo=start_grid_breakdown pupillo_driver_id=player_pupillo.driver_id %}
+    </section>
+    {% endif %}
   </div>
   {% endif %}
 
   {# Pannello del giocatore: chi non gioca il campionato vede solo la classifica. #}
   {% if player %}
-  <aside class="card-pad {% if results %}lg:sticky lg:top-20{% else %}max-w-md{% endif %}">
+  <aside class="card-pad {% if results or start_grid %}lg:sticky lg:top-20{% else %}max-w-md{% endif %}">
     <h3 class="section-title mb-4">La tua gara</h3>
 
     <div class="mb-4 grid gap-2">
