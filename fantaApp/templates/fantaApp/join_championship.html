@@ -7,11 +7,11 @@
   <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2">← I miei campionati</a>
 
   <div class="card-pad">
-    <p class="eyebrow">Sei stato invitato</p>
+    <p class="eyebrow">Iscrizione al campionato</p>
     <h1 class="heading mt-1">{{ championship.name }}</h1>
     <p class="mt-1 mb-5 text-muted">
       Stagione {{ championship.year }} ·
-      {{ championship.participants.count }} giocator{{ championship.participants.count|pluralize:"e,i" }}
+      {% with count=championship.participants.count %}{{ count }} {% if count == 1 %}giocatore{% else %}giocatori{% endif %}{% endwith %}
     </p>
 
     {% if form.non_field_errors %}
@@ -45,7 +45,7 @@
   </div>
 
   <p class="mt-4 text-center text-muted">
-    Parti con 2000 crediti da spendere nelle scelte di ogni weekend.
+    Parti con 2000 fantamilioni da spendere nelle scelte di ogni weekend.
   </p>
 </div>
 {% endblock %}

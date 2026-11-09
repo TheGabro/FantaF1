@@ -23,7 +23,7 @@
       {% if next_weekend.weekend.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
       {% if current_championship_player %}
         {% if next_weekend.pending %}
-          <span class="badge-warn shrink-0">{{ next_weekend.pending }} scelt{{ next_weekend.pending|pluralize:"a,e" }} da fare</span>
+          <span class="badge-warn shrink-0">{{ next_weekend.pending }} {% if next_weekend.pending == 1 %}scelta da fare{% else %}scelte da fare{% endif %}</span>
         {% else %}
           <span class="badge-ok shrink-0">Sei in pari</span>
         {% endif %}
@@ -83,7 +83,7 @@
               {% if s.results_url_name %}
                 <a href="{% url s.results_url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">Risultati</a>
               {% elif current_championship_player %}
-                {# La Sprint Qualifying non ha ancora la pagina dei risultati (#197) #}
+                {# Le Qualifiche Sprint non hanno ancora la pagina dei risultati (#197) #}
                 <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">Rivedi</a>
               {% endif %}
             {% elif current_championship_player %}
@@ -114,7 +114,7 @@
           <h2 class="subheading">Altri weekend già aperti</h2>
           <p class="text-muted">Puoi portarti avanti: le scelte restano modificabili fino al via di ogni sessione.</p>
         </div>
-        {% if pending_count %}<span class="badge-muted">{{ pending_count }} scelt{{ pending_count|pluralize:"a,e" }} aperte in tutto</span>{% endif %}
+        {% if pending_count %}<span class="badge-muted">{{ pending_count }} {% if pending_count == 1 %}scelta aperta{% else %}scelte aperte{% endif %} in tutto</span>{% endif %}
       </div>
       <ul class="divide-y divide-line">
         {% for item in other_weekends %}

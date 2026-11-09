@@ -50,7 +50,7 @@ Contesto atteso:
           {% if option.over_budget %}
             <span class="grid-note">fuori budget</span>
           {% elif with_pupillo and not readonly and option.previous_pupillo_streak %}
-            <span class="grid-note text-accent" title="Pupillo da {{ option.previous_pupillo_streak }} gare consecutive">★×{{ option.previous_pupillo_streak }} pupillo</span>
+            <span class="grid-note text-accent" title="{% if option.previous_pupillo_streak == 1 %}Pupillo nella gara precedente{% else %}Pupillo da {{ option.previous_pupillo_streak }} gare consecutive{% endif %}">★×{{ option.previous_pupillo_streak }} pupillo</span>
           {% endif %}
           {% if readonly and option.driver.id in selected_driver_ids %}<span class="sr-only">La tua scelta.</span>{% endif %}
         </span>

@@ -2,18 +2,18 @@
 {% load static %}
 {% load dict_extras %}
 
-{% block title %}{{ weekend.event_name }} · Sprint Qualifying — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Qualifiche Sprint — Fanta F1{% endblock %}
 
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/select-dedupe.js' %}"></script>{% endblock %}
 
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-warn">Sprint Qualifying</span></h2>
+<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-warn">Qualifiche Sprint</span></h2>
 
 {% if event_started %}
   <div class="card-pad mb-5 border-accent/40">
-    <p class="font-bold text-accent">🏁 Le scelte per questa Sprint Qualifying sono chiuse.</p>
+    <p class="font-bold text-accent">🏁 Le scelte per queste Qualifiche Sprint sono chiuse.</p>
   </div>
 {% else %}
   <p class="mb-5 text-muted">

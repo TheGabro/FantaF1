@@ -42,6 +42,7 @@ from .models import (
     PlayerQualifyingChoice,
     Qualifying,
     PlayerQualifyingMultiChoice,
+    PlayerSprintQualifyingChoice,
     PlayerRaceResult,
     QualifyingResult,
     Race,
@@ -3110,7 +3111,7 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
             [
                 ("Smoke Cup 2026", self.championship_url),
                 ("Prossimo weekend", self.play_url),
-                ("Grand Prix", None),
+                ("Gran Premio", None),
             ],
         )
 
@@ -3134,7 +3135,7 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
                 ("Smoke Cup 2026", self.championship_url),
                 ("Calendario gare", self.calendar_url),
                 ("R1 GP Regular", self.weekend_url),
-                ("Grand Prix", None),
+                ("Gran Premio", None),
             ],
         )
 
@@ -3744,7 +3745,7 @@ class NextWeekendSessionsTests(WeekendPagesFixture, TestCase):
         gp = next(
             s
             for s in response.context["next_weekend"]["all_sessions"]
-            if s["label"] == "Grand Prix"
+            if s["label"] == "Gran Premio"
         )
         self.assertEqual((gp["chosen_league"], gp["chosen_total"]), (1, 2))
         self.assertEqual(
@@ -3849,7 +3850,7 @@ class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
         self.assertEqual(pick["grid_position"], 1)
         self.assertEqual(pick["credit_change"], rule["credit_change"])
         self.assertContains(response, "Punti qualifica")
-        self.assertContains(response, "Griglia del Grand Prix")
+        self.assertContains(response, "Griglia del Gran Premio")
 
     def test_without_a_pick_says_so(self):
         response = self.client.get(self.url)
@@ -4238,6 +4239,164 @@ class WeekendDetailSessionsTests(WeekendPagesFixture, TestCase):
             self.client.get(self.sprint_url)
 
         self.assertEqual(len(regular.captured_queries), len(sprint.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class DynamicTextsTests(WeekendPagesFixture, TestCase):
+    """#101: i testi con un numero si scrivono per intero al singolare e al
+    plurale, verificati con 0, 1 e 2 o più elementi."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.player = ChampionshipPlayer.objects.get(user=self.user)
+        self.drivers = list(Driver.objects.filter(api_id__startswith="drv-smoke"))
+
+    def _other_player(self, championship, username="secondo"):
+        user = get_user_model().objects.create_user(
+            username=username, email=f"{username}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=championship,
+            league=championship.leagues.first(),
+            player_name=username,
+        )
+
+    def _choose_all_but_the_sprint_weekend_gp(self):
+        d1, d2 = self.drivers
+        for driver in (d1, d2):
+            PlayerRaceChoice.objects.create(
+                player=self.player,
+                race=self.regular_race,
+                driver=driver,
+                spent_amount=10,
+            )
+        PlayerQualifyingChoice.objects.create(
+            player=self.player, qualifying=self.regular_qualifying, driver=d1
+        )
+        PlayerSprintQualifyingChoice.objects.create(
+            player=self.player,
+            qualifying=self.sprint_qualifying,
+            driver=d1,
+            selection_slot="sq1",
+        )
+        PlayerRaceChoice.objects.create(
+            player=self.player, race=self.sprint_race, driver=d1, spent_amount=10
+        )
+        PlayerQualifyingMultiChoice.objects.create(
+            player=self.player,
+            qualifying=self.sprint_weekend_qualifying,
+            driver=d1,
+            selection_slot="q1_pass",
+        )
+
+    def test_next_weekend_choices_to_make(self):
+        url = reverse("championship_next_weekend", args=[self.championship.id])
+
+        page = self.client.get(url)
+        self.assertContains(page, "2 scelte da fare")
+        self.assertContains(page, "6 scelte aperte in tutto")
+
+        PlayerQualifyingChoice.objects.create(
+            player=self.player,
+            qualifying=self.regular_qualifying,
+            driver=self.drivers[0],
+        )
+        page = self.client.get(url)
+        self.assertContains(page, "1 scelta da fare")
+        self.assertContains(page, "5 scelte aperte in tutto")
+
+    def test_one_choice_left_in_the_other_weekends(self):
+        self._choose_all_but_the_sprint_weekend_gp()
+
+        page = self.client.get(
+            reverse("championship_next_weekend", args=[self.championship.id])
+        )
+
+        self.assertContains(page, "1 scelta aperta in tutto")
+        self.assertNotContains(page, "scelte da fare")
+
+    def test_players_in_the_standings(self):
+        url = reverse("championship_general_standings", args=[self.championship.id])
+
+        self.assertContains(self.client.get(url), "1 giocatore<")
+        self._other_player(self.championship)
+        self.assertContains(self.client.get(url), "2 giocatori<")
+
+    def test_players_on_the_join_page(self):
+        url = reverse("join_championship", args=[self.open_championship.id])
+
+        self.assertContains(self.client.get(url), "0 giocatori")
+        self._other_player(self.open_championship)
+        page = self.client.get(url)
+        self.assertContains(page, "1 giocatore")
+        self.assertNotContains(page, "1 giocatori")
+        self.assertContains(page, "Iscrizione al campionato")
+
+    def test_weekends_not_played(self):
+        past = timezone.now() - timedelta(days=1)
+        for weekend in (self.regular_weekend, self.sprint_weekend):
+            for field in (
+                "sprint_qualifying_start",
+                "sprint_start",
+                "qualifying_start",
+                "race_start",
+            ):
+                if getattr(weekend, field):
+                    setattr(weekend, field, past)
+            weekend.save()
+        url = reverse("championship_my_choices", args=[self.championship.id])
+
+        self.assertContains(self.client.get(url), "2 weekend non giocati")
+        PlayerRaceChoice.objects.create(
+            player=self.player,
+            race=self.regular_race,
+            driver=self.drivers[0],
+            spent_amount=10,
+        )
+        self.assertContains(self.client.get(url), "1 weekend non giocato")
+
+    def test_season_legend_races(self):
+        def description(term, total, remaining):
+            legend = dashboard._season_standings_legend(total, remaining)
+            return next(item["description"] for item in legend if item["term"] == term)
+
+        self.assertIn("le 2 gare ancora", description("Budget/gara", 24, 2))
+        self.assertIn("l'unica gara ancora", description("Budget/gara", 24, 1))
+        self.assertIn("Non disponibile", description("Budget/gara", 24, 0))
+        self.assertIn("alle 24 gare", description("Proiezione", 24, 0))
+        self.assertIn("all'unica gara", description("Proiezione", 1, 0))
+
+    def test_pupillo_streak(self):
+        def title(streak):
+            option = SimpleNamespace(
+                driver=self.drivers[0],
+                previous_pupillo_streak=streak,
+                over_budget=False,
+                grid_position=1,
+                cost=10,
+            )
+            return render_to_string(
+                "fantaApp/_start_grid.html",
+                {"driver_options": [option], "with_pupillo": True},
+            )
+
+        self.assertIn('title="Pupillo nella gara precedente"', title(1))
+        self.assertIn('title="Pupillo da 3 gare consecutive"', title(3))
+        self.assertNotIn('title="Pupillo', title(0))
+
+    def test_my_choices_slot_names_in_italian(self):
+        self._choose_all_but_the_sprint_weekend_gp()
+
+        page = self.client.get(
+            reverse("championship_my_choices", args=[self.championship.id])
+        )
+
+        self.assertContains(page, "SQ1 – eliminato")
+        self.assertContains(page, "Passano il Q1")
+        self.assertNotContains(page, "Out in SQ1")
+        self.assertNotContains(page, "Pass Q1")
 
 
 @override_settings(STORAGES=TEST_STORAGES)

@@ -35,7 +35,7 @@
       {% for l in leagues %}
         <li class="flex items-center justify-between gap-3 px-5 py-3">
           <span class="text-base font-semibold">{{ l.name }}</span>
-          <span class="badge-muted">{{ l.participants_count }} giocator{{ l.participants_count|pluralize:"e,i" }}</span>
+          <span class="badge-muted">{{ l.participants_count }} {% if l.participants_count == 1 %}giocatore{% else %}giocatori{% endif %}</span>
         </li>
       {% empty %}
         <li class="px-5 py-4 text-muted">Nessuna lega creata.</li>
@@ -72,12 +72,12 @@
     </div>
 
     <details class="border-b border-line px-5 py-3 text-sm" open>
-      <summary class="cursor-pointer font-semibold">Qualifica del sabato — weekend regular</summary>
+      <summary class="cursor-pointer font-semibold">Qualifica del sabato — weekend classico</summary>
       <p class="mt-2 text-muted">
         Si sceglie un pilota solo, e ogni pilota può essere speso una volta sola nella stagione.
         La posizione che ottiene in qualifica vale punti per la classifica qualifiche. La posizione
         nella griglia di partenza (penalità incluse) decide invece lo sconto o il malus sui
-        fantamilioni del Grand Prix e il moltiplicatore sui punti di quella gara.
+        fantamilioni del Gran Premio e il moltiplicatore sui punti di quella gara.
       </p>
       <div class="mt-3 overflow-x-auto">
         <table class="table-clean text-sm">
@@ -111,7 +111,7 @@
         Si pronosticano {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
         {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3.
         I livelli sono a scaletta: vale quello più alto raggiunto, non la somma.
-        I punti qualifica seguono la qualifica; sconto e moltiplicatore del Grand Prix seguono la
+        I punti qualifica seguono la qualifica; sconto e moltiplicatore del Gran Premio seguono la
         griglia di partenza: passa il Q1 chi parte entro la {{ rulebook.grid_q1_pass_max_position }}ª
         casella, il Q2 entro la {{ rulebook.grid_q2_pass_max_position }}ª, la top 3 sono le prime tre caselle.
       </p>
@@ -140,10 +140,10 @@
     </details>
 
     <details class="border-b border-line px-5 py-3 text-sm">
-      <summary class="cursor-pointer font-semibold">Sprint shootout del venerdì</summary>
+      <summary class="cursor-pointer font-semibold">Qualifiche Sprint del venerdì</summary>
       <p class="mt-2 text-muted">
         Si indica un pilota per ciascuna fascia di eliminazione. I punti vinti qui si sommano
-        al punteggio della sprint race, e valgono per la classifica campionato sprint.
+        al punteggio della Sprint e valgono per la classifica campionato sprint.
         L'esito si valuta sulla griglia di partenza della sprint (penalità incluse).
       </p>
       <div class="mt-3 overflow-x-auto">
@@ -181,8 +181,8 @@
           <thead>
             <tr>
               <th>Posizione in griglia</th>
-              <th class="!text-right">Grand Prix</th>
-              <th class="!text-right">Sprint race</th>
+              <th class="!text-right">Gran Premio</th>
+              <th class="!text-right">Sprint</th>
               <th class="!text-right">Extra da classifica</th>
             </tr>
           </thead>
@@ -214,7 +214,7 @@
         <div>
           <dt class="font-semibold">Magate e sucate</dt>
           <dd class="text-muted">
-            Magata: Grand Prix da {{ rulebook.magata_points }} punti o più, le sprint non contano.
+            Magata: Gran Premio da {{ rulebook.magata_points }} punti o più, le sprint non contano.
             Sucata: gara da {{ rulebook.sucata_points }} punti o meno, sprint incluse.
           </dd>
         </div>
@@ -222,7 +222,7 @@
           <dt class="font-semibold">Le quattro classifiche</dt>
           <dd class="text-muted">
             Lega e generale contano i punti delle gare. Qualifiche e campionato sprint sono due minigiochi:
-            la prima somma i punti presi in qualifica, la seconda i punti delle sole sprint (shootout incluso,
+            la prima somma i punti presi in qualifica, la seconda i punti delle sole sprint (Qualifiche Sprint incluse,
             già compresi nel totale generale).
           </dd>
         </div>

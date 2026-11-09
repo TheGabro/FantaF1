@@ -15,9 +15,9 @@
     </p>
   </div>
   {% if weekend.weekend_type == "sprint" %}
-    <span class="badge-warn">Weekend Sprint</span>
+    <span class="badge-warn">Weekend sprint</span>
   {% else %}
-    <span class="badge-muted">Weekend Regular</span>
+    <span class="badge-muted">Weekend classico</span>
   {% endif %}
 </div>
 
@@ -56,7 +56,7 @@
               {% if s.results_url_name %}
                 <a href="{% url s.results_url_name championship.id weekend.id s.event.id %}{{ origin_query }}" class="btn-secondary shrink-0">Risultati</a>
               {% else %}
-                {# La Sprint Qualifying non ha ancora la pagina dei risultati (#197) #}
+                {# Le Qualifiche Sprint non hanno ancora la pagina dei risultati (#197) #}
                 <a href="{% url s.url_name championship.id weekend.id s.event.id %}{{ origin_query }}" class="btn-secondary shrink-0">Rivedi</a>
               {% endif %}
             {% elif s.grid_missing %}

@@ -133,7 +133,7 @@ Le pagine sono in italiano; codice, URL e backend restano in inglese. Per ogni c
 
 | Concetto | Si scrive | Non si scrive | Note |
 |---|---|---|---|
-| Valuta del gioco | fantamilioni | crediti, credits | Deciso il 21/10/2026. Nel codice resta `credit` (`available_credit`). |
+| Valuta del gioco | fantamilioni; «FM» accanto alle cifre | crediti, credits, cr | Deciso il 21/10/2026. Nel codice resta `credit` (`available_credit`). |
 | Gara della domenica | Gran Premio; GP in forma breve | Grand Prix, gara | Deciso il 21/10/2026. Es. «GP d'Italia». |
 | Qualifica del venerdì nei weekend sprint | Qualifiche Sprint | Sprint Qualifying, Sprint Shootout | Deciso il 21/10/2026. |
 | Qualifica del sabato | Qualifiche | Qualifying | |
@@ -146,6 +146,7 @@ Le pagine sono in italiano; codice, URL e backend restano in inglese. Per ogni c
 | Previsione sulle qualifiche | pronostico | | |
 | Pilota preferito con sconto | pupillo | | |
 | Gruppo di giocatori di un campionato | lega | | |
+| Parte di una pagina a schede | scheda | tab | Es. «la scheda Qualifiche» delle classifiche. |
 | Chi gestisce un campionato | manager | admin | «Admin» è solo il pannello di amministrazione del sito. |
 | Gran Premio sopra i 43 punti, gara sotto i 5 | magata, sucata | | Gergo del gioco: resta. |
 
