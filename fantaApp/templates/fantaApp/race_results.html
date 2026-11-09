@@ -9,8 +9,22 @@
   {{ weekend.event_name }} · <span class="text-accent">Risultati {{ race_label }}</span>
 </h2>
 
-{% if results %}
-<div class="grid items-start gap-6 {% if player %}lg:grid-cols-3{% endif %}">
+{# Stato della gara dal via, finché mancano i risultati (#191) #}
+{% if session_state == "running" %}
+  <div class="card-pad mb-5 border-accent/40" role="status">
+    <p class="font-bold text-accent">🏁 Gara in corso</p>
+    <p class="mt-1 text-muted">I risultati arrivano dopo la bandiera a scacchi.</p>
+  </div>
+{% elif session_state == "waiting_results" %}
+  <div class="card-pad mb-5 border-warn/40" role="status">
+    <p class="font-bold text-warn">Risultati non ancora pubblicati</p>
+    <p class="mt-1 text-muted">La gara è finita: i risultati compaiono qui appena vengono importati.</p>
+  </div>
+{% endif %}
+
+{% if session_state %}
+<div class="grid items-start gap-6 {% if results and player %}lg:grid-cols-3{% endif %}">
+  {% if results %}
   <!-- Classifica ufficiale -->
   <div class="card overflow-x-auto {% if player %}lg:col-span-2{% endif %}">
     <table class="table-clean min-w-[560px]">
@@ -58,10 +72,11 @@
       </tbody>
     </table>
   </div>
+  {% endif %}
 
   {# Pannello del giocatore: chi non gioca il campionato vede solo la classifica. #}
   {% if player %}
-  <aside class="card-pad lg:sticky lg:top-20">
+  <aside class="card-pad {% if results %}lg:sticky lg:top-20{% else %}max-w-md{% endif %}">
     <h3 class="section-title mb-4">La tua gara</h3>
 
     <div class="mb-4 grid gap-2">
@@ -87,10 +102,12 @@
         <dt class="note">Crediti usati</dt>
         <dd class="text-xl font-black">{{ player_credit_used|default:0 }}</dd>
       </div>
+      {% if results %}
       <div class="flex items-center justify-between">
         <dt class="note">Punti guadagnati</dt>
         <dd class="text-xl font-black text-ok">{{ player_weekend_points|default:0 }}</dd>
       </div>
+      {% endif %}
     </dl>
   </aside>
   {% endif %}
