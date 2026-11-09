@@ -19,6 +19,7 @@ from ..models import (
     PlayerRaceChoice,
     PlayerRaceResult,
     QualifyingResult,
+    RaceStartingGrid,
 )
 from ..services import player_choices as pc
 from ..services import bonuses
@@ -957,13 +958,26 @@ def championship_calendar(request, championship_id):
 # ───────────────────────────────────────────────────────────────────────────────
 #  Sessioni di un weekend
 # ───────────────────────────────────────────────────────────────────────────────
-# Ordine di svolgimento in pista, con la pagina di scelta corrispondente.
+# Ordine di svolgimento in pista, con la pagina di scelta e quella dei risultati
+# (None: la Sprint Qualifying non ha ancora la sua pagina, #197).
 # Rispecchia l'elenco costruito in views.weekend.weekend_detail.
 _SESSION_SPECS = (
-    ("qualifyings", "sprint", "Sprint Qualifying", "sprint_race_qualifying_choice"),
-    ("races", "sprint", "Sprint Race", "sprint_race_choice"),
-    ("qualifyings", "regular", "Qualifying", "race_qualifying_choice"),
-    ("races", "regular", "Grand Prix", "regular_race_choice"),
+    (
+        "qualifyings",
+        "sprint",
+        "Sprint Qualifying",
+        "sprint_race_qualifying_choice",
+        None,
+    ),
+    ("races", "sprint", "Sprint Race", "sprint_race_choice", "sprint_race_results"),
+    (
+        "qualifyings",
+        "regular",
+        "Qualifying",
+        "race_qualifying_choice",
+        "race_qualifying_results",
+    ),
+    ("races", "regular", "Grand Prix", "regular_race_choice", "regular_race_results"),
 )
 
 
@@ -973,7 +987,7 @@ def _weekend_sessions(weekend):
     Legge dai prefetch di races/qualifyings: nessuna query per weekend.
     """
     sessions = []
-    for related_name, subtype, label, url_name in _SESSION_SPECS:
+    for related_name, subtype, label, url_name, results_url_name in _SESSION_SPECS:
         event = next(
             (e for e in getattr(weekend, related_name).all() if e.type == subtype),
             None,
@@ -990,6 +1004,7 @@ def _weekend_sessions(weekend):
                 "subtype": subtype,
                 "event": event,
                 "url_name": url_name,
+                "results_url_name": results_url_name,
                 "start": helper.event_start(event),
                 "has_started": helper._event_has_started(event),
             }
@@ -1046,14 +1061,15 @@ def _open_weekends(championship, player):
     open_weekends = []
     pending_count = 0
     for weekend in _season_weekends(championship.year):
+        all_sessions = _weekend_sessions(weekend)
         sessions = []
-        for session in _weekend_sessions(weekend):
-            if session["has_started"]:
-                continue  # sessione chiusa: la scelta non è più modificabile
+        for session in all_sessions:
             session["has_choice"] = (
                 session["entity"],
                 session["event"].id,
             ) in already_chosen
+            if session["has_started"]:
+                continue  # sessione chiusa: la scelta non è più modificabile
             if not session["has_choice"]:
                 pending_count += 1
             sessions.append(session)
@@ -1062,6 +1078,9 @@ def _open_weekends(championship, player):
                 {
                     "weekend": weekend,
                     "sessions": sessions,
+                    # Anche le sessioni già iniziate: Prossimo weekend mostra per
+                    # quelle il pulsante dei risultati (#193).
+                    "all_sessions": all_sessions,
                     "pending": sum(
                         1 for session in sessions if not session["has_choice"]
                     ),
@@ -1085,13 +1104,70 @@ def championship_next_weekend(request, championship_id):
     context.update(_credits_context(current_championship_player))
 
     open_weekends = context["open_weekends"]
+    next_weekend = open_weekends[0] if open_weekends else None
+    if next_weekend:
+        sessions = next_weekend["all_sessions"]
+        # Pulsanti secondo lo stato (#193): una gara senza griglia non si può
+        # ancora scegliere. Una query per tutte le gare del weekend.
+        race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
+        with_grid = set(
+            RaceStartingGrid.objects.filter(race_id__in=race_ids).values_list(
+                "race_id", flat=True
+            )
+        )
+        for session in sessions:
+            session["grid_missing"] = (
+                session["entity"] == "race"
+                and not session["has_started"]
+                and session["event"].id not in with_grid
+            )
+        context["choice_counts"] = _choice_counts(
+            championship, current_championship_player, sessions
+        )
     context.update(
         {
-            "next_weekend": open_weekends[0] if open_weekends else None,
+            "next_weekend": next_weekend,
             "other_weekends": open_weekends[1:],
         }
     )
     return render(request, "fantaApp/championship_next_weekend.html", context)
+
+
+def _choice_counts(championship, player, sessions):
+    """Quanti giocatori hanno già una scelta salvata per ogni sessione (#201):
+    nella lega di chi guarda e in tutto il campionato. Solo numeri, mai chi né
+    cosa. «Ha scelto» è la stessa regola del badge «Scelta effettuata».
+    Aggiunge chosen_league e chosen_total a ogni sessione; query costanti."""
+    players = list(
+        ChampionshipPlayer.objects.filter(championship=championship).values_list(
+            "id", "league_id"
+        )
+    )
+    league_id = player.league_id if player else None
+    league_players = {pid for pid, lid in players if league_id and lid == league_id}
+
+    chosen = defaultdict(set)
+    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
+    for race_id, player_id in PlayerRaceChoice.objects.filter(
+        race_id__in=race_ids, player__championship=championship
+    ).values_list("race_id", "player_id"):
+        chosen[("race", race_id)].add(player_id)
+    qualifying_ids = [s["event"].id for s in sessions if s["entity"] == "qualifying"]
+    for model in (
+        PlayerQualifyingChoice,
+        PlayerQualifyingMultiChoice,
+        PlayerSprintQualifyingChoice,
+    ):
+        for qualifying_id, player_id in model.objects.filter(
+            qualifying_id__in=qualifying_ids, player__championship=championship
+        ).values_list("qualifying_id", "player_id"):
+            chosen[("qualifying", qualifying_id)].add(player_id)
+
+    for session in sessions:
+        made = chosen[(session["entity"], session["event"].id)]
+        session["chosen_total"] = len(made)
+        session["chosen_league"] = len(made & league_players)
+    return {"league_size": len(league_players), "total": len(players)}
 
 
 @login_required

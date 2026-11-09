@@ -37,26 +37,65 @@
       </p>
     {% endif %}
 
+    {% comment %}
+    Ogni sessione con un solo pulsante secondo lo stato (#193): «Risultati» dal
+    via, spento se la griglia non c'è ancora, altrimenti «Scegli»/«Modifica».
+    Sotto, quanti hanno già scelto nella propria lega e nel campionato (#201).
+    {% endcomment %}
     <ul class="divide-y divide-line">
-      {% for s in next_weekend.sessions %}
+      {% for s in next_weekend.all_sessions %}
         <li class="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3">
-          <span class="h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
-          <div class="min-w-0 flex-1">
-            <h3 class="font-bold">{{ s.label }}</h3>
-            <p class="note">{{ s.start|date:"D j M · H:i"|default:"orario da definire" }}</p>
+          {# Su mobile testo a tutta larghezza, badge e pulsante sulla riga sotto #}
+          <div class="flex min-w-0 basis-full items-start gap-4 sm:flex-1 sm:basis-0">
+            <span class="h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
+            <div class="min-w-0 flex-1">
+              <h3 class="font-bold">{{ s.label }}</h3>
+              <p class="note">
+                {{ s.start|date:"D j M · H:i"|default:"orario da definire" }}{% if s.grid_missing %} · griglia non ancora disponibile{% endif %}
+              </p>
+              {% if choice_counts.total %}
+                <p class="note mt-1">
+                  Hanno scelto:
+                  {% if choice_counts.league_size %}
+                    <strong class="text-ink">{{ s.chosen_league }}/{{ choice_counts.league_size }}</strong> nella tua lega ·
+                  {% endif %}
+                  {{ s.chosen_total }}/{{ choice_counts.total }} nel campionato
+                </p>
+                {% if choice_counts.league_size %}
+                  <span class="mt-1 block h-1 w-full max-w-xs overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
+                    <span class="block h-full rounded-full bg-ok" style="width: {% widthratio s.chosen_league choice_counts.league_size 100 %}%"></span>
+                  </span>
+                {% endif %}
+              {% endif %}
+            </div>
           </div>
 
-          {% if s.has_choice %}
-            <span class="badge-ok shrink-0">✓ Scelta effettuata</span>
-          {% else %}
-            <span class="badge-muted shrink-0">Da scegliere</span>
-          {% endif %}
+          <div class="flex shrink-0 items-center gap-3 max-sm:pl-6">
+            {% if s.has_started %}
+              <span class="badge-muted shrink-0">Scelte chiuse</span>
+            {% elif s.has_choice %}
+              <span class="badge-ok shrink-0">✓ Scelta effettuata</span>
+            {% else %}
+              <span class="badge-muted shrink-0">Da scegliere</span>
+            {% endif %}
 
-          {% if current_championship_player %}
-            <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">
-              {% if s.has_choice %}Modifica{% else %}Scegli{% endif %}
-            </a>
-          {% endif %}
+            {% if s.has_started %}
+              {% if s.results_url_name %}
+                <a href="{% url s.results_url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">Risultati</a>
+              {% elif current_championship_player %}
+                {# La Sprint Qualifying non ha ancora la pagina dei risultati (#197) #}
+                <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">Rivedi</a>
+              {% endif %}
+            {% elif current_championship_player %}
+              {% if s.grid_missing %}
+                <span class="btn-secondary shrink-0" aria-disabled="true" title="Griglia non ancora disponibile">Scegli</span>
+              {% else %}
+                <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">
+                  {% if s.has_choice %}Modifica{% else %}Scegli{% endif %}
+                </a>
+              {% endif %}
+            {% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>
