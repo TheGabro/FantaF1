@@ -6,6 +6,7 @@ Contesto atteso:
   driver        istanza Driver (con .team)
   card_selected (opz.) true se è il pilota scelto
   card_locked   (opz.) motivo per cui il pilota non è sceglibile
+  card_only     (opz.) true per la sola card, senza nome sotto (griglia di partenza, #182)
 Il colore arriva da --team, che eredita dalla classe .team-xxx del pannello.
 {% endcomment %}
 <span class="driver-card{% if card_selected %} is-selected{% endif %}{% if card_locked %} is-locked{% endif %}">
@@ -26,5 +27,7 @@ Il colore arriva da --team, che eredita dalla classe .team-xxx del pannello.
     </span>
   {% endif %}
 </span>
+{% if not card_only %}
 <span class="driver-name">{{ driver.first_name }} <span class="driver-name-last">{{ driver.last_name }}</span></span>
 {% if card_locked %}<span class="driver-name-note">{{ card_locked }}</span>{% endif %}
+{% endif %}

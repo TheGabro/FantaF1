@@ -3436,6 +3436,55 @@ class GrandPrixChoiceAccessTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class GrandPrixStartingGridTests(WeekendPagesFixture, TestCase):
+    """#182: i piloti del GP si scelgono da una griglia di partenza, non da una tabella."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "regular_race_choice",
+            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+        )
+
+    def test_drivers_follow_the_starting_grid_with_their_costs(self):
+        response = self.client.get(self.url)
+
+        html = response.content.decode()
+        self.assertNotIn("<table", html)
+        self.assertIn('class="start-grid"', html)
+        self.assertLess(html.index("Smoke1"), html.index("Smoke2"))
+        for option in response.context["driver_options"]:
+            with self.subTest(position=option["grid_position"]):
+                self.assertIn(f"P{option['grid_position']}</span>", html)
+                self.assertIn(f"Griglia <strong>{option['grid_cost']}</strong>", html)
+                self.assertIn(
+                    f"Classifica <strong>{option['standings_cost']}</strong>", html
+                )
+
+    def test_every_slot_is_a_button_with_its_pupillo_star(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(
+            response, 'data-select-driver aria-pressed="false"', count=2
+        )
+        self.assertContains(response, "data-set-pupillo=", count=2)
+
+    def test_drivers_beyond_the_budget_are_switched_off(self):
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        player.available_credit = 0
+        player.save()
+
+        response = self.client.get(self.url)
+
+        expensive = [o for o in response.context["driver_options"] if o["cost"] > 0]
+        self.assertTrue(expensive)
+        self.assertTrue(all(o["over_budget"] for o in expensive))
+        self.assertContains(response, 'data-over-budget="true"')
+        self.assertContains(response, "fuori budget")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     """#195: risultati della qualifica del sabato, con il proprio pronostico."""
 
