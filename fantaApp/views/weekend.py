@@ -473,6 +473,13 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
         [option["driver"] for option in driver_options]
         + [choice.driver for choice in existing_choices],
     )
+    # Griglia di partenza (#183): spento chi, anche con lo sconto della Sprint
+    # Qualifying, supera i fantamilioni spendibili. Solo un aiuto visivo.
+    for option in driver_options:
+        option["over_budget"] = (
+            option["cost"] - sprint_qualifying_bonus["credit_discount"]
+            > spendable_credit
+        )
     context = {
         "championship": champ,
         "weekend": weekend,

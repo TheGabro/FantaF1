@@ -1,13 +1,15 @@
-/* FantaF1 — selezione piloti per Sprint Race e Grand Prix.
+/* FantaF1 — selezione piloti per Sprint Race e Grand Prix, dalla griglia di
+   partenza (#182, #183).
    Config via data-attribute su #race-choice-layout:
    - data-max-drivers: numero esatto di piloti da selezionare (1 sprint, 2 GP)
    - data-has-pupillo: "true" se la gara prevede il pupillo (solo GP)
    - data-qualifying-bonus-credit-discount: sconto crediti da pronostico qualifica
    - data-spendable-credit: crediti spendibili (per evidenziare lo sforamento)
-   Le righe piloti espongono i dati in data-driver-* (vedi template). Nel GP le
-   righe sono le caselle della griglia di partenza (data-grid-slot, #182): il
-   bottone è la casella intera, la stellina [data-set-pupillo] compare sulle due
-   caselle scelte e, raggiunto il limite, le altre caselle si spengono. */
+   Ogni casella della griglia ([data-driver-row]) espone i dati in data-driver-*
+   (vedi _start_grid.html): il bottone è la casella intera. Nel GP, raggiunti i
+   2 piloti, le altre caselle si spengono e sulle due scelte compare la stellina
+   [data-set-pupillo]; nella Sprint un clic su un altro pilota sostituisce la
+   scelta. */
 (function () {
   'use strict';
 
@@ -123,56 +125,41 @@
     }
   }
 
-  function refreshRows() {
+  /* Caselle della griglia: selezione fissa, limite e stellina del pupillo.
+     Con un pilota solo (Sprint) il limite non spegne niente: si sostituisce. */
+  function refreshSlots() {
+    var full = selectedIds.length >= maxDrivers;
     rows.forEach(function (row) {
       var selected = isSelected(row.dataset.driverId);
       var isPup = hasPupillo && pupilloId() === String(row.dataset.driverId);
       var button = row.querySelector('[data-select-driver]');
-      var label = row.querySelector('[data-selected-label]');
+      var overBudget = row.dataset.overBudget === 'true';
+      var off = overBudget || (maxDrivers > 1 && !selected && full);
 
-      if (row.hasAttribute('data-grid-slot')) {
-        refreshSlot(row, button, selected, isPup);
-        return;
+      row.classList.toggle('is-selected', selected);
+      row.classList.toggle('is-off', off);
+      if (button) {
+        button.disabled = off;
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        if (!overBudget) {
+          button.title = off ? 'Hai già scelto ' + maxDrivers + ' piloti: togline uno per cambiare' : '';
+        }
       }
 
-      row.classList.toggle('row-selected', selected);
-      if (button) button.textContent = selected ? 'Rimuovi' : 'Seleziona';
-      if (label) {
-        label.textContent = isPup ? '★ Pupillo' : (selected ? 'Scelto' : '—');
-        label.className = isPup || selected ? 'badge-accent' : 'badge-muted';
+      var star = row.querySelector('[data-set-pupillo]');
+      if (star) {
+        star.hidden = !(hasPupillo && selected && full);
+        star.textContent = isPup ? '★ Pupillo' : '☆ Pupillo';
+        star.setAttribute('aria-pressed', isPup ? 'true' : 'false');
+        star.classList.toggle('is-pupillo', isPup);
       }
     });
-  }
-
-  /* Casella della griglia: selezione fissa, limite e stellina del pupillo */
-  function refreshSlot(row, button, selected, isPup) {
-    var full = selectedIds.length >= maxDrivers;
-    var overBudget = row.dataset.overBudget === 'true';
-    var off = overBudget || (!selected && full);
-
-    row.classList.toggle('is-selected', selected);
-    row.classList.toggle('is-off', off);
-    if (button) {
-      button.disabled = off;
-      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      if (!overBudget) {
-        button.title = off ? 'Hai già scelto ' + maxDrivers + ' piloti: togline uno per cambiare' : '';
-      }
-    }
-
-    var star = row.querySelector('[data-set-pupillo]');
-    if (star) {
-      star.hidden = !(hasPupillo && selected && full);
-      star.textContent = isPup ? '★ Pupillo' : '☆ Pupillo';
-      star.setAttribute('aria-pressed', isPup ? 'true' : 'false');
-      star.classList.toggle('is-pupillo', isPup);
-    }
   }
 
   function refresh() {
     renderHiddenInputs();
     renderPanel();
-    refreshRows();
+    refreshSlots();
   }
 
   rows.forEach(function (row) {
@@ -184,9 +171,10 @@
         selectedIds.splice(selectedIds.indexOf(id), 1);
         if (pupilloInput && pupilloId() === id) pupilloInput.value = '';
       } else {
+        /* Nel GP le altre caselle sono già spente; nella Sprint si sostituisce */
         if (selectedIds.length >= maxDrivers) {
-          window.alert('Puoi selezionare massimo ' + maxDrivers + ' pilot' + (maxDrivers === 1 ? 'a' : 'i') + '. Rimuovine uno prima di aggiungerne un altro.');
-          return;
+          if (maxDrivers > 1) return;
+          selectedIds = [];
         }
         selectedIds.push(id);
       }

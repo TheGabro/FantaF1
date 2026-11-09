@@ -1,0 +1,58 @@
+{% comment %}
+Griglia di partenza delle scelte di gara (GP #182, Sprint #183): una casella per
+pilota nell'ordine della griglia ufficiale, due colonne sfalsate da tablet in su,
+una su mobile. La casella intera è il bottone di selezione (race-choice.js).
+
+Contesto atteso:
+  driver_options   opzioni di costs.get_race_driver_options, con .over_budget
+  with_breakdown   (opz.) true nel GP: costo griglia e costo classifica
+  with_pupillo     (opz.) true nel GP: serie del pupillo e stellina
+{% endcomment %}
+<section class="lg:col-span-2" aria-label="Griglia di partenza">
+  <ol class="start-grid">
+    {% for option in driver_options %}
+    <li class="grid-slot team-{{ option.driver.team.short_name|slugify }}{% if option.over_budget %} is-off{% endif %}"
+        data-driver-row data-grid-slot
+        data-driver-id="{{ option.driver.id }}"
+        data-driver-name="{{ option.driver.first_name }} {{ option.driver.last_name }}"
+        data-driver-team="{{ option.driver.team.short_name }}"
+        data-driver-team-slug="{{ option.driver.team.short_name|slugify }}"
+        data-driver-grid="{{ option.grid_position|default_if_none:'' }}"
+        data-driver-previous-pupillo-streak="{{ option.previous_pupillo_streak|default:0 }}"
+        data-driver-cost="{{ option.cost|default_if_none:'' }}"
+        data-driver-pupillo-cost="{{ option.pupillo_cost|default_if_none:option.cost }}"
+        data-driver-pupillo-discount="{{ option.pupillo_discount|default:0 }}"
+        data-over-budget="{{ option.over_budget|yesno:'true,false' }}">
+      <button type="button" class="grid-pick" data-select-driver aria-pressed="false"
+              aria-label="P{{ option.grid_position }} {{ option.driver.first_name }} {{ option.driver.last_name }}, {{ option.cost }} fantamilioni"
+              {% if option.over_budget %}disabled title="Fuori budget: costa più dei fantamilioni che puoi spendere"{% endif %}>
+        <span class="grid-slot-pos">P{{ option.grid_position }}</span>
+        <span class="grid-card">{% include "fantaApp/_driver_card.html" with driver=option.driver card_only=True %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="grid-driver-name">{{ option.driver.first_name }} <span class="grid-driver-last">{{ option.driver.last_name }}</span></span>
+          <span class="grid-costs">
+            {% if with_breakdown %}
+              <span>Griglia <strong>{{ option.grid_cost }}</strong></span>
+              <span>Classifica <strong>{{ option.standings_cost }}</strong></span>
+            {% else %}
+              <span>{{ option.driver.team.name }}</span>
+            {% endif %}
+          </span>
+          {% if option.over_budget %}
+            <span class="grid-note">fuori budget</span>
+          {% elif with_pupillo and option.previous_pupillo_streak %}
+            <span class="grid-note text-accent" title="Pupillo da {{ option.previous_pupillo_streak }} gare consecutive">★×{{ option.previous_pupillo_streak }} pupillo</span>
+          {% endif %}
+        </span>
+        <span class="grid-total">
+          <span class="grid-total-value">{{ option.cost }}</span>
+          <span class="grid-total-unit">FM</span>
+        </span>
+      </button>
+      {% if with_pupillo %}
+        <button type="button" class="grid-pupillo" data-set-pupillo="{{ option.driver.id }}" aria-pressed="false" hidden>☆ Pupillo</button>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
