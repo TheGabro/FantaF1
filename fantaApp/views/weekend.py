@@ -647,6 +647,13 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         [option["driver"] for option in driver_options]
         + [choice.driver for choice in existing_choices],
     )
+    # Griglia di partenza (#182): un pilota che anche al prezzo più basso (da
+    # pupillo e con lo sconto della qualifica) supera i fantamilioni spendibili
+    # si mostra spento. È solo un aiuto: il controllo vero resta nel servizio.
+    qualifying_discount = max(-regular_race_bonus["credit_change"], 0)
+    for option in driver_options:
+        lowest_cost = min(option["cost"], option.get("pupillo_cost", option["cost"]))
+        option["over_budget"] = lowest_cost - qualifying_discount > spendable_credit
     # La qualifica è già corsa: dalla scelta si vedono i suoi risultati (#198).
     qualifying = weekend.qualifyings.filter(type="regular").first()
     context = {

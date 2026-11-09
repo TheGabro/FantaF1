@@ -5,7 +5,10 @@
    - data-event-started: "true" per modalità sola lettura
    - data-qualifying-bonus-credit-discount: sconto crediti da pronostico qualifica
    - data-spendable-credit: crediti spendibili (per evidenziare lo sforamento)
-   Le righe piloti espongono i dati in data-driver-* (vedi template). */
+   Le righe piloti espongono i dati in data-driver-* (vedi template). Nel GP le
+   righe sono le caselle della griglia di partenza (data-grid-slot, #182): il
+   bottone è la casella intera, la stellina [data-set-pupillo] compare sulle due
+   caselle scelte e, raggiunto il limite, le altre caselle si spengono. */
 (function () {
   'use strict';
 
@@ -129,6 +132,11 @@
       var button = row.querySelector('[data-select-driver]');
       var label = row.querySelector('[data-selected-label]');
 
+      if (row.hasAttribute('data-grid-slot')) {
+        refreshSlot(row, button, selected, isPup);
+        return;
+      }
+
       row.classList.toggle('row-selected', selected);
       if (button) button.textContent = selected ? 'Rimuovi' : 'Seleziona';
       if (label) {
@@ -136,6 +144,31 @@
         label.className = isPup || selected ? 'badge-accent' : 'badge-muted';
       }
     });
+  }
+
+  /* Casella della griglia: selezione fissa, limite e stellina del pupillo */
+  function refreshSlot(row, button, selected, isPup) {
+    var full = selectedIds.length >= maxDrivers;
+    var overBudget = row.dataset.overBudget === 'true';
+    var off = overBudget || (!selected && full);
+
+    row.classList.toggle('is-selected', selected);
+    row.classList.toggle('is-off', off);
+    if (button) {
+      button.disabled = off;
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      if (!overBudget) {
+        button.title = off ? 'Hai già scelto ' + maxDrivers + ' piloti: togline uno per cambiare' : '';
+      }
+    }
+
+    var star = row.querySelector('[data-set-pupillo]');
+    if (star) {
+      star.hidden = !(hasPupillo && selected && full);
+      star.textContent = isPup ? '★ Pupillo' : '☆ Pupillo';
+      star.setAttribute('aria-pressed', isPup ? 'true' : 'false');
+      star.classList.toggle('is-pupillo', isPup);
+    }
   }
 
   function refresh() {
@@ -164,8 +197,9 @@
       });
     });
 
+    /* Pupillo: pulsanti del pannello e stelline delle caselle della griglia */
     if (hasPupillo && pupilloInput) {
-      listBox.addEventListener('click', function (event) {
+      layout.addEventListener('click', function (event) {
         var target = event.target.closest('[data-set-pupillo]');
         if (!target) return;
         var id = String(target.getAttribute('data-set-pupillo'));
