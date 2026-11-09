@@ -3533,6 +3533,54 @@ class GrandPrixStartingGridTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class SprintStartingGridTests(WeekendPagesFixture, TestCase):
+    """#183: il pilota della Sprint si sceglie dalla griglia di partenza, con il
+    solo costo e senza pupillo."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "sprint_race_choice",
+            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
+        )
+
+    def test_drivers_follow_the_starting_grid_with_one_cost(self):
+        response = self.client.get(self.url)
+
+        html = response.content.decode()
+        self.assertNotIn("<table", html)
+        self.assertIn('class="start-grid"', html)
+        self.assertLess(html.index("Smoke1"), html.index("Smoke2"))
+        self.assertNotIn("Classifica <strong>", html)
+        self.assertIn("Scuderia Smoke", html)
+        self.assertContains(
+            response, 'data-select-driver aria-pressed="false"', count=2
+        )
+        self.assertNotContains(response, "data-set-pupillo=")
+
+    def test_the_sprint_qualifying_discount_reaches_the_summary(self):
+        response = self.client.get(self.url)
+
+        discount = response.context["sprint_qualifying_bonus"]["credit_discount"]
+        self.assertContains(
+            response, f'data-qualifying-bonus-credit-discount="{discount}"'
+        )
+
+    def test_drivers_beyond_the_budget_are_switched_off(self):
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        player.available_credit = 0
+        player.save()
+
+        response = self.client.get(self.url)
+
+        expensive = [o for o in response.context["driver_options"] if o["cost"] > 0]
+        self.assertTrue(expensive)
+        self.assertTrue(all(o["over_budget"] for o in expensive))
+        self.assertContains(response, "fuori budget")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     """#195: risultati della qualifica del sabato, con il proprio pronostico."""
 
