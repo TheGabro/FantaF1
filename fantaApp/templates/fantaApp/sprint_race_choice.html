@@ -16,34 +16,16 @@
   </div>
 </div>
 
-{% if event_started %}
-  <div class="card-pad mb-5 border-accent/40">
-    <p class="font-bold text-accent">🏁 Le scelte per questa Sprint Race sono chiuse.</p>
-    <p class="mt-1 text-muted">La tua selezione resta visibile in sola lettura.</p>
-  </div>
-{% else %}
-  {% if not grid_available %}
-    <div class="card-pad mb-5 border-warn/40">
-      <p class="font-bold text-warn">La griglia sprint non è ancora disponibile.</p>
-      <p class="mt-1 text-muted">
-        Il costo di ogni pilota si calcola sulla sua posizione nella Sprint Qualifying: finché quel
-        risultato non arriva non c'è nessun prezzo da mostrare. Qui sotto trovi comunque i piloti in
-        gara, ma la scelta non si può ancora salvare.
-      </p>
-    </div>
-  {% endif %}
-  <p class="mb-5 text-muted">
-    <strong class="text-ink">Regole:</strong> scegli 1 pilota. Il costo dipende dalla posizione in griglia
-    e i crediti vengono scalati solo quando la Sprint Race parte.
-  </p>
-{% endif %}
+<p class="mb-5 text-muted">
+  <strong class="text-ink">Regole:</strong> scegli 1 pilota. Il costo dipende dalla posizione in griglia
+  e i crediti vengono scalati solo quando la Sprint Race parte.
+</p>
 
-{% if selection_open %}<form method="post">{% csrf_token %}{% endif %}
+<form method="post">{% csrf_token %}
 
 <div id="race-choice-layout"
      data-max-drivers="1"
      data-has-pupillo="false"
-     data-event-started="{{ event_started|yesno:'true,false' }}"
      data-spendable-credit="{{ spendable_credit|default:0 }}"
      class="grid items-start gap-6 lg:grid-cols-3">
 
@@ -54,7 +36,7 @@
           <th class="w-16 !text-center">Grid</th>
           <th>Pilota</th>
           <th class="!text-right">Costo</th>
-          <th class="w-32 !text-center">{% if event_started %}Stato{% else %}Azione{% endif %}</th>
+          <th class="w-32 !text-center">Azione</th>
         </tr>
       </thead>
       <tbody>
@@ -79,11 +61,7 @@
           </td>
           <td class="text-right font-black">{{ option.cost|default_if_none:"—" }}</td>
           <td class="text-center">
-            {% if selection_open %}
-              <button type="button" data-select-driver class="btn-secondary !px-3 !py-1.5 text-sm">Seleziona</button>
-            {% else %}
-              <span data-selected-label class="badge-muted">—</span>
-            {% endif %}
+            <button type="button" data-select-driver class="btn-secondary !px-3 !py-1.5 text-sm">Seleziona</button>
           </td>
         </tr>
         {% endfor %}
@@ -91,28 +69,10 @@
     </table>
   </div>
 
-  {% if not grid_available %}
-  {# Anteprima: niente pannello di calcolo, non c'è nessun costo da sommare #}
-  <aside class="card-pad lg:sticky lg:top-20">
-    <h3 class="section-title">Costo da definire</h3>
-    <p class="mt-2 text-muted">
-      Il pilota della Sprint Race si sceglie dalla griglia, che è il risultato della Sprint
-      Qualifying del venerdì. Appena viene importata, questa pagina mostra i costi e la selezione
-      si apre.
-    </p>
-    <p class="mt-3 text-muted">
-      Hai <strong class="text-ink">{{ spendable_credit }}</strong> fantamilioni spendibili.
-    </p>
-  </aside>
-  {% else %}
   <aside class="card-pad lg:sticky lg:top-20">
     <h3 class="section-title">La tua scelta</h3>
     <p class="note mt-1 mb-4">
-      {% if event_started %}
-        Selezione in sola lettura.
-      {% else %}
-        Seleziona esattamente 1 pilota dalla griglia per poter salvare.
-      {% endif %}
+      Seleziona esattamente 1 pilota dalla griglia per poter salvare.
     </p>
 
     <div id="selected-drivers-list" class="mb-4 grid gap-2"></div>
@@ -133,12 +93,9 @@
       </p>
     {% endif %}
 
-    {% if selection_open %}
-      <button id="save-selection-button" type="submit" class="btn-primary mt-4 w-full" disabled>Salva scelta</button>
-    {% endif %}
+    <button id="save-selection-button" type="submit" class="btn-primary mt-4 w-full" disabled>Salva scelta</button>
   </aside>
-  {% endif %}
 </div>
 
-{% if selection_open %}</form>{% endif %}
+</form>
 {% endblock %}

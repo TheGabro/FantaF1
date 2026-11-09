@@ -3436,6 +3436,54 @@ class GrandPrixChoiceAccessTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class SprintChoiceAccessTests(WeekendPagesFixture, TestCase):
+    """Scelta della Sprint: dopo il via porta ai risultati (#185), senza griglia
+    rimanda al weekend (#190)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c, w = self.championship.id, self.sprint_weekend.id
+        self.url = reverse("sprint_race_choice", args=[c, w, self.sprint_race.id])
+        self.results_url = reverse(
+            "sprint_race_results", args=[c, w, self.sprint_race.id]
+        )
+        self.weekend_url = reverse("weekend_details", args=[c, w])
+
+    def _start_sprint(self):
+        self.sprint_weekend.sprint_start = timezone.now() - timedelta(minutes=5)
+        self.sprint_weekend.save()
+
+    def test_opens_while_you_can_choose(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_after_the_start_goes_to_the_results(self):
+        self._start_sprint()
+
+        response = self.client.get(f"{self.url}?from=play")
+
+        self.assertRedirects(
+            response, f"{self.results_url}?from=play", fetch_redirect_response=False
+        )
+
+    def test_a_post_after_the_start_saves_nothing(self):
+        self._start_sprint()
+        driver = self.sprint_race.starting_grid.first().driver_id
+
+        response = self.client.post(self.url, {"drivers": [driver]})
+
+        self.assertRedirects(response, self.results_url, fetch_redirect_response=False)
+        self.assertFalse(self.sprint_race.playerracechoice_set.exists())
+
+    def test_without_the_grid_goes_back_to_the_weekend(self):
+        self.sprint_race.starting_grid.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, self.weekend_url, fetch_redirect_response=False)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class GrandPrixStartingGridTests(WeekendPagesFixture, TestCase):
     """#182: i piloti del GP si scelgono da una griglia di partenza, non da una tabella."""
 
