@@ -980,13 +980,9 @@ def _render_race_results_page(
     player_weekend_points = (
         player_race_result.total_points if player_race_result else None
     )
-    # Griglia di partenza in sola lettura, come controprova della scelta (#233).
-    # I costi sono ricalcolati adesso: quanto pagato davvero è nel pannello.
-    start_grid = (
-        costs.get_race_driver_options(race=race, player=player)
-        if race_type == "regular"
-        else []
-    )
+    # Griglia di partenza in sola lettura, come controprova della scelta (#233,
+    # #234). I costi sono ricalcolati adesso: quanto pagato davvero è nel pannello.
+    start_grid = costs.get_race_driver_options(race=race, player=player)
     # Colori ed etichette con la scuderia di questo weekend (#82).
     use_weekend_teams(
         weekend,

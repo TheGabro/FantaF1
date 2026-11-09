@@ -3814,17 +3814,47 @@ class GrandPrixResultsStartingGridTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, 'class="start-grid"')
         self.assertNotContains(response, 'role="tablist"')
 
-    def test_sprint_results_have_no_grid_yet(self):
-        """La Sprint ci arriva con #234."""
-        url = reverse(
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SprintResultsStartingGridTests(WeekendPagesFixture, TestCase):
+    """#234: come il GP (#233), con il solo costo e senza pupillo."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
             "sprint_race_results",
             args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
         )
+        PlayerRaceChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            race=self.sprint_race,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+            spent_amount=30,
+        )
 
-        response = self.client.get(url)
+    def test_with_results_the_grid_is_the_second_tab(self):
+        response = self.client.get(self.url)
 
-        self.assertEqual(response.context["start_grid"], [])
-        self.assertNotContains(response, 'class="start-grid"')
+        self.assertContains(response, 'href="#griglia"')
+        self.assertEqual(
+            [o["grid_position"] for o in response.context["start_grid"]], [1, 2]
+        )
+        self.assertContains(response, " is-selected", count=1)
+        self.assertNotContains(response, "Classifica <strong>")
+        self.assertNotContains(response, "grid-pupillo")
+
+    def test_during_the_sprint_only_the_grid_is_shown(self):
+        self.sprint_race.entries.all().delete()
+        self.sprint_weekend.sprint_start = timezone.now() - timedelta(hours=1)
+        self.sprint_weekend.save()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Gara in corso")
+        self.assertContains(response, 'class="start-grid"')
+        self.assertNotContains(response, 'role="tablist"')
 
 
 @override_settings(STORAGES=TEST_STORAGES)
