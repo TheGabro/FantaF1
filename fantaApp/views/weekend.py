@@ -192,12 +192,13 @@ def _origin_query(request):
 def _breadcrumb(request, championship, weekend, current=None):
     """
     Percorso in cima alle pagine del weekend (#63):
-    campionato › pagina di partenza › weekend › sessione.
-
-    Il secondo livello è la pagina da cui si è partiti (#156): Prossimo weekend
-    con ?from=play, altrimenti Calendario gare. Il link al weekend tiene il
-    parametro, così passando dalla pagina del weekend il percorso non cambia.
-    L'ultimo livello è la pagina aperta e non ha link.
+    - dal calendario: campionato › Calendario gare › weekend › sessione;
+    - da Prossimo weekend (?from=play, #156): campionato › Prossimo weekend ›
+      sessione, senza il weekend in mezzo.
+    La pagina del weekend chiude il percorso col weekend. La pagina del weekend
+    aperta da Prossimo weekend passa il parametro ai link delle sessioni, che
+    quindi riportano anch'esse a Prossimo weekend. L'ultimo livello è la pagina
+    aperta e non ha link.
     """
     origin_query = _origin_query(request)
     if origin_query:
@@ -216,17 +217,19 @@ def _breadcrumb(request, championship, weekend, current=None):
             "url": reverse("championship_dashboard", args=[championship.pk]),
         },
         origin,
-        {
-            "label": f"R{weekend.round_number} {weekend.event_name}",
-            "url": reverse("weekend_details", args=[championship.pk, weekend.pk])
-            + origin_query,
-        },
     ]
-    if current:
-        crumbs.append({"label": current, "url": None})
-    else:
-        crumbs[-1]["url"] = None
-    return crumbs
+    weekend_crumb = {
+        "label": f"R{weekend.round_number} {weekend.event_name}",
+        "url": reverse("weekend_details", args=[championship.pk, weekend.pk]),
+    }
+    if current is None:
+        weekend_crumb["url"] = None
+        return crumbs + [weekend_crumb]
+    # Da Prossimo weekend si torna lì direttamente: il weekend è già nel titolo
+    # della pagina, un livello in più allungherebbe solo la strada.
+    if origin_query:
+        return crumbs + [{"label": current, "url": None}]
+    return crumbs + [weekend_crumb, {"label": current, "url": None}]
 
 
 def _grid_preview_options(weekend):

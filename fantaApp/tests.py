@@ -3031,14 +3031,13 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, f'href="{self.choice_url}?from=play"')
         self.assertContains(response, f'href="{self.weekend_url}?from=play"')
 
-    def test_from_play_goes_through_the_next_weekend_even_after_saving(self):
+    def test_from_play_goes_straight_back_to_the_next_weekend_even_after_saving(self):
         page = self.client.get(f"{self.choice_url}?from=play")
         self.assertEqual(
             self._crumbs(page),
             [
                 ("Smoke Cup 2026", self.championship_url),
                 ("Prossimo weekend", self.play_url),
-                ("R1 GP Regular", f"{self.weekend_url}?from=play"),
                 ("Grand Prix", None),
             ],
         )
