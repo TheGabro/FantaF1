@@ -1,0 +1,14 @@
+{% comment %}
+Livelli della qualifica a slot (Q1, Q2, Top 3) con ✓ o ✗, a cascata (#196).
+
+Contesto atteso:
+  ticks   lista di (etichetta, superato), da qualifying_results._level_ticks
+{% endcomment %}
+<ul class="mt-2 flex flex-wrap gap-2">
+  {% for label, passed in ticks %}
+    <li class="{% if passed %}badge-ok{% else %}badge-muted{% endif %}">
+      <span aria-hidden="true">{% if passed %}✓{% else %}✗{% endif %}</span>
+      {{ label }}<span class="sr-only">: {% if passed %}superato{% else %}non superato{% endif %}</span>
+    </li>
+  {% endfor %}
+</ul>

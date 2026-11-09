@@ -92,7 +92,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | Disiscrizione (solo giocatori che non sono manager) | `/championships/<id>/leave/` | `championship_leave` | c'è (#160) |
 | Weekend | Dettaglio del weekend | `/championships/<id>/weekends/<id>/` | `weekend_details` | c'è |
 | | Scelte e risultati delle sessioni | `/championships/<id>/weekends/<id>/qualifying/…`, `…/race/…` | invariati | c'è |
-| | Risultati della qualifica del sabato (weekend regular) | `…/weekends/<id>/qualifying/race/<id>/results/` | `race_qualifying_results` | c'è (#195) |
+| | Risultati della qualifica del sabato (weekend regular e sprint) | `…/weekends/<id>/qualifying/race/<id>/results/` | `race_qualifying_results` | c'è (#195, #196) |
 
 Le schede del campionato sono in quest'ordine: **Gioca · Classifiche · Info** (#155), più **Gestione** per i manager (#70) e **Disiscrizione** per i giocatori che non sono manager (#160). La scheda Classifiche apre la Lega per chi gioca e la Generale per gli altri.
 

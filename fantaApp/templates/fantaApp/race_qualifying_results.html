@@ -66,7 +66,54 @@
   <aside class="card-pad {% if results %}lg:sticky lg:top-20{% else %}max-w-md{% endif %}">
     <h3 class="section-title mb-4">Il tuo pronostico</h3>
 
-    {% if pick %}
+    {% if pick and is_sprint_weekend %}
+      {% comment %}
+      Weekend sprint (#196): piloti per slot e livelli a cascata, sulla classifica
+      della qualifica (punti) e sulla griglia del GP (sconto e moltiplicatore).
+      {% endcomment %}
+      <div class="space-y-3">
+        {% for slot in pick.slots %}
+          <div>
+            <p class="label">{{ slot.label }}</p>
+            <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              {% for driver in slot.drivers %}
+                <span class="team-chip team-{{ driver.team.short_name|slugify }}">{{ driver.last_name }}</span>
+              {% empty %}
+                <span class="note">nessun pilota</span>
+              {% endfor %}
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if pick.qualifying_ticks %}
+      <div class="mt-4 border-t border-line pt-3">
+        <p class="font-semibold">In qualifica</p>
+        {% include "fantaApp/_level_ticks.html" with ticks=pick.qualifying_ticks %}
+        <div class="mt-2 flex items-center justify-between">
+          <span class="note">Punti qualifica</span>
+          <span class="text-xl font-black text-ok">{{ pick.qualifying_points }}</span>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mt-4 border-t border-line pt-3">
+        <p class="font-semibold">Sul Grand Prix <span class="note font-normal">· griglia, penalità incluse</span></p>
+        {% if pick.grid_available %}
+          {% include "fantaApp/_level_ticks.html" with ticks=pick.grid_ticks %}
+          <div class="mt-2 flex items-center justify-between">
+            <span class="note">Fantamilioni sul Grand Prix</span>
+            <span class="font-bold {% if pick.credit_discount %}text-ok{% endif %}">{% if pick.credit_discount %}sconto {{ pick.credit_discount }} FM{% else %}nessuno sconto{% endif %}</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between">
+            <span class="note">Moltiplicatore punti GP</span>
+            <span class="font-bold">×{{ pick.points_multiplier|floatformat:"-2" }}</span>
+          </div>
+        {% else %}
+          <p class="note mt-1">Sconto e moltiplicatore sul Grand Prix si conoscono con la griglia di partenza.</p>
+        {% endif %}
+      </div>
+    {% elif pick %}
       <div class="team-{{ pick.driver.team.short_name|slugify }} rounded-lg border border-line bg-surface p-3">
         <p class="team-chip">{{ pick.driver.first_name }} {{ pick.driver.last_name }}</p>
         <p class="note mt-0.5">{{ pick.driver.team.short_name }}</p>
