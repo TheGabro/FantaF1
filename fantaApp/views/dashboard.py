@@ -1062,13 +1062,21 @@ def _open_weekends(championship, player):
     pending_count = 0
     for weekend in _season_weekends(championship.year):
         all_sessions = _weekend_sessions(weekend)
+        # Una sessione senza orario non risulta mai iniziata: a GP partito conta
+        # come chiusa, o un dato mancante terrebbe aperto il weekend per sempre
+        # (#243, il dato sbagliato è #242). Senza orario del GP resta aperta.
+        gp_started = any(
+            session["has_started"]
+            for session in all_sessions
+            if session["entity"] == "race" and session["subtype"] == "regular"
+        )
         sessions = []
         for session in all_sessions:
             session["has_choice"] = (
                 session["entity"],
                 session["event"].id,
             ) in already_chosen
-            if session["has_started"]:
+            if session["has_started"] or (gp_started and session["start"] is None):
                 continue  # sessione chiusa: la scelta non è più modificabile
             if not session["has_choice"]:
                 pending_count += 1
