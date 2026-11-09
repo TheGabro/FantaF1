@@ -6,7 +6,7 @@ Contesto atteso:
   drivers          Driver ordinati per team__name, number, con gli attributi
                    annotati dalla view: .is_selected e .locked_reason
   picker_locked    true quando la griglia non è selezionabile (scelta già
-                   fatta o evento iniziato)
+                   fatta: per cambiarla serve il cestino)
 {% endcomment %}
 <div class="driver-grid{% if picker_locked %} driver-grid-locked{% endif %}">
   {% regroup drivers by team as team_groups %}

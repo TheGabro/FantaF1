@@ -804,8 +804,16 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         Qualifying, pk=event_id, weekend=weekend, type="regular"
     )
 
-    # blocco modifiche se l'evento è già iniziato (solo UI)
-    event_started = helper._event_has_started(qualifying)
+    # Dal via la scelta è chiusa: si va ai risultati, anche con una POST (#186).
+    if helper._event_has_started(qualifying):
+        if request.method == "POST":
+            messages.error(request, "La qualifica è iniziata: le scelte sono chiuse.")
+        return redirect(
+            reverse(
+                "race_qualifying_results", args=[champ.pk, weekend.pk, qualifying.pk]
+            )
+            + _origin_query(request)
+        )
 
     # Piloti già spesi in un'altra qualifica regular della stagione: restano in
     # griglia ma bloccati, con il GP in cui sono stati usati.
@@ -837,7 +845,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         .values_list("driver__team_id", flat=True)
     )
 
-    if request.method == "POST" and not event_started:
+    if request.method == "POST":
         if request.POST.get("action") == "delete":
             PlayerQualifyingChoice.objects.filter(
                 player=player, qualifying=qualifying
@@ -927,10 +935,8 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         "event": qualifying,
         "existing": existing,
         "drivers": drivers_available,  # griglia raggruppata per scuderia
-        "event_started": event_started,
-        # La griglia si spegne quando la scelta è già fatta (serve il cestino)
-        # o quando la qualifica è iniziata.
-        "picker_locked": bool(existing) or event_started,
+        # La griglia si spegne quando la scelta è già fatta (serve il cestino).
+        "picker_locked": bool(existing),
         "max_picks_per_team": max_picks_per_team,
     }
     return render(request, "fantaApp/regular_race_qualifying_choice.html", context)
