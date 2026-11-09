@@ -1,0 +1,254 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Regolamento del gioco (#81), aperto a tutti senza login: è uguale per ogni
+campionato. Tutti i numeri arrivano da `rulebook` (views/rulebook.py), cioè dalle
+tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
+{% endcomment %}
+
+{% block title %}Regolamento — Fanta F1{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="eyebrow">Il gioco</p>
+  <h1 class="page-title mt-1">Regolamento</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    Le regole valgono per tutti i campionati. Punteggi e costi sono letti dalle stesse tabelle
+    che usa il calcolo, quindi sono sempre quelli in vigore.
+  </p>
+</div>
+
+<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+  <nav class="card-pad lg:sticky lg:top-20" aria-label="Indice del regolamento">
+    <p class="label mb-2">Indice</p>
+    <ol class="space-y-2">
+      <li><a href="#weekend" class="hover:text-accent">Il weekend</a></li>
+      <li><a href="#fantamilioni" class="hover:text-accent">Fantamilioni</a></li>
+      <li><a href="#qualifiche-classico" class="hover:text-accent">Qualifiche — weekend classico</a></li>
+      <li><a href="#qualifiche-weekend-sprint" class="hover:text-accent">Qualifiche — weekend sprint</a></li>
+      <li><a href="#qualifiche-sprint" class="hover:text-accent">Qualifiche Sprint</a></li>
+      <li><a href="#gran-premio" class="hover:text-accent">Gran Premio</a></li>
+      <li><a href="#sprint" class="hover:text-accent">Sprint</a></li>
+      <li><a href="#costi" class="hover:text-accent">Costo dei piloti</a></li>
+      <li><a href="#pupillo" class="hover:text-accent">Pupillo</a></li>
+      <li><a href="#classifiche" class="hover:text-accent">Classifiche</a></li>
+    </ol>
+  </nav>
+
+  <div class="grid min-w-0 grid-cols-1 gap-6 lg:col-span-2">
+    <section id="weekend" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Il weekend</h2>
+      <p class="mt-2 text-muted">
+        In ogni weekend si fa una scelta per ciascuna sessione: nei weekend classici le Qualifiche del
+        sabato e il Gran Premio; nei weekend sprint anche le Qualifiche Sprint del venerdì e la Sprint.
+      </p>
+      <p class="mt-2 text-muted">
+        Le scelte restano modificabili fino all'orario di inizio della sessione: dal via si chiudono e
+        si possono vedere i risultati. Per Gran Premio e Sprint si sceglie dalla griglia di partenza,
+        quindi la scelta si apre quando la griglia ufficiale è disponibile.
+      </p>
+    </section>
+
+    <section id="fantamilioni" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Fantamilioni</h2>
+      <p class="mt-2 text-muted">
+        Ogni giocatore ha {{ rulebook.starting_credit }} fantamilioni per tutta la stagione. Scegliere un
+        pilota per una gara costa fantamilioni: il costo si prenota quando salvi la scelta e si scala alla
+        partenza della gara. Le qualifiche non costano nulla, ma il loro esito cambia il costo della gara
+        che segue.
+      </p>
+    </section>
+
+    <section id="qualifiche-classico" class="card scroll-mt-24">
+      <div class="px-5 pt-5">
+        <h2 class="subheading">Qualifiche del sabato — weekend classico</h2>
+        <p class="mt-2 text-muted">
+          Si pronostica il pilota che farà la pole. Ogni pilota si può scegliere una sola volta nella
+          stagione, e ogni scuderia al massimo {{ rulebook.max_picks_per_team }} volte. La posizione che
+          ottiene in qualifica vale punti per la classifica qualifiche. La posizione nella griglia di
+          partenza (penalità incluse) decide invece lo sconto o il malus sui fantamilioni del Gran Premio
+          e il moltiplicatore sui suoi punti.
+        </p>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean text-sm">
+          <thead>
+            <tr>
+              <th>Posizione del pilota scelto</th>
+              <th class="!text-right">Punti qualifica</th>
+              <th class="!text-right">Fantamilioni</th>
+              <th class="!text-right">Moltiplicatore gara</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.regular_qualifying %}
+              <tr>
+                <td class="font-semibold">P{{ rule.position }}</td>
+                <td class="text-right tabular-nums {% if rule.qualifying_points %}font-bold{% else %}text-muted{% endif %}">{{ rule.qualifying_points }}</td>
+                <td class="text-right tabular-nums {% if rule.credit_change > 0 %}text-accent{% elif rule.credit_change < 0 %}text-ok{% else %}text-muted{% endif %}">
+                  {% if rule.credit_change > 0 %}+{{ rule.credit_change }} (malus){% elif rule.credit_change < 0 %}{{ rule.credit_change }} (sconto){% else %}—{% endif %}
+                </td>
+                <td class="text-right tabular-nums {% if rule.points_multiplier == 1 %}text-muted{% else %}font-bold{% endif %}">×{{ rule.points_multiplier }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="qualifiche-weekend-sprint" class="card scroll-mt-24">
+      <div class="px-5 pt-5">
+        <h2 class="subheading">Qualifiche del sabato — weekend sprint</h2>
+        <p class="mt-2 text-muted">
+          Si pronosticano {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
+          {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3.
+          I livelli sono a scaletta: vale quello più alto raggiunto, non la somma.
+          I punti qualifica seguono la qualifica; sconto e moltiplicatore del Gran Premio seguono la
+          griglia di partenza: passa il Q1 chi parte entro la {{ rulebook.grid_q1_pass_max_position }}ª
+          casella, il Q2 entro la {{ rulebook.grid_q2_pass_max_position }}ª, la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} sono le prime caselle.
+        </p>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean text-sm">
+          <thead>
+            <tr>
+              <th>Livello raggiunto</th>
+              <th class="!text-right">Punti qualifica</th>
+              <th class="!text-right">Sconto</th>
+              <th class="!text-right">Moltiplicatore gara</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.multichoice %}
+              <tr>
+                <td>{{ rule.label }}</td>
+                <td class="text-right font-bold tabular-nums">{{ rule.qualifying_points }}</td>
+                <td class="text-right tabular-nums text-ok">−{{ rule.credit_discount }}</td>
+                <td class="text-right tabular-nums {% if rule.points_multiplier == 1 %}text-muted{% else %}font-bold{% endif %}">×{{ rule.points_multiplier }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="qualifiche-sprint" class="card scroll-mt-24">
+      <div class="px-5 pt-5">
+        <h2 class="subheading">Qualifiche Sprint del venerdì</h2>
+        <p class="mt-2 text-muted">
+          Si indica un pilota per ciascuna fascia di eliminazione. I punti vinti qui si sommano al
+          punteggio della Sprint e valgono per la classifica campionato sprint; lo sconto vale sul costo
+          della Sprint. L'esito si valuta sulla griglia di partenza della Sprint (penalità incluse).
+        </p>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean text-sm">
+          <thead>
+            <tr>
+              <th>Esito</th>
+              <th class="!text-right">Punti sulla Sprint</th>
+              <th class="!text-right">Sconto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.shootout %}
+              <tr>
+                <td>{{ rule.label }}</td>
+                <td class="text-right tabular-nums {% if rule.points_modifier %}font-bold{% else %}text-muted{% endif %}">
+                  {% if rule.points_modifier %}+{{ rule.points_modifier }}{% else %}—{% endif %}
+                </td>
+                <td class="text-right tabular-nums text-ok">−{{ rule.credit_discount }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="gran-premio" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Gran Premio</h2>
+      <p class="mt-2 text-muted">
+        Si scelgono due piloti dalla griglia di partenza e si indica quale dei due è il pupillo. Il costo
+        è la somma dei due piloti (vedi <a href="#costi" class="text-accent">Costo dei piloti</a>), più o
+        meno lo sconto o il malus delle Qualifiche del sabato.
+      </p>
+      <p class="mt-2 text-muted">
+        I punti sono i punti F1 ufficiali presi dai due piloti, moltiplicati per il moltiplicatore delle
+        Qualifiche del sabato.
+      </p>
+    </section>
+
+    <section id="sprint" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Sprint</h2>
+      <p class="mt-2 text-muted">
+        Si sceglie un pilota dalla griglia di partenza della Sprint. Il costo è quello della tabella, meno
+        lo sconto delle Qualifiche Sprint. I punti sono i punti F1 ufficiali del pilota, più quelli vinti
+        nelle Qualifiche Sprint.
+      </p>
+    </section>
+
+    <section id="costi" class="card scroll-mt-24">
+      <div class="px-5 pt-5">
+        <h2 class="subheading">Costo dei piloti</h2>
+        <p class="mt-2 text-muted">
+          Il costo dipende dalla posizione in griglia: dalla {{ rulebook.free_from_position }}ª casella in
+          giù il pilota è gratis. Nel Gran Premio chi sta nei primi posti della classifica piloti costa un
+          extra.
+        </p>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="table-clean text-sm">
+          <thead>
+            <tr>
+              <th>Posizione in griglia</th>
+              <th class="!text-right">Gran Premio</th>
+              <th class="!text-right">Sprint</th>
+              <th class="!text-right">Extra da classifica</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in rulebook.grid_costs %}
+              <tr>
+                <td class="font-semibold">P{{ rule.position }}</td>
+                <td class="text-right tabular-nums">{{ rule.regular }}</td>
+                <td class="text-right tabular-nums">{{ rule.sprint }}</td>
+                <td class="text-right tabular-nums {% if not rule.standings_extra %}text-muted{% endif %}">
+                  {% if rule.standings_extra %}+{{ rule.standings_extra }}{% else %}—{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="pupillo" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Pupillo</h2>
+      <p class="mt-2 text-muted">
+        Nel Gran Premio uno dei due piloti è il pupillo. Confermare lo stesso pupillo di weekend in weekend
+        sconta {{ rulebook.pupillo_step }} fantamilioni ogni volta, fino a un massimo di {{ rulebook.pupillo_max }}.
+      </p>
+    </section>
+
+    <section id="classifiche" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Classifiche</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Le quattro classifiche</dt>
+          <dd class="text-muted">
+            Lega e generale contano i punti delle gare. Qualifiche e campionato sprint sono due minigiochi:
+            la prima somma i punti presi in qualifica, la seconda i punti delle sole sprint (Qualifiche Sprint
+            incluse, già compresi nel totale generale).
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Magate e sucate</dt>
+          <dd class="text-muted">
+            Magata: Gran Premio da {{ rulebook.magata_points }} punti o più, le sprint non contano.
+            Sucata: gara da {{ rulebook.sucata_points }} punti o meno, sprint incluse.
+          </dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</div>
+{% endblock %}
