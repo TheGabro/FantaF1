@@ -3,6 +3,8 @@
 {% block title %}{{ weekend.event_name }} — Fanta F1{% endblock %}
 
 {% block championship_content %}
+{% include "fantaApp/_breadcrumb.html" %}
+
 <div class="mb-6 flex flex-wrap items-center gap-3">
   <span class="pos-badge !h-12 !w-12 text-base">R{{ weekend.round_number }}</span>
   <div>
@@ -51,19 +53,19 @@
           {% endif %}
 
           {% if ev.entity == "qualifying" and ev.subtype == "sprint" %}
-            <a href="{% url 'sprint_race_qualifying_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+            <a href="{% url 'sprint_race_qualifying_choice' championship.id weekend.id ev.event_id %}{{ origin_query }}" class="btn-secondary shrink-0">
               {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
             </a>
           {% elif ev.entity == "qualifying" and ev.subtype == "regular" %}
-            <a href="{% url 'race_qualifying_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+            <a href="{% url 'race_qualifying_choice' championship.id weekend.id ev.event_id %}{{ origin_query }}" class="btn-secondary shrink-0">
               {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
             </a>
           {% elif ev.entity == "race" and ev.subtype == "sprint" %}
-            <a href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+            <a href="{% url 'sprint_race_choice' championship.id weekend.id ev.event_id %}{{ origin_query }}" class="btn-secondary shrink-0">
               {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
             </a>
           {% elif ev.entity == "race" and ev.subtype == "regular" %}
-            <a href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}" class="btn-secondary shrink-0">
+            <a href="{% url 'regular_race_choice' championship.id weekend.id ev.event_id %}{{ origin_query }}" class="btn-secondary shrink-0">
               {% if ev.has_choice %}Rivedi{% else %}Scegli{% endif %}
             </a>
           {% endif %}
@@ -83,13 +85,13 @@
     <div class="space-y-3">
       {% for r in results %}
         {% if r.subtype == "sprint" %}
-          <a href="{% url 'sprint_race_results' championship.id weekend.id r.event_id %}"
+          <a href="{% url 'sprint_race_results' championship.id weekend.id r.event_id %}{{ origin_query }}"
              class="card group flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
             <span class="font-bold group-hover:text-accent">{{ r.label }}</span>
             <span class="text-muted">→</span>
           </a>
         {% else %}
-          <a href="{% url 'regular_race_results' championship.id weekend.id r.event_id %}"
+          <a href="{% url 'regular_race_results' championship.id weekend.id r.event_id %}{{ origin_query }}"
              class="card group flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
             <span class="font-bold group-hover:text-accent">{{ r.label }}</span>
             <span class="text-muted">→</span>

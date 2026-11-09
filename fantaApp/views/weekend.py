@@ -141,6 +141,9 @@ def weekend_detail(request, championship_id, weekend_id):
         {
             "championship": championship,
             "weekend": weekend,
+            "breadcrumb": _breadcrumb(request, championship, weekend),
+            # Le sessioni restano nel percorso di partenza (#63, #156).
+            "origin_query": _origin_query(request),
             "events": events,
             "results": results,
             "player": player,
@@ -175,26 +178,55 @@ def _not_enrolled_redirect(request, championship, weekend):
     )
 
 
-def _back_link(request, championship, weekend):
-    """
-    Link «indietro» delle pagine di scelta e dei risultati (#156).
+def _origin_query(request):
+    """«?from=play» se si è arrivati da Prossimo weekend, altrimenti "".
 
-    Si torna da dove si è partiti: a Prossimo weekend se il link d'ingresso
-    porta ?from=play, altrimenti alla pagina del weekend. Il parametro accetta
-    solo valori fissi, mai un indirizzo, così non si può usare per mandare
-    l'utente su un altro sito. I form fanno il POST sullo stesso indirizzo e
-    le view rimandano a request.get_full_path(), quindi il parametro resta
-    anche dopo il salvataggio.
+    Il parametro accetta solo valori fissi, mai un indirizzo, così non si può
+    usare per mandare l'utente su un altro sito. I form fanno il POST sullo
+    stesso indirizzo e le view rimandano a request.get_full_path(), quindi il
+    parametro resta anche dopo il salvataggio (#156).
     """
-    if request.GET.get("from") == "play":
-        return {
-            "url": reverse("championship_next_weekend", args=[championship.pk]),
+    return "?from=play" if request.GET.get("from") == "play" else ""
+
+
+def _breadcrumb(request, championship, weekend, current=None):
+    """
+    Percorso in cima alle pagine del weekend (#63):
+    campionato › pagina di partenza › weekend › sessione.
+
+    Il secondo livello è la pagina da cui si è partiti (#156): Prossimo weekend
+    con ?from=play, altrimenti Calendario gare. Il link al weekend tiene il
+    parametro, così passando dalla pagina del weekend il percorso non cambia.
+    L'ultimo livello è la pagina aperta e non ha link.
+    """
+    origin_query = _origin_query(request)
+    if origin_query:
+        origin = {
             "label": "Prossimo weekend",
+            "url": reverse("championship_next_weekend", args=[championship.pk]),
         }
-    return {
-        "url": reverse("weekend_details", args=[championship.pk, weekend.pk]),
-        "label": "Eventi del weekend",
-    }
+    else:
+        origin = {
+            "label": "Calendario gare",
+            "url": reverse("championship_calendar", args=[championship.pk]),
+        }
+    crumbs = [
+        {
+            "label": f"{championship.name} {championship.year}",
+            "url": reverse("championship_dashboard", args=[championship.pk]),
+        },
+        origin,
+        {
+            "label": f"R{weekend.round_number} {weekend.event_name}",
+            "url": reverse("weekend_details", args=[championship.pk, weekend.pk])
+            + origin_query,
+        },
+    ]
+    if current:
+        crumbs.append({"label": current, "url": None})
+    else:
+        crumbs[-1]["url"] = None
+    return crumbs
 
 
 def _grid_preview_options(weekend):
@@ -318,7 +350,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint Qualifying"),
         "event": qualifying,
         "slots": slots,
         "existing": existing,  # dict slot -> choice
@@ -450,7 +482,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint Race"),
         "event": race,
         "driver_options": shown_options,
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
@@ -597,7 +629,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Grand Prix"),
         "event": race,
         "driver_options": shown_options,
         "regular_race_bonus": regular_race_bonus,
@@ -727,7 +759,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifying"),
         "event": qualifying,
         "slots": slots,
         "slot_limits": slot_limits,
@@ -865,7 +897,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifying"),
         "event": qualifying,
         "existing": existing,
         "drivers": drivers_available,  # griglia raggruppata per scuderia
@@ -923,7 +955,7 @@ def _render_race_results_page(
     context = {
         "championship": champ,
         "weekend": weekend,
-        "back_link": _back_link(request, champ, weekend),
+        "breadcrumb": _breadcrumb(request, champ, weekend, f"Risultati {race_label}"),
         "event": race,
         "race_label": race_label,
         # None per chi non gioca: vede solo la classifica ufficiale.
