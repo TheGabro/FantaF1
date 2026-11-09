@@ -1,6 +1,6 @@
 {% extends 'fantaApp/base.html' %}
 
-{% block title %}Fanta F1 — Il fantasy game della Formula 1{% endblock %}
+{% block title %}Fanta F1 — Il fantagioco della Formula 1{% endblock %}
 
 {% block content %}
 <section class="py-10 sm:py-16">
@@ -11,7 +11,7 @@
     Sfida i tuoi amici<br />a ogni <span class="text-accent">weekend di gara</span>
   </h1>
   <p class="mt-4 max-w-xl text-lg text-muted">
-    Gestisci i tuoi crediti, scegli i piloti giusti dalla griglia, pronostica le qualifiche
+    Gestisci i tuoi fantamilioni, scegli i piloti giusti dalla griglia, pronostica le qualifiche
     e conquista la vetta del tuo campionato Fanta F1.
   </p>
   {% if user.is_authenticated %}
@@ -65,7 +65,7 @@
         Da te non ci serve altro: username (o email) e password, e sei di nuovo in pista.
       </p>
       <p class="mt-3 text-muted">
-        I tuoi campionati, i crediti e le scelte del prossimo weekend sono dove li hai lasciati.
+        I tuoi campionati, i fantamilioni e le scelte del prossimo weekend sono dove li hai lasciati.
       </p>
       <div class="mt-auto pt-5">
         <a href="{% url 'login' %}" class="btn-primary w-full py-3 text-base">Accedi</a>
@@ -82,7 +82,7 @@
     <span class="pos-badge mb-3 !bg-accent-soft !text-accent-strong dark:!text-accent">1</span>
     <h2 class="text-base font-bold uppercase">Scegli i piloti</h2>
     <p class="mt-2 text-muted">
-      Hai 2000 crediti a stagione: il costo di ogni pilota dipende dalla posizione in griglia
+      Hai 2000 fantamilioni a stagione: il costo di ogni pilota dipende dalla posizione in griglia
       e dalla classifica del mondiale. Spendili bene.
     </p>
   </div>
@@ -90,7 +90,7 @@
     <span class="pos-badge mb-3 !bg-accent-soft !text-accent-strong dark:!text-accent">2</span>
     <h2 class="text-base font-bold uppercase">Pronostica le qualifiche</h2>
     <p class="mt-2 text-muted">
-      Indovina gli eliminati in Q1, Q2 e la top 3: i pronostici giusti ti danno sconti sui crediti
+      Indovina gli eliminati in Q1, Q2 e la top 3: i pronostici giusti ti danno sconti sui fantamilioni
       e moltiplicatori di punti in gara.
     </p>
   </div>
@@ -99,7 +99,7 @@
     <h2 class="text-base font-bold uppercase">Punta sul pupillo</h2>
     <p class="mt-2 text-muted">
       Conferma lo stesso pilota weekend dopo weekend: il suo costo scende a ogni gara consecutiva.
-      Fedeltà premiata, fino a 20 crediti di sconto.
+      Fedeltà premiata, fino a 20 fantamilioni di sconto.
     </p>
   </div>
 </section>

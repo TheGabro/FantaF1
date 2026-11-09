@@ -17,7 +17,7 @@
       <h2 class="subheading">{{ standings_title }}</h2>
       <p class="text-muted">{{ standings_subtitle }}</p>
     </div>
-    <span class="badge-muted">{{ standings_rows|length }} giocator{{ standings_rows|length|pluralize:"e,i" }}</span>
+    <span class="badge-muted">{{ standings_rows|length }} {% if standings_rows|length == 1 %}giocatore{% else %}giocatori{% endif %}</span>
   </div>
 
   <div class="overflow-x-auto">

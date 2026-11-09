@@ -1,7 +1,7 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
 {% load static %}
 
-{% block title %}{{ weekend.event_name }} · Grand Prix — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Gran Premio — Fanta F1{% endblock %}
 
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/race-choice.js' %}"></script>{% endblock %}
 
@@ -10,7 +10,7 @@
 
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
   <div class="flex flex-wrap items-center gap-3">
-    <h2 class="heading">{{ weekend.event_name }} · <span class="text-accent">Grand Prix</span></h2>
+    <h2 class="heading">{{ weekend.event_name }} · <span class="text-accent">Gran Premio</span></h2>
     {# Sessione già conclusa del weekend (#198): ombreggiato finché mancano i risultati #}
     {% if qualifying_results.available %}
       <a href="{{ qualifying_results.url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Risultati qualifica</a>
@@ -19,15 +19,15 @@
     {% endif %}
   </div>
   <div class="flex flex-wrap items-center gap-2">
-    <span class="badge-muted">Crediti spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
-    {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} prenotati su gare future</span>{% endif %}
-    <span class="{% if regular_race_bonus.credit_change > 0 %}badge-warn{% elif regular_race_bonus.credit_change < 0 or regular_race_bonus.points_multiplier != 1 %}badge-ok{% else %}badge-muted{% endif %}">Risultato qualifica{% if regular_race_bonus.position %} (P{{ regular_race_bonus.position }}){% elif regular_race_bonus.level == "q1_pass" %} (Q1 superata){% elif regular_race_bonus.level == "q2_pass" %} (Q2 superata){% elif regular_race_bonus.level == "q3_top3" %} (top 3 centrata){% endif %}: {% if regular_race_bonus.credit_change < 0 %}sconto {% widthratio regular_race_bonus.credit_change 1 -1 %} cr{% elif regular_race_bonus.credit_change > 0 %}malus +{{ regular_race_bonus.credit_change }} cr{% elif regular_race_bonus.position or regular_race_bonus.level != "none" %}nessuna variazione di costo{% else %}nessuno{% endif %}{% if regular_race_bonus.points_multiplier != 1 %} · punti ×{{ regular_race_bonus.points_multiplier }}{% endif %}</span>
+    <span class="badge-muted">Fantamilioni spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
+    {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} FM prenotati su gare future</span>{% endif %}
+    <span class="{% if regular_race_bonus.credit_change > 0 %}badge-warn{% elif regular_race_bonus.credit_change < 0 or regular_race_bonus.points_multiplier != 1 %}badge-ok{% else %}badge-muted{% endif %}">Risultato qualifica{% if regular_race_bonus.position %} (P{{ regular_race_bonus.position }}){% elif regular_race_bonus.level == "q1_pass" %} (Q1 superata){% elif regular_race_bonus.level == "q2_pass" %} (Q2 superata){% elif regular_race_bonus.level == "q3_top3" %} (top 3 centrata){% endif %}: {% if regular_race_bonus.credit_change < 0 %}sconto {% widthratio regular_race_bonus.credit_change 1 -1 %} FM{% elif regular_race_bonus.credit_change > 0 %}malus +{{ regular_race_bonus.credit_change }} FM{% elif regular_race_bonus.position or regular_race_bonus.level != "none" %}nessuna variazione di costo{% else %}nessuno{% endif %}{% if regular_race_bonus.points_multiplier != 1 %} · punti ×{{ regular_race_bonus.points_multiplier }}{% endif %}</span>
   </div>
 </div>
 
 <p class="mb-5 text-muted">
   <strong class="text-ink">Regole:</strong> scegli 2 piloti dalla griglia e indica quale dei due è il tuo pupillo.
-  Confermando lo stesso pupillo per weekend consecutivi il suo costo cala di 5 crediti a gara, fino a −20.
+  Confermando lo stesso pupillo per weekend consecutivi il suo costo cala di 5 fantamilioni a gara, fino a −20.
 </p>
 
 <form method="post">{% csrf_token %}
@@ -50,10 +50,10 @@
     <div id="selected-drivers-list" class="mb-4 grid gap-2"></div>
 
     <dl class="space-y-1.5 border-t border-line pt-3">
-      <div class="flex justify-between"><dt class="text-muted">Costo scelte</dt><dd class="font-bold"><span id="selected-drivers-cost">0</span> cr</dd></div>
-      <div class="flex justify-between"><dt class="text-muted">Modificatore qualifica</dt><dd class="font-bold {% if regular_race_bonus.credit_change < 0 %}text-ok{% elif regular_race_bonus.credit_change > 0 %}text-accent{% endif %}">{% if regular_race_bonus.credit_change < 0 %}−{% widthratio regular_race_bonus.credit_change 1 -1 %} cr{% elif regular_race_bonus.credit_change > 0 %}+{{ regular_race_bonus.credit_change }} cr{% else %}—{% endif %}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Costo scelte</dt><dd class="font-bold"><span id="selected-drivers-cost">0</span> FM</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Modificatore qualifica</dt><dd class="font-bold {% if regular_race_bonus.credit_change < 0 %}text-ok{% elif regular_race_bonus.credit_change > 0 %}text-accent{% endif %}">{% if regular_race_bonus.credit_change < 0 %}−{% widthratio regular_race_bonus.credit_change 1 -1 %} FM{% elif regular_race_bonus.credit_change > 0 %}+{{ regular_race_bonus.credit_change }} FM{% else %}—{% endif %}</dd></div>
       <div class="flex justify-between"><dt class="text-muted">Sconto pupillo</dt><dd class="font-bold" id="selected-pupillo-discount">—</dd></div>
-      <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> cr</dd></div>
+      <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> FM</dd></div>
     </dl>
 
     <div id="selected-drivers-inputs">
@@ -65,7 +65,7 @@
 
     {% if existing_choices %}
       <p class="mt-3 text-sm {% if existing_choices.0.credit_applied %}font-semibold text-ok{% else %}text-muted{% endif %}">
-        {% if existing_choices.0.credit_applied %}✓ Crediti già scalati.{% else %}Crediti non ancora scalati: verranno addebitati alla partenza.{% endif %}
+        {% if existing_choices.0.credit_applied %}✓ Fantamilioni già scalati.{% else %}Fantamilioni non ancora scalati: verranno addebitati alla partenza.{% endif %}
       </p>
     {% endif %}
 

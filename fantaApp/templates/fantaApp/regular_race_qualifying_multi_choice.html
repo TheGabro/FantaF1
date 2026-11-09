@@ -2,7 +2,7 @@
 {% load static %}
 {% load dict_extras %}
 
-{% block title %}{{ weekend.event_name }} · Qualifying — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Qualifiche — Fanta F1{% endblock %}
 
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/select-dedupe.js' %}"></script>{% endblock %}
 
@@ -10,7 +10,7 @@
 {% include "fantaApp/_breadcrumb.html" %}
 
 <div class="mb-2 flex flex-wrap items-center gap-3">
-  <h2 class="heading">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+  <h2 class="heading">{{ weekend.event_name }} · <span class="text-accent">Qualifiche</span></h2>
   {# Sessioni già concluse del weekend (#200): ombreggiato finché mancano i risultati #}
   {% if sprint_results.available %}
     <a href="{{ sprint_results.url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Risultati Sprint</a>
@@ -21,7 +21,7 @@
 
 <p class="mb-5 text-muted">
   <strong class="text-ink">Regole:</strong> pronostica i piloti che passeranno il Q1 (fino a 6), quelli che passeranno il Q2 (fino a 5) e la top 3 del Q3.
-  Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti crediti e moltiplicatori punti sul Grand Prix.
+  Nessun pilota può comparire più di una volta. I pronostici corretti danno sconti in fantamilioni e moltiplicatori dei punti sul Gran Premio.
 </p>
 
 <form method="post">{% csrf_token %}

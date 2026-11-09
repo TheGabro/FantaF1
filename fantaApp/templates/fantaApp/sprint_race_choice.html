@@ -1,7 +1,7 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
 {% load static %}
 
-{% block title %}{{ weekend.event_name }} · Sprint Race — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Sprint — Fanta F1{% endblock %}
 
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/race-choice.js' %}"></script>{% endblock %}
 
@@ -9,16 +9,16 @@
 {% include "fantaApp/_breadcrumb.html" %}
 
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-  <h2 class="heading">{{ weekend.event_name }} · <span class="text-warn">Sprint Race</span></h2>
+  <h2 class="heading">{{ weekend.event_name }} · <span class="text-warn">Sprint</span></h2>
   <div class="flex flex-wrap items-center gap-2">
-    <span class="badge-muted">Crediti spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
-    {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} prenotati su altre Sprint future</span>{% endif %}
+    <span class="badge-muted">Fantamilioni spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
+    {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} FM prenotati su altre Sprint future</span>{% endif %}
   </div>
 </div>
 
 <p class="mb-5 text-muted">
   <strong class="text-ink">Regole:</strong> scegli 1 pilota. Il costo dipende dalla posizione in griglia
-  e i crediti vengono scalati solo quando la Sprint Race parte.
+  e i fantamilioni vengono scalati solo quando la Sprint parte.
 </p>
 
 <form method="post">{% csrf_token %}
@@ -42,9 +42,9 @@
 
     <dl class="space-y-1.5 border-t border-line pt-3">
       {% if sprint_qualifying_bonus.credit_discount %}
-        <div class="flex justify-between"><dt class="text-muted">Sconto Sprint Qualifying</dt><dd class="font-bold text-ok">−{{ sprint_qualifying_bonus.credit_discount }} cr</dd></div>
+        <div class="flex justify-between"><dt class="text-muted">Sconto Qualifiche Sprint</dt><dd class="font-bold text-ok">−{{ sprint_qualifying_bonus.credit_discount }} FM</dd></div>
       {% endif %}
-      <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> cr</dd></div>
+      <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> FM</dd></div>
     </dl>
 
     <div id="selected-drivers-inputs">
@@ -55,7 +55,7 @@
 
     {% if existing_choices %}
       <p class="mt-3 text-sm {% if existing_choices.0.credit_applied %}font-semibold text-ok{% else %}text-muted{% endif %}">
-        {% if existing_choices.0.credit_applied %}✓ Crediti già scalati.{% else %}Crediti non ancora scalati: verranno addebitati alla partenza.{% endif %}
+        {% if existing_choices.0.credit_applied %}✓ Fantamilioni già scalati.{% else %}Fantamilioni non ancora scalati: verranno addebitati alla partenza.{% endif %}
       </p>
     {% endif %}
 

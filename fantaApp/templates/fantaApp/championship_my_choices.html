@@ -135,7 +135,7 @@
 {% if skipped_weekends %}
   <div class="card-pad mt-4">
     <p class="text-muted">
-      <span class="font-semibold text-ink">{{ skipped_weekends|length }} weekend non giocat{{ skipped_weekends|length|pluralize:"o,i" }}</span>
+      <span class="font-semibold text-ink">{{ skipped_weekends|length }} {% if skipped_weekends|length == 1 %}weekend non giocato{% else %}weekend non giocati{% endif %}</span>
       — nessuna scelta registrata, nessun punto assegnato:
       {% for w in skipped_weekends %}<a href="{% url 'weekend_details' championship.id w.id %}" class="font-semibold hover:text-accent">R{{ w.round_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
     </p>

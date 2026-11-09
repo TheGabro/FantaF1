@@ -1,4 +1,4 @@
-/* FantaF1 — selezione piloti per Sprint Race e Grand Prix, dalla griglia di
+/* FantaF1 — selezione piloti per Sprint e Gran Premio, dalla griglia di
    partenza (#182, #183).
    Config via data-attribute su #race-choice-layout:
    - data-max-drivers: numero esatto di piloti da selezionare (1 sprint, 2 GP)
@@ -70,7 +70,7 @@
             '<p class="team-chip truncate">' + d.driverName + '</p>' +
             '<p class="note mt-0.5">' + d.driverTeam + ' · P' + d.driverGrid + '</p>' +
           '</div>' +
-          '<p class="shrink-0 font-black">' + cost + '<span class="note ml-1 font-semibold">cr</span></p>' +
+          '<p class="shrink-0 font-black">' + cost + '<span class="note ml-1 font-semibold">FM</span></p>' +
         '</div>' +
         action +
       '</div>'
@@ -114,7 +114,7 @@
     if (pupilloDiscountEl) {
       var pupRow = isSelected(pupilloId()) ? rowById(pupilloId()) : null;
       var pupDiscount = pupRow ? Number(pupRow.dataset.driverPupilloDiscount || 0) : 0;
-      pupilloDiscountEl.textContent = pupDiscount ? '−' + pupDiscount + ' cr' : '—';
+      pupilloDiscountEl.textContent = pupDiscount ? '−' + pupDiscount + ' FM' : '—';
       pupilloDiscountEl.classList.toggle('text-ok', pupDiscount > 0);
     }
 

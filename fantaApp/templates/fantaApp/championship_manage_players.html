@@ -20,7 +20,7 @@
       <section class="card">
         <div class="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 class="subheading">{{ league.name }}</h2>
-          <span class="badge-muted">{{ players|length }} giocator{{ players|length|pluralize:"e,i" }}</span>
+          <span class="badge-muted">{{ players|length }} {% if players|length == 1 %}giocatore{% else %}giocatori{% endif %}</span>
         </div>
 
         {% if players %}

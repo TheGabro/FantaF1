@@ -1,14 +1,14 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
 {% load static %}
 
-{% block title %}{{ weekend.event_name }} · Qualifying — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Qualifiche — Fanta F1{% endblock %}
 
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/confirm-submit.js' %}"></script>{% endblock %}
 
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-accent">Qualifying</span></h2>
+<h2 class="heading mb-2">{{ weekend.event_name }} · <span class="text-accent">Qualifiche</span></h2>
 
 <p class="mb-5 text-muted">
   <strong class="text-ink">Regole:</strong> pronostica il pilota che farà la pole position.

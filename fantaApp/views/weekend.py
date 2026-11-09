@@ -260,7 +260,7 @@ def sprint_qualifying_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint Qualifying"),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifiche Sprint"),
         "event": qualifying,
         "slots": slots,
         "existing": existing,  # dict slot -> choice
@@ -347,7 +347,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
 
         if len(submitted_driver_ids) != 1:
             messages.error(
-                request, "Devi selezionare esattamente 1 pilota per la Sprint Race."
+                request, "Devi selezionare esattamente 1 pilota per la Sprint."
             )
             return redirect(request.get_full_path())
 
@@ -384,7 +384,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
             )
             messages.success(
                 request,
-                f"Scelte salvate con successo. Costo totale prenotato: {total_spent_amount} crediti.",
+                f"Scelte salvate con successo. Costo totale prenotato: {total_spent_amount} fantamilioni.",
             )
         except ValidationError as e:
             messages.error(request, e.message)
@@ -413,7 +413,7 @@ def sprint_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint Race"),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Sprint"),
         "event": race,
         "driver_options": driver_options,
         "sprint_qualifying_bonus": sprint_qualifying_bonus,
@@ -440,7 +440,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     # Dal via la scelta è chiusa: si va ai risultati, anche con una POST (#184).
     if helper._event_has_started(race):
         if request.method == "POST":
-            messages.error(request, "Il Grand Prix è iniziato: le scelte sono chiuse.")
+            messages.error(request, "Il Gran Premio è iniziato: le scelte sono chiuse.")
         return redirect(
             reverse("regular_race_results", args=[champ.pk, weekend.pk, race.pk])
             + _origin_query(request)
@@ -449,7 +449,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     if not RaceStartingGrid.objects.filter(race=race).exists():
         messages.info(
             request,
-            "La griglia del Grand Prix non è ancora disponibile: "
+            "La griglia del Gran Premio non è ancora disponibile: "
             "la scelta si apre quando arriva.",
         )
         return redirect(
@@ -476,7 +476,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
 
         if len(submitted_driver_ids) != 2:
             messages.error(
-                request, "Devi selezionare esattamente 2 piloti per il Grand Prix."
+                request, "Devi selezionare esattamente 2 piloti per il Gran Premio."
             )
             return redirect(request.get_full_path())
 
@@ -509,7 +509,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
         if any(driver_id not in options_by_driver_id for driver_id in selected_ids):
             messages.error(
                 request,
-                "La griglia del Grand Prix non e' ancora disponibile per i piloti selezionati.",
+                "La griglia del Gran Premio non è ancora disponibile per i piloti selezionati.",
             )
             return redirect(request.get_full_path())
 
@@ -528,29 +528,29 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
             credit_change = result["qualifying_bonus_credit_change"]
             credit_msg = ""
             if credit_change < 0:
-                credit_msg = f"Sconto qualifica: {abs(credit_change)} crediti."
+                credit_msg = f"Sconto qualifica: {abs(credit_change)} fantamilioni."
             elif credit_change > 0:
-                credit_msg = f"Malus qualifica: +{credit_change} crediti."
+                credit_msg = f"Malus qualifica: +{credit_change} fantamilioni."
 
             if result["pupillo_discount"] and credit_msg:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} fantamilioni. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} fantamilioni.",
                 )
             elif result["pupillo_discount"]:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} crediti. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Sconto pupillo applicato: {result['pupillo_discount']} fantamilioni. Costo totale prenotato: {result['total_spent_amount']} fantamilioni.",
                 )
             elif credit_msg:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. {credit_msg} Costo totale prenotato: {result['total_spent_amount']} fantamilioni.",
                 )
             else:
                 messages.success(
                     request,
-                    f"Scelte salvate con successo. Costo totale prenotato: {result['total_spent_amount']} crediti.",
+                    f"Scelte salvate con successo. Costo totale prenotato: {result['total_spent_amount']} fantamilioni.",
                 )
         except ValidationError as e:
             messages.error(request, e.message)
@@ -581,7 +581,7 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     context = {
         "championship": champ,
         "weekend": weekend,
-        "breadcrumb": _breadcrumb(request, champ, weekend, "Grand Prix"),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Gran Premio"),
         "event": race,
         "qualifying_results": qualifying
         and {
@@ -724,7 +724,7 @@ def sprint_weekend_race_qualifying_choice(request, player, champ, weekend, event
     context = {
         "championship": champ,
         "weekend": weekend,
-        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifying"),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifiche"),
         "event": qualifying,
         "slots": slots,
         "slot_limits": slot_limits,
@@ -888,7 +888,7 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
     context = {
         "championship": champ,
         "weekend": weekend,
-        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifying"),
+        "breadcrumb": _breadcrumb(request, champ, weekend, "Qualifiche"),
         "event": qualifying,
         "existing": existing,
         "drivers": drivers_available,  # griglia raggruppata per scuderia
@@ -987,7 +987,7 @@ def sprint_race_results(request, championship_id, weekend_id, event_id):
         weekend_id,
         event_id,
         race_type="sprint",
-        race_label="Sprint Race",
+        race_label="Sprint",
     )
 
 
@@ -999,5 +999,5 @@ def regular_race_results(request, championship_id, weekend_id, event_id):
         weekend_id,
         event_id,
         race_type="regular",
-        race_label="Grand Prix",
+        race_label="Gran Premio",
     )

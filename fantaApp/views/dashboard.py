@@ -481,34 +481,40 @@ _SEASON_STANDINGS_GROUPS = (
 
 
 def _season_standings_legend(total_races, remaining_races):
+    # Singolare e plurale per intero (#101): «le 1 gare» non si scrive.
+    if total_races == 1:
+        projection = "Punti attuali rapportati all'unica gara della stagione."
+    else:
+        projection = f"Punti attuali rapportati alle {total_races} gare della stagione, sul ritmo tenuto finora."
+    if remaining_races > 1:
+        budget = (
+            f"Fantamilioni rimasti diviso le {remaining_races} gare ancora da correre. "
+            "Non tiene conto delle prenotazioni già fatte."
+        )
+    elif remaining_races == 1:
+        budget = (
+            "Fantamilioni rimasti per l'unica gara ancora da correre. "
+            "Non tiene conto delle prenotazioni già fatte."
+        )
+    else:
+        budget = "Non disponibile: non ci sono più gare da correre in questa stagione."
     return (
-        {
-            "term": "Proiezione",
-            "description": f"Punti attuali rapportati alle {total_races} gare della stagione, sul ritmo tenuto finora.",
-        },
+        {"term": "Proiezione", "description": projection},
         {
             "term": "Media spesa",
             "description": "Fantamilioni spesi diviso le gare già disputate dal giocatore.",
         },
-        {
-            "term": "Budget/gara",
-            "description": (
-                f"Fantamilioni rimasti diviso le {remaining_races} gare ancora da correre. "
-                "Non tiene conto delle prenotazioni già fatte."
-                if remaining_races
-                else "Non disponibile: non ci sono più gare da correre in questa stagione."
-            ),
-        },
+        {"term": "Budget/gara", "description": budget},
         {
             "term": "Magate e sucate",
             "description": (
-                f"Grand Prix da {MAGATA_POINTS} punti o più (le sprint non contano) "
+                f"Gran Premio da {MAGATA_POINTS} punti o più (le sprint non contano) "
                 f"e gare da {SUCATA_POINTS} punti o meno."
             ),
         },
         {
             "term": "Punti qualifica",
-            "description": "Non entrano in questo totale: hanno una classifica loro, nella tab Qualifiche.",
+            "description": "Non entrano in questo totale: hanno una classifica loro, nella scheda Qualifiche.",
         },
     )
 
@@ -716,13 +722,13 @@ def championship_qualifying_standings(request, championship_id):
         show_league_column=True,
         legend=(
             {
-                "term": "Weekend regular",
+                "term": "Weekend classico",
                 "description": "Punti in base alla posizione del pilota scelto: 10 al P16, 100 al P10, 1000 alla pole.",
             },
             {
                 "term": "Weekend sprint",
                 "description": (
-                    f"Punti in base al livello raggiunto col multichoice: "
+                    f"Punti in base al livello raggiunto dal pronostico: "
                     f"{rules.QUALIFYING_MULTICHOICE_BONUS_RULES['q1_pass']['qualifying_points']} col Q1, "
                     f"{rules.QUALIFYING_MULTICHOICE_BONUS_RULES['q2_pass']['qualifying_points']} col Q2, "
                     f"{rules.QUALIFYING_MULTICHOICE_BONUS_RULES['q3_top3']['qualifying_points']} con l'en plein sulla top 3."
@@ -735,8 +741,8 @@ def championship_qualifying_standings(request, championship_id):
             {
                 "term": "Da sapere",
                 "description": (
-                    "Questi punti non entrano nel totale della classifica generale ed è un minigioco a sé. "
-                    "Sono ricalcolati a ogni caricamento dalle tabelle del regolamento, non salvati a database."
+                    "Questi punti non entrano nel totale della classifica generale: sono un minigioco a sé. "
+                    "Si ricalcolano a ogni apertura della pagina con le tabelle del regolamento."
                 ),
             },
         ),
@@ -795,7 +801,7 @@ def championship_sprint_standings(request, championship_id):
         request,
         context,
         title="Classifica campionato sprint",
-        subtitle="Solo le sprint: shootout del venerdì e sprint race",
+        subtitle="Solo le sprint: Qualifiche Sprint del venerdì e gara Sprint",
         groups=(
             {
                 "label": "Punti sprint",
@@ -808,7 +814,7 @@ def championship_sprint_standings(request, championship_id):
                     },
                     {"label": "Punti FIA", "key": "fia_points", "kind": "soft"},
                     {
-                        "label": "Bonus shootout",
+                        "label": "Bonus Qualifiche Sprint",
                         "key": "bonus",
                         "kind": "soft",
                         "tone": "ok",
@@ -829,12 +835,12 @@ def championship_sprint_standings(request, championship_id):
         legend=(
             {
                 "term": "Punti FIA",
-                "description": "Punti ufficiali presi in sprint race dai piloti schierati.",
+                "description": "Punti ufficiali presi nella Sprint dai piloti schierati.",
             },
             {
-                "term": "Bonus shootout",
+                "term": "Bonus Qualifiche Sprint",
                 "description": (
-                    "Punti aggiunti dal pronostico sullo sprint qualifying: "
+                    "Punti aggiunti dal pronostico sulle Qualifiche Sprint: "
                     "+1 indovinando la fascia 11-15, +2 indovinando la 6-10."
                 ),
             },
@@ -959,25 +965,25 @@ def championship_calendar(request, championship_id):
 #  Sessioni di un weekend
 # ───────────────────────────────────────────────────────────────────────────────
 # Ordine di svolgimento in pista, con la pagina di scelta e quella dei risultati
-# (None: la Sprint Qualifying non ha ancora la sua pagina, #197).
+# (None: le Qualifiche Sprint non hanno ancora la loro pagina, #197).
 # Rispecchia l'elenco costruito in views.weekend.weekend_detail.
 _SESSION_SPECS = (
     (
         "qualifyings",
         "sprint",
-        "Sprint Qualifying",
+        "Qualifiche Sprint",
         "sprint_race_qualifying_choice",
         None,
     ),
-    ("races", "sprint", "Sprint Race", "sprint_race_choice", "sprint_race_results"),
+    ("races", "sprint", "Sprint", "sprint_race_choice", "sprint_race_results"),
     (
         "qualifyings",
         "regular",
-        "Qualifying",
+        "Qualifiche",
         "race_qualifying_choice",
         "race_qualifying_results",
     ),
-    ("races", "regular", "Grand Prix", "regular_race_choice", "regular_race_results"),
+    ("races", "regular", "Gran Premio", "regular_race_choice", "regular_race_results"),
 )
 
 
@@ -1183,6 +1189,18 @@ def _choice_counts(championship, player, sessions):
     return {"league_size": len(league_players), "total": len(players)}
 
 
+# Nomi degli slot come nelle pagine di scelta: le etichette del modello sono in
+# inglese («Pass Q1», «Out in SQ1») e il backend resta in inglese (#101).
+_CHOICE_SLOT_LABELS = {
+    "q1_pass": "Passano il Q1",
+    "q2_pass": "Passano il Q2",
+    "q3_top3": "Top 3 in Q3",
+    "sq1": "SQ1 – eliminato",
+    "sq2": "SQ2 – eliminato",
+    "sq3": "SQ3 – posizione 6‑10",
+}
+
+
 @login_required
 def championship_my_choices(request, championship_id):
     """Sezione riepilogo: scelte effettuate e punti ottenuti, weekend per weekend."""
@@ -1231,7 +1249,7 @@ def championship_my_choices(request, championship_id):
         ):
             (
                 slots_by_qualifying[choice.qualifying_id]
-                .setdefault(choice.get_selection_slot_display(), [])
+                .setdefault(_CHOICE_SLOT_LABELS[choice.selection_slot], [])
                 .append(choice)
             )
 
