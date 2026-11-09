@@ -3369,6 +3369,73 @@ class GrandPrixResultsStateTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class GrandPrixChoiceAccessTests(WeekendPagesFixture, TestCase):
+    """Scelta del GP: dopo il via porta ai risultati (#184), senza griglia
+    rimanda al weekend (#189), ha il pulsante dei risultati della qualifica (#198)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        c, w = self.championship.id, self.regular_weekend.id
+        self.url = reverse("regular_race_choice", args=[c, w, self.regular_race.id])
+        self.results_url = reverse(
+            "regular_race_results", args=[c, w, self.regular_race.id]
+        )
+        self.weekend_url = reverse("weekend_details", args=[c, w])
+        self.qualifying_results_url = reverse(
+            "race_qualifying_results", args=[c, w, self.regular_qualifying.id]
+        )
+
+    def _start_race(self):
+        self.regular_weekend.race_start = timezone.now() - timedelta(minutes=5)
+        self.regular_weekend.save()
+
+    def test_after_the_start_goes_to_the_results(self):
+        self._start_race()
+
+        response = self.client.get(f"{self.url}?from=play")
+
+        self.assertRedirects(
+            response, f"{self.results_url}?from=play", fetch_redirect_response=False
+        )
+
+    def test_a_post_after_the_start_saves_nothing(self):
+        self._start_race()
+        drivers = [grid.driver_id for grid in self.regular_race.starting_grid.all()]
+
+        response = self.client.post(
+            self.url, {"drivers": drivers, "pupillo_driver_id": drivers[0]}
+        )
+
+        self.assertRedirects(response, self.results_url, fetch_redirect_response=False)
+        self.assertFalse(self.regular_race.playerracechoice_set.exists())
+
+    def test_without_the_grid_goes_back_to_the_weekend(self):
+        self.regular_race.starting_grid.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, self.weekend_url, fetch_redirect_response=False)
+        self.assertIn(
+            "non è ancora disponibile",
+            str(list(messages.get_messages(response.wsgi_request))[0]),
+        )
+
+    def test_links_to_the_qualifying_results(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.qualifying_results_url}"')
+
+    def test_qualifying_results_button_is_greyed_out_without_results(self):
+        self.regular_qualifying.qualifying_entries.all().delete()
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, f'href="{self.qualifying_results_url}"')
+        self.assertContains(response, 'aria-disabled="true"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     """#195: risultati della qualifica del sabato, con il proprio pronostico."""
 
