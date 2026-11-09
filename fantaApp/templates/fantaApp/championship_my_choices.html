@@ -9,17 +9,17 @@
       <div class="stat-cell">
         <p class="stat-label">Punti dai weekend</p>
         <p class="stat-value">{{ season_points|floatformat:"-2" }}</p>
-        <p class="mt-2 text-sm text-muted">In classifica: <span class="font-semibold text-ink">{{ current_championship_player.total_score }}</span></p>
+        <p class="note mt-2">In classifica: <span class="font-semibold text-ink">{{ current_championship_player.total_score }}</span></p>
       </div>
       <div class="stat-cell">
         <p class="stat-label">Fantamilioni spesi</p>
         <p class="stat-value">{{ season_spent }}</p>
-        <p class="mt-2 text-sm text-muted">Su gare già disputate</p>
+        <p class="note mt-2">Su gare già disputate</p>
       </div>
       <div class="stat-cell">
         <p class="stat-label">Weekend giocati</p>
         <p class="stat-value">{{ played_count }}</p>
-        <p class="mt-2 text-sm text-muted">Stagione {{ championship.year }}</p>
+        <p class="note mt-2">Stagione {{ championship.year }}</p>
       </div>
     </div>
   </div>
@@ -34,7 +34,7 @@
         <span class="pos-badge shrink-0 !h-11 !w-11 text-base">R{{ item.weekend.round_number }}</span>
         <div class="min-w-0 flex-1">
           <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
-          <p class="truncate text-sm text-muted">
+          <p class="note truncate">
             {{ item.weekend.circuit.name }}{% if item.weekend.race_start %} · {{ item.weekend.race_start|date:"j M Y"|lower }}{% endif %}
           </p>
         </div>
@@ -49,7 +49,7 @@
           {% if item.is_scored %}
             <p class="text-3xl font-black leading-none tabular-nums text-accent">{{ item.points|floatformat:"-2" }}</p>
           {% else %}
-            <p class="text-sm font-semibold text-muted">non ancora calcolati</p>
+            <p class="note font-semibold">non ancora calcolati</p>
           {% endif %}
         </div>
       </div>
@@ -61,7 +61,7 @@
               <span class="mt-1 h-8 w-1.5 shrink-0 rounded-full {% if s.subtype == 'sprint' %}bg-warn{% else %}bg-accent{% endif %}"></span>
 
               <div class="min-w-0 flex-1 space-y-2">
-                <h4 class="text-sm font-bold uppercase tracking-wide text-muted">{{ s.label }}</h4>
+                <h4 class="section-title">{{ s.label }}</h4>
 
                 {# Gara: piloti scelti con costo, pupillo evidenziato #}
                 {% if s.choices %}
@@ -70,7 +70,7 @@
                       <span class="flex items-center gap-2">
                         <span class="team-chip team-{{ c.driver.team.short_name|slugify }} text-lg">{{ c.driver.first_name }} {{ c.driver.last_name }}</span>
                         {% if c.is_pupillo %}<span class="badge-accent">Pupillo</span>{% endif %}
-                        <span class="text-sm tabular-nums text-muted">{{ c.spent_amount }} FM</span>
+                        <span class="note tabular-nums">{{ c.spent_amount }} FM</span>
                       </span>
                     {% endfor %}
                   </div>
@@ -79,7 +79,7 @@
                 {# Qualifica: una riga per slot, con tutti i piloti di quello slot #}
                 {% for slot in s.slots %}
                   <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                    <span class="w-28 shrink-0 text-sm font-semibold text-muted">{{ slot.slot }}</span>
+                    <span class="note w-28 shrink-0 font-semibold">{{ slot.slot }}</span>
                     <span class="flex flex-wrap gap-x-5 gap-y-1">
                       {% for c in slot.choices %}
                         <span class="team-chip team-{{ c.driver.team.short_name|slugify }} text-lg">{{ c.driver.first_name }} {{ c.driver.last_name }}</span>
@@ -134,7 +134,7 @@
 
 {% if skipped_weekends %}
   <div class="card-pad mt-4">
-    <p class="text-sm text-muted">
+    <p class="text-muted">
       <span class="font-semibold text-ink">{{ skipped_weekends|length }} weekend non giocat{{ skipped_weekends|length|pluralize:"o,i" }}</span>
       — nessuna scelta registrata, nessun punto assegnato:
       {% for w in skipped_weekends %}<a href="{% url 'weekend_details' championship.id w.id %}" class="font-semibold hover:text-accent">R{{ w.round_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.

@@ -5,12 +5,12 @@
 {% block content %}
 <div class="mx-auto mt-6 w-full max-w-md sm:mt-12">
   <div class="card-pad sm:p-8">
-    <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Fanta F1</p>
-    <h1 class="mt-1 text-2xl font-black uppercase italic">Crea il tuo account</h1>
-    <p class="mt-1 mb-6 text-sm text-muted">Un solo account per tutti i campionati a cui ti iscrivi.</p>
+    <p class="eyebrow">Fanta F1</p>
+    <h1 class="heading mt-1">Crea il tuo account</h1>
+    <p class="mt-1 mb-6 text-muted">Un solo account per tutti i campionati a cui ti iscrivi.</p>
 
     {% if form_register.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent" role="alert">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent" role="alert">
         {% for error in form_register.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
@@ -38,7 +38,7 @@
     </form>
   </div>
 
-  <p class="mt-4 text-center text-sm text-muted">
+  <p class="mt-4 text-center text-muted">
     Hai già un account?
     <a href="{% url 'login' %}{% if next %}?next={{ next|urlencode }}{% endif %}"
        class="font-semibold text-accent hover:underline">Accedi</a>

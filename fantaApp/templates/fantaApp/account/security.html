@@ -4,11 +4,11 @@
 
 {% block account_content %}
 <section class="card-pad" aria-labelledby="security-title">
-  <h2 id="security-title" class="text-sm font-bold uppercase tracking-wide text-muted">Cambia password</h2>
-  <p class="mt-1 text-sm text-muted">Dopo il cambio resti collegato su questo dispositivo.</p>
+  <h2 id="security-title" class="section-title">Cambia password</h2>
+  <p class="mt-1 text-muted">Dopo il cambio resti collegato su questo dispositivo.</p>
 
   {% if form.non_field_errors %}
-    <div class="mt-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent" role="alert">
+    <div class="mt-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent" role="alert">
       {% for error in form.non_field_errors %}{{ error }}{% endfor %}
     </div>
   {% endif %}

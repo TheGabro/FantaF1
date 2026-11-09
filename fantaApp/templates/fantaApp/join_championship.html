@@ -4,18 +4,18 @@
 
 {% block content %}
 <div class="mx-auto w-full max-w-lg">
-  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2 text-sm">← I miei campionati</a>
+  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2">← I miei campionati</a>
 
   <div class="card-pad">
-    <p class="text-sm font-bold uppercase tracking-[0.2em] text-accent">Sei stato invitato</p>
-    <h1 class="mt-1 text-2xl font-black uppercase italic">{{ championship.name }}</h1>
-    <p class="mt-1 mb-5 text-sm text-muted">
+    <p class="eyebrow">Sei stato invitato</p>
+    <h1 class="heading mt-1">{{ championship.name }}</h1>
+    <p class="mt-1 mb-5 text-muted">
       Stagione {{ championship.year }} ·
       {{ championship.participants.count }} giocator{{ championship.participants.count|pluralize:"e,i" }}
     </p>
 
     {% if form.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent">
         {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
@@ -44,7 +44,7 @@
     </form>
   </div>
 
-  <p class="mt-4 text-center text-sm text-muted">
+  <p class="mt-4 text-center text-muted">
     Parti con 2000 crediti da spendere nelle scelte di ogni weekend.
   </p>
 </div>

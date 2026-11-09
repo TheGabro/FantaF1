@@ -4,16 +4,16 @@
 
 {% block content %}
 <div class="mx-auto w-full max-w-lg">
-  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2 text-sm">← I miei campionati</a>
+  <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2">← I miei campionati</a>
 
   <div class="card-pad">
-    <h1 class="text-xl font-black uppercase italic">Crea un nuovo campionato</h1>
-    <p class="mt-1 mb-5 text-sm text-muted">
+    <h1 class="heading">Crea un nuovo campionato</h1>
+    <p class="mt-1 mb-5 text-muted">
       Diventerai automaticamente manager del campionato. Se non specifichi nessuna lega ne verrà creata una unica.
     </p>
 
     {% if form.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-sm font-semibold text-accent">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent">
         {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
@@ -30,17 +30,17 @@
       </div>
 
       <div>
-        <label class="flex items-center gap-2 text-sm font-semibold">
+        <label class="flex items-center gap-2 font-semibold">
           {{ form.is_private }}
           <span>{{ form.is_private.label }}</span>
         </label>
-        <p class="mt-1 text-xs text-muted">{{ form.is_private.help_text }}</p>
+        <p class="note mt-1">{{ form.is_private.help_text }}</p>
         {{ form.is_private.errors }}
       </div>
 
       <div>
-        <h2 class="mb-1 text-sm font-bold uppercase tracking-wide text-muted">Leghe (opzionali)</h2>
-        <p class="mb-3 text-xs text-muted">
+        <h2 class="mb-1 section-title">Leghe (opzionali)</h2>
+        <p class="note mb-3">
           Le leghe dividono i giocatori in classifiche separate all'interno dello stesso campionato.
         </p>
         {{ formset.management_form }}
@@ -54,7 +54,7 @@
           {% endfor %}
         </div>
 
-        <button type="button" id="add-league" class="btn-ghost mt-2 text-sm">+ Aggiungi un'altra lega</button>
+        <button type="button" id="add-league" class="btn-ghost mt-2">+ Aggiungi un'altra lega</button>
 
         <template id="league-empty-form">
           <div class="form-field">{{ formset.empty_form.name }}</div>
@@ -62,11 +62,11 @@
       </div>
 
       <div class="border-t border-line pt-5">
-        <label class="flex items-center gap-2 text-sm font-semibold">
+        <label class="flex items-center gap-2 font-semibold">
           {{ form.join_as_player }}
           <span>{{ form.join_as_player.label }}</span>
         </label>
-        <p class="mt-1 text-xs text-muted">
+        <p class="note mt-1">
           Essere manager non basta per giocare: senza iscrizione non compari in classifica
           e non puoi fare scelte.
         </p>

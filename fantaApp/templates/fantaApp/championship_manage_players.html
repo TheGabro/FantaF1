@@ -19,7 +19,7 @@
     {% with players=league.participants.all %}
       <section class="card">
         <div class="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 class="text-lg font-bold">{{ league.name }}</h2>
+          <h2 class="subheading">{{ league.name }}</h2>
           <span class="badge-muted">{{ players|length }} giocator{{ players|length|pluralize:"e,i" }}</span>
         </div>
 
@@ -46,7 +46,7 @@
                           {% if manager_user_ids|length > 1 %}
                             <form method="post" action="{% url 'championship_demote_manager' championship.id player.id %}" data-confirm-submit>
                               {% csrf_token %}
-                              <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs"
+                              <button type="submit" class="btn-secondary !px-3 !py-1.5 text-sm"
                                       data-confirm-text="{% if player.user_id == request.user.id %}Vuoi lasciare il ruolo di manager? Non potrai più gestire il campionato.{% else %}Vuoi togliere a {{ player.player_name }} il ruolo di manager?{% endif %}"
                                       data-confirm-ok="Togli ruolo">
                                 Togli ruolo
@@ -57,7 +57,7 @@
                       {% else %}
                         <form method="post" action="{% url 'championship_promote_manager' championship.id player.id %}" data-confirm-submit>
                           {% csrf_token %}
-                          <button type="submit" class="btn-secondary !px-3 !py-1.5 text-xs"
+                          <button type="submit" class="btn-secondary !px-3 !py-1.5 text-sm"
                                   data-confirm-text="Vuoi rendere {{ player.player_name }} manager del campionato? Avrà i tuoi stessi poteri."
                                   data-confirm-ok="Rendi manager">
                             Rendi manager
@@ -71,7 +71,7 @@
             </table>
           </div>
         {% else %}
-          <p class="px-5 py-4 text-sm text-muted">Nessun giocatore in questa lega.</p>
+          <p class="px-5 py-4 text-muted">Nessun giocatore in questa lega.</p>
         {% endif %}
       </section>
     {% endwith %}

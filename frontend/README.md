@@ -41,6 +41,12 @@ Build continua durante lo sviluppo (ricompila a ogni modifica di template/CSS):
   Tailwind (`bg-surface`, `text-ink`, `bg-accent`, ...).
 - Colori scuderia: classi `team-<short_name slug>` (es. `team-fer`, `team-red`) che impostano la variabile `--team`,
   usata da `.team-bar` e `.team-chip`. Nei template: `team-{{ driver.team.short_name|slugify }}`.
+- Scala tipografica (#158), definita in cima ai componenti di `input.css`: testo normale a 16px (nessuna classe),
+  `.page-title`, `.heading`, `.subheading`, `.section-title`, `.eyebrow`, `.note` (14px, dati secondari),
+  `.label` (12px, etichette di dati). Pulsanti, menu, schede, form e messaggi sono già a 16px: nei template
+  `text-sm`/`text-xs` restano solo per eccezioni motivate (tabelle dense, pulsanti compatti nelle tabelle).
+- Nelle griglie a una colonna usare `grid-cols-1` (o `min-w-0` sulle card) quando dentro ci sono testi troncati o
+  tabelle: altrimenti su mobile la colonna si allarga al contenuto e la pagina scorre in orizzontale.
 
 ## Server di sviluppo isolato
 

@@ -54,8 +54,8 @@
     var action = '';
     if (!eventStarted && hasPupillo) {
       action = isPup
-        ? '<p class="mt-2 text-xs font-bold text-accent">★ Pupillo ×' + (Number(d.driverPreviousPupilloStreak || 0) + 1) + '</p>'
-        : '<button type="button" data-set-pupillo="' + d.driverId + '" class="btn-secondary mt-2 !px-3 !py-1 text-xs">Imposta come pupillo</button>';
+        ? '<p class="mt-2 text-sm font-bold text-accent">★ Pupillo ×' + (Number(d.driverPreviousPupilloStreak || 0) + 1) + '</p>'
+        : '<button type="button" data-set-pupillo="' + d.driverId + '" class="btn-secondary mt-2 !px-3 !py-1 text-sm">Imposta come pupillo</button>';
     }
 
     return (
@@ -65,9 +65,9 @@
           '<div class="min-w-0">' +
             '<p class="text-[11px] uppercase tracking-wide text-muted">Pilota ' + (index + 1) + '</p>' +
             '<p class="team-chip truncate">' + d.driverName + '</p>' +
-            '<p class="mt-0.5 text-xs text-muted">' + d.driverTeam + ' · P' + d.driverGrid + '</p>' +
+            '<p class="note mt-0.5">' + d.driverTeam + ' · P' + d.driverGrid + '</p>' +
           '</div>' +
-          '<p class="shrink-0 font-black">' + cost + '<span class="ml-1 text-xs font-semibold text-muted">cr</span></p>' +
+          '<p class="shrink-0 font-black">' + cost + '<span class="note ml-1 font-semibold">cr</span></p>' +
         '</div>' +
         action +
       '</div>'
@@ -76,7 +76,7 @@
 
   function renderPanel() {
     if (!selectedIds.length) {
-      listBox.innerHTML = '<div class="rounded-lg border border-dashed border-line p-3 text-sm text-muted">Nessun pilota selezionato.</div>';
+      listBox.innerHTML = '<div class="rounded-lg border border-dashed border-line p-3 text-muted">Nessun pilota selezionato.</div>';
     } else {
       listBox.innerHTML = selectedIds.map(function (id, i) {
         var row = rowById(id);
