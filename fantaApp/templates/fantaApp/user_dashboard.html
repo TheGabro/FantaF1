@@ -1,6 +1,9 @@
 {% extends 'fantaApp/base.html' %}
+{% load static %}
 
 {% block title %}I miei campionati — Fanta F1{% endblock %}
+
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/create-championship.js' %}"></script>{% endblock %}
 
 {% block content %}
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -17,7 +20,7 @@
     {% if is_admin or is_staff %}
       <a href="{% url 'admin:index' %}" class="btn-secondary">Pannello admin</a>
     {% endif %}
-    <a href="{% url 'create_championship' %}" class="btn-primary">+ Crea campionato</a>
+    <a href="{% url 'create_championship' %}" class="btn-primary" data-open-create-dialog>+ Crea campionato</a>
   </div>
 </div>
 
@@ -67,7 +70,7 @@
         Crea il tuo campionato e invita i tuoi amici, oppure entra in uno esistente
         col link che ti hanno mandato.
       </p>
-      <a href="{% url 'create_championship' %}" class="btn-primary mt-4">Crea un campionato</a>
+      <a href="{% url 'create_championship' %}" class="btn-primary mt-4" data-open-create-dialog>Crea un campionato</a>
     </div>
   {% endfor %}
 </div>
@@ -125,4 +128,17 @@
     {% endfor %}
   </div>
 {% endif %}
+
+{% comment %}
+Pop-up «Crea campionato» (#157): lo aprono i pulsanti data-open-create-dialog
+(create-championship.js). Se il form inviato da qui ha errori, la view
+ridisegna questa pagina col pop-up già aperto.
+{% endcomment %}
+<dialog id="create-championship-dialog" class="form-dialog" aria-labelledby="create-championship-title"{% if open_create_dialog %} open{% endif %}>
+  <div class="flex items-start justify-between gap-3">
+    <h2 id="create-championship-title" class="heading">Crea un nuovo campionato</h2>
+    <button type="button" class="btn-ghost -mr-2 -mt-1 !px-2" data-close-dialog aria-label="Chiudi">✕</button>
+  </div>
+  {% include "fantaApp/_create_championship_form.html" with form=create_form formset=create_formset in_dialog=True %}
+</dialog>
 {% endblock %}

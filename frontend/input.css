@@ -342,4 +342,13 @@
     @apply w-[min(26rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-5 text-ink shadow-xl;
   }
   .confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+
+  /* Dialog con un form (es. «Crea campionato», #157): più largo del dialog di
+     conferma e scorrevole, così i form lunghi restano usabili su mobile. */
+  .form-dialog {
+    margin: auto;
+    @apply max-h-[calc(100dvh-2rem)] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto
+      rounded-xl border border-line bg-surface p-5 text-ink shadow-xl;
+  }
+  .form-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 }

@@ -1,6 +1,6 @@
 from django import forms
 from ..models import CustomUser, Championship, League, ChampionshipPlayer
-from django.core.exceptions import ValidationError
+from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -170,6 +170,13 @@ class ChampionshipForm(forms.ModelForm):
             "name": "Nome del campionato",
             "is_private": "Campionato privato"
         }
+        # Il vincolo nome + anno sta nel modello (unique_together): qui solo il
+        # testo, così l'errore compare una volta sola e in italiano (#157).
+        error_messages = {
+            NON_FIELD_ERRORS: {
+                "unique_together": "Questo nome per il campionato è già in uso quest'anno"
+            }
+        }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -179,12 +186,6 @@ class ChampionshipForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        name = cleaned_data.get("name")
-        year = cleaned_data.get("year")
-        if Championship.objects.filter(name=name, year=year).exists():
-            raise ValidationError(
-                "Questo nome per il campionato è già in uso quest'anno"
-            )
 
         # Nome giocatore lasciato vuoto: si usa lo username. Il campionato è
         # appena nato, quindi nessun altro nome può ancora essere occupato.

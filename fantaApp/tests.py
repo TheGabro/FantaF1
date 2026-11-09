@@ -1349,6 +1349,66 @@ class CreateChampionshipTests(TestCase):
         self.assertEqual(Championship.objects.filter(name="Coppa Amici").count(), 1)
         self.assertFalse(ChampionshipPlayer.objects.filter(user=self.user).exists())
 
+    # #157: il form si apre in un pop-up di I miei campionati.
+
+    def test_dashboard_buttons_open_the_create_dialog(self):
+        response = self.client.get(reverse("user_dashboard"))
+
+        self.assertContains(response, 'id="create-championship-dialog"')
+        self.assertContains(response, 'name="from_dialog"')
+        # Senza JavaScript restano link alla pagina del form.
+        self.assertContains(
+            response,
+            f'href="{reverse("create_championship")}" class="btn-primary mt-4"'
+            " data-open-create-dialog",
+        )
+        self.assertFalse(response.context["open_create_dialog"])
+
+    def test_dialog_creation_lands_on_the_new_championship(self):
+        response = self.client.post(
+            reverse("create_championship"), self._payload(from_dialog="1")
+        )
+
+        championship = Championship.objects.get(name="Coppa Amici")
+        self.assertRedirects(
+            response,
+            reverse("championship_info", args=[championship.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_dialog_errors_reopen_the_dialog_on_the_dashboard(self):
+        Championship.objects.create(name="Coppa Amici", year=2026)
+
+        response = self.client.post(
+            reverse("create_championship"), self._payload(from_dialog="1")
+        )
+
+        self.assertTemplateUsed(response, "fantaApp/user_dashboard.html")
+        self.assertTrue(response.context["open_create_dialog"])
+        self.assertContains(
+            response, 'aria-labelledby="create-championship-title" open>'
+        )
+        # Un solo messaggio, il nostro: niente doppione del vincolo del modello.
+        self.assertEqual(
+            response.context["create_form"].non_field_errors(),
+            ["Questo nome per il campionato è già in uso quest'anno"],
+        )
+
+    def test_page_errors_stay_on_the_page(self):
+        Championship.objects.create(name="Coppa Amici", year=2026)
+
+        response = self.client.post(reverse("create_championship"), self._payload())
+
+        self.assertTemplateUsed(response, "fantaApp/create_championship.html")
+        self.assertNotContains(response, 'name="from_dialog"')
+
+    def test_create_page_has_no_inline_script(self):
+        """#67: il JavaScript del form sta in un file statico."""
+        response = self.client.get(reverse("create_championship"))
+
+        self.assertContains(response, "fantaApp/js/create-championship.js")
+        self.assertNotContains(response, "addEventListener")
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class InviteAndJoinTests(TestCase):
