@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from fantaApp.views import auth, dashboard, invites, weekend
+from fantaApp.views import auth, dashboard, invites, qualifying_results, weekend
 from fantaApp.views.account import overview as account_overview
 from fantaApp.views.account import profile as account_profile
 from fantaApp.views.account import security as account_security
@@ -165,6 +165,13 @@ urlpatterns = [
         "race/regular/<int:event_id>/results/",
         weekend.regular_race_results,
         name="regular_race_results",
+    ),
+    # 6c. Risultati della qualifica del sabato, weekend regular (#195)
+    path(
+        "championships/<int:championship_id>/weekends/<int:weekend_id>/"
+        "qualifying/race/<int:event_id>/results/",
+        qualifying_results.race_qualifying_results,
+        name="race_qualifying_results",
     ),
     # Indirizzi vecchi (prima di #89) che possono stare nei segnalibri o nelle chat:
     # portano alla pagina nuova invece di dare 404.
