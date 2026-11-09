@@ -3767,6 +3767,45 @@ class NextWeekendSessionsTests(WeekendPagesFixture, TestCase):
 
         self.assertEqual(len(few.captured_queries), len(many.captured_queries))
 
+    def _weekend_with_sprint_qualifying_without_time(self, race_start):
+        # Come R7 nel calendario di sviluppo (#242): weekend regular con una
+        # Sprint Qualifying che non ha orario.
+        weekend = Weekend.objects.create(
+            circuit=self.regular_weekend.circuit,
+            event_name="GP Senza Orario",
+            round_number=0,
+            season=2026,
+            weekend_type="regular",
+            qualifying_start=race_start and race_start - timedelta(days=1),
+            race_start=race_start,
+        )
+        Qualifying.objects.create(weekend=weekend, type="sprint")
+        Qualifying.objects.create(weekend=weekend, type="regular")
+        Race.objects.create(weekend=weekend, type="regular")
+        return weekend
+
+    def test_a_session_without_time_does_not_keep_a_past_weekend_open(self):
+        past = self._weekend_with_sprint_qualifying_without_time(
+            timezone.now() - timedelta(days=30)
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(
+            response.context["next_weekend"]["weekend"], self.regular_weekend
+        )
+        self.assertNotIn(
+            past, [w["weekend"] for w in response.context["open_weekends"]]
+        )
+
+    def test_without_the_gp_time_the_weekend_stays_open(self):
+        # Calendario non ancora completo: il weekend resta da giocare.
+        undated = self._weekend_with_sprint_qualifying_without_time(None)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.context["next_weekend"]["weekend"], undated)
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
