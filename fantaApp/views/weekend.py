@@ -952,13 +952,14 @@ def _render_race_results_page(
         "breadcrumb": _breadcrumb(request, champ, weekend, f"Risultati {race_label}"),
         "event": race,
         "race_label": race_label,
-        # Scelte di tutti i giocatori (#209): solo GP per ora (la Sprint è #204),
+        # Scelte di tutti i giocatori nella stessa gara (GP #209, Sprint #210),
         # solo per chi gioca o gestisce il campionato.
         "all_choices_url": (
-            reverse("regular_race_all_choices", args=[champ.pk, weekend.pk, race.pk])
+            reverse(
+                f"{race_type}_race_all_choices", args=[champ.pk, weekend.pk, race.pk]
+            )
             + _origin_query(request)
-            if race_type == "regular"
-            and (player or helper.is_championship_manager(request.user, champ))
+            if player or helper.is_championship_manager(request.user, champ)
             else None
         ),
         "session_state": state,
