@@ -2076,6 +2076,7 @@ class WeekendPagesFixture:
             "sprint_race_results": [c, sw, self.sprint_race.id],
             "regular_race_results": [c, rw, self.regular_race.id],
             "race_qualifying_results": [c, rw, self.regular_qualifying.id],
+            "regular_race_all_choices": [c, rw, self.regular_race.id],
         }
 
 
@@ -4113,6 +4114,121 @@ class SprintWeekendQualifyingResultsTests(WeekendPagesFixture, TestCase):
         response = self.client.get(self.url)
 
         self.assertContains(response, "Nessuna scelta per questa qualifica.")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class GrandPrixAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#203: scelte di tutti i giocatori nel GP. Prima del via solo quanti hanno
+    scelto; dal via una riga per giocatore, filtro per lega e colonne ordinabili."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "regular_race_all_choices",
+            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.me = ChampionshipPlayer.objects.get(user=self.user)
+        self.d1 = Driver.objects.get(api_id="drv-smoke-1")
+        self.d2 = Driver.objects.get(api_id="drv-smoke-2")
+        self.other_league = League.objects.create(
+            championship=self.championship, name="Altra"
+        )
+
+    def _player(self, name, league):
+        user = get_user_model().objects.create_user(
+            username=name, email=f"{name}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user, championship=self.championship, league=league, player_name=name
+        )
+
+    def _choose(self, player, spent=(30, 20)):
+        PlayerRaceChoice.objects.create(
+            player=player,
+            race=self.regular_race,
+            driver=self.d1,
+            spent_amount=spent[0],
+            is_pupillo=True,
+        )
+        PlayerRaceChoice.objects.create(
+            player=player, race=self.regular_race, driver=self.d2, spent_amount=spent[1]
+        )
+
+    def _start(self):
+        self.regular_weekend.race_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+    def test_before_the_start_only_the_count(self):
+        self._choose(self.me)
+        self._choose(self._player("bruno", self.league))
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "si vedono dal via")
+        self.assertContains(response, "<strong class=\"text-ink\">2/2</strong>")
+        self.assertNotContains(response, "Smoke2")
+        self.assertNotIn("rows", response.context)
+
+    def test_from_the_start_every_player_of_the_league(self):
+        self._start()
+        self._choose(self.me)
+        self._player("bruno", self.league)  # non ha scelto
+        self._player("carla", self.other_league)
+
+        response = self.client.get(self.url)
+
+        names = [row["player"].player_name for row in response.context["rows"]]
+        self.assertEqual(names, ["bruno", "Giocatore"])  # la propria lega
+        self.assertContains(response, "★ Pilota1 Smoke1")
+        self.assertContains(response, "Nessuna scelta")
+        self.assertContains(response, "row-selected")
+        self.assertEqual(response.context["rows"][1]["spent"], 50)
+
+    def test_all_leagues_and_sorting(self):
+        self._start()
+        self._choose(self.me, spent=(10, 0))
+        self._choose(self._player("carla", self.other_league), spent=(40, 30))
+        PlayerRaceResult.objects.create(
+            player=self.me,
+            race=self.regular_race,
+            credit_spent=10,
+            fia_points=25,
+            point_multiplier=2.0,
+            total_points=50.0,
+        )
+
+        by_spent = self.client.get(self.url + "?league=all&sort=spent")
+        by_points = self.client.get(self.url + "?league=all&sort=points")
+
+        names = lambda r: [row["player"].player_name for row in r.context["rows"]]
+        self.assertEqual(names(by_spent), ["carla", "Giocatore"])
+        # Senza punti calcolati si va in fondo.
+        self.assertEqual(names(by_points), ["Giocatore", "carla"])
+        # Pagina in italiano: virgola decimale.
+        self.assertContains(by_points, "×2,0")
+
+    def test_only_players_and_managers(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            reverse("championship_dashboard", args=[self.championship.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_queries_do_not_grow_with_the_players(self):
+        self._start()
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(self.url)
+        for n in range(3):
+            self._choose(self._player(f"extra{n}", self.league))
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
 
 
 @override_settings(STORAGES=TEST_STORAGES)
