@@ -1,0 +1,278 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Domande frequenti sul gioco (#229), aperte a tutti senza login. Le risposte seguono
+il regolamento 2026 (anche dove il sito deve ancora allinearsi, decisione del 10/11:
+penalità #152–#154, spareggi #168/#169, pupillo #165). I numeri vengono da
+`rulebook` (services/rules.py) o, dove rules.py non li ha ancora, dalla view.
+Ogni risposta porta alla sezione del regolamento che la spiega per intero.
+{% endcomment %}
+
+{% block title %}Domande frequenti — Fanta F1{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="eyebrow">Il gioco</p>
+  <h1 class="page-title mt-1">Domande frequenti</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    Le risposte brevi alle domande più comuni. Per le regole complete c'è il
+    <a href="{% url 'game_rules' %}" class="text-accent">regolamento</a>.
+  </p>
+</div>
+
+<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+  <nav class="card-pad lg:sticky lg:top-20" aria-label="Argomenti">
+    <p class="label mb-2">Argomenti</p>
+    <ol class="space-y-2">
+      <li><a href="#campionati" class="hover:text-accent">Account e campionati</a></li>
+      <li><a href="#scelte" class="hover:text-accent">Scelte e scadenze</a></li>
+      <li><a href="#fantamilioni" class="hover:text-accent">Costi e fantamilioni</a></li>
+      <li><a href="#qualifiche" class="hover:text-accent">Qualifiche</a></li>
+      <li><a href="#pupillo" class="hover:text-accent">Pupillo</a></li>
+      <li><a href="#punti" class="hover:text-accent">Punti e classifiche</a></li>
+      <li><a href="#penalita" class="hover:text-accent">Penalità</a></li>
+    </ol>
+  </nav>
+
+  <div class="grid min-w-0 grid-cols-1 gap-6 lg:col-span-2">
+    <section id="campionati" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Account e campionati</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Come entro in un campionato?</summary>
+        <p class="mt-2 text-muted">
+          Con il link d'invito o il codice che ti manda il manager del campionato: apri il link (o incolla il
+          codice in I miei campionati), scegli il tuo nome giocatore e la lega, e sei dentro.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Posso giocare in più campionati?</summary>
+        <p class="mt-2 text-muted">Sì. Scelte, fantamilioni e punti sono separati per ogni campionato.</p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa sono le leghe?</summary>
+        <p class="mt-2 text-muted">
+          Gruppi di giocatori dentro lo stesso campionato. Ogni lega ha la sua classifica; la classifica
+          generale mette insieme tutte le leghe.
+          <a href="{% url 'game_rules' %}#classifiche" class="text-accent">Classifiche →</a>
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Posso lasciare un campionato?</summary>
+        <p class="mt-2 text-muted">
+          Sì, dalla scheda Disiscrizione del campionato, se non sei un manager. Le tue scelte e i tuoi punti
+          in quel campionato vengono cancellati.
+        </p>
+      </details>
+    </section>
+
+    <section id="scelte" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Scelte e scadenze</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa devo scegliere in un weekend?</summary>
+        <p class="mt-2 text-muted">
+          Nei weekend classici le Qualifiche del sabato e due piloti per il Gran Premio, uno dei quali è il
+          pupillo. Nei weekend sprint anche le Qualifiche Sprint del venerdì e un pilota per la Sprint.
+          <a href="{% url 'game_rules' %}#weekend" class="text-accent">Il weekend →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Fino a quando posso scegliere o cambiare idea?</summary>
+        <p class="mt-2 text-muted">
+          Fino all'orario ufficiale FIA di inizio della sessione. Prima puoi modificare la scelta quante volte
+          vuoi: vale l'ultima salvata. Se la FIA sposta la partenza, la scadenza resta quella originale.
+          Dal via la scelta è chiusa e si vedono i risultati.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Perché non posso ancora scegliere il Gran Premio o la Sprint?</summary>
+        <p class="mt-2 text-muted">
+          Il costo dei piloti dipende dalla griglia di partenza ufficiale, penalità comprese: la scelta si
+          apre quando la griglia è disponibile, dopo le qualifiche.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Posso scegliere lo stesso pilota due volte nella stessa gara?</summary>
+        <p class="mt-2 text-muted">No: per il Gran Premio servono due piloti diversi, e il sito non ti fa salvare due piloti uguali.</p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Vedo le scelte degli altri giocatori?</summary>
+        <p class="mt-2 text-muted">
+          Prima del via vedi solo quanti hanno già scelto, così nessuno può copiare. Dal via di ogni sessione
+          vedi le scelte di tutti, con i fantamilioni spesi e i punti.
+        </p>
+      </details>
+    </section>
+
+    <section id="fantamilioni" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Costi e fantamilioni</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Quanti fantamilioni ho?</summary>
+        <p class="mt-2 text-muted">
+          {{ rulebook.starting_credit }} per tutta la stagione: devono bastare per tutte le gare.
+          <a href="{% url 'game_rules' %}#fantamilioni" class="text-accent">Fantamilioni →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Quanto costa un pilota?</summary>
+        <p class="mt-2 text-muted">
+          Dipende dalla posizione in griglia: nel Gran Premio da {{ rulebook.grid_costs.0.regular }} FM in pole
+          a {% with last=rulebook.grid_costs|last %}{{ last.regular }} FM in {{ last.position }}ª posizione{% endwith %},
+          poi gratis. Nel Gran Premio chi è nei primi posti del mondiale piloti costa un extra: da
+          {{ standings_extra_first }} FM per il primo a {{ standings_extra_last }} FM per il {{ standings_extra_last_position }}°;
+          nel primo GP della stagione l'extra non c'è.
+          <a href="{% url 'game_rules' %}#costi" class="text-accent">Costo dei piloti →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Quando vengono scalati i fantamilioni?</summary>
+        <p class="mt-2 text-muted">
+          Quando salvi la scelta vengono prenotati; si scalano davvero alla partenza della gara, con gli
+          sconti o i malus delle qualifiche.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">E se non ho abbastanza fantamilioni?</summary>
+        <p class="mt-2 text-muted">
+          I piloti che non puoi permetterti sono spenti nella griglia: non puoi salvare una scelta che non
+          puoi pagare. Con zero fantamilioni puoi scegliere solo piloti gratuiti.
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Le qualifiche costano?</summary>
+        <p class="mt-2 text-muted">No. Il loro esito dà uno sconto o un malus sul costo della gara che segue.</p>
+      </details>
+    </section>
+
+    <section id="qualifiche" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Qualifiche</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Come funziona la qualifica del sabato nei weekend classici?</summary>
+        <p class="mt-2 text-muted">
+          Pronostichi il pilota che farà la pole. Ogni pilota si usa una sola volta nella stagione, ogni
+          scuderia al massimo {{ rulebook.max_picks_per_team }} volte. La posizione in qualifica dà i punti
+          qualifica (∂); la posizione in griglia dà uno sconto o un malus sul Gran Premio e un moltiplicatore
+          dei suoi punti, fino a ×{{ rulebook.regular_qualifying.0.points_multiplier }} con la pole.
+          <a href="{% url 'game_rules' %}#qualifiche-classico" class="text-accent">Tabella →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">E la qualifica del sabato nei weekend sprint?</summary>
+        <p class="mt-2 text-muted">
+          Pronostichi {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
+          {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e i primi
+          {{ rulebook.multi_choice_slot_sizes.q3_top3 }} in qualsiasi ordine. Ogni livello sblocca il
+          successivo: il Q2 conta solo se hai indovinato il Q1, la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }}
+          solo se hai indovinato anche il Q2. Più livelli indovini, più crescono sconto, moltiplicatore e punti ∂.
+          <a href="{% url 'game_rules' %}#qualifiche-weekend-sprint" class="text-accent">Tabella →</a>
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa sono le Qualifiche Sprint del venerdì?</summary>
+        <p class="mt-2 text-muted">
+          È lo shootout che decide la griglia della Sprint, un evento diverso dalla qualifica del sabato. Per
+          ogni turno scegli un pilota che <strong class="text-ink">non</strong> passerà il taglio: fuori dai primi
+          {{ shootout_cuts.sq1 }} in SQ1, fuori dai primi {{ shootout_cuts.sq2 }} in SQ2, fuori dai primi
+          {{ shootout_cuts.sq3 }} in SQ3. Anche qui ogni turno sblocca il successivo. Già inserire il pronostico
+          vale uno sconto sulla Sprint; indovinando i turni lo sconto sale e si aggiungono punti alla Sprint.
+          Il bonus vale solo se scegli anche il pilota della Sprint.
+          <a href="{% url 'game_rules' %}#qualifiche-sprint" class="text-accent">Tabella →</a>
+        </p>
+      </details>
+    </section>
+
+    <section id="pupillo" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Pupillo</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cos'è il pupillo e quanto sconta?</summary>
+        <p class="mt-2 text-muted">
+          È uno dei due piloti del Gran Premio. Se confermi lo stesso pupillo di weekend in weekend, il suo
+          costo scende di {{ rulebook.pupillo_step }} FM in più ogni volta, fino a {{ rulebook.pupillo_max }} FM.
+          <a href="{% url 'game_rules' %}#pupillo" class="text-accent">Pupillo →</a>
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">E se lo sconto è più alto del costo del pupillo?</summary>
+        <p class="mt-2 text-muted">
+          La parte che avanza si toglie dal costo dell'altro pilota. Il totale del Gran Premio non scende mai
+          sotto zero, e il malus della qualifica non si può scontare.
+        </p>
+      </details>
+    </section>
+
+    <section id="punti" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Punti e classifiche</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Come si calcolano i punti?</summary>
+        <p class="mt-2 text-muted">
+          Nel Gran Premio sono i punti F1 ufficiali dei tuoi due piloti, moltiplicati per il moltiplicatore
+          della qualifica del sabato. Nella Sprint sono i punti F1 del tuo pilota più il bonus delle Qualifiche
+          Sprint; il moltiplicatore della qualifica non vale per la Sprint. Nessun punto extra per il giro più veloce.
+          <a href="{% url 'game_rules' %}#gran-premio" class="text-accent">Gran Premio →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Quali classifiche ci sono?</summary>
+        <p class="mt-2 text-muted">
+          Quattro: la classifica della tua lega, la generale con tutte le leghe, la classifica qualifiche
+          (punti ∂, un minigioco a parte) e il campionato Sprint (solo i weekend sprint).
+          <a href="{% url 'game_rules' %}#classifiche" class="text-accent">Classifiche →</a>
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa sono magate e sucate?</summary>
+        <p class="mt-2 text-muted">
+          Magata: un Gran Premio da {{ rulebook.magata_points }} punti o più. Sucata: un Gran Premio da
+          {{ rulebook.sucata_points }} punti o meno, compresi i GP con penalità. La Sprint non conta: un weekend
+          sprint con 8 punti dalla Sprint e 2 dal Gran Premio è una sucata.
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa succede a parità di punti?</summary>
+        <p class="mt-2 text-muted">
+          In lega e in generale, in quest'ordine: più punti qualifica (∂), meno sucate, più magate, più
+          fantamilioni rimasti, poi l'ordine d'iscrizione. Nel campionato Sprint: più scelte inserite per le
+          Sprint, più scelte inserite per le Qualifiche Sprint, più punti bonus delle Qualifiche Sprint, meno
+          fantamilioni spesi nelle Sprint (al netto dei bonus), più fantamilioni rimasti, poi l'ordine d'iscrizione.
+        </p>
+      </details>
+    </section>
+
+    <section id="penalita" class="card scroll-mt-24">
+      <h2 class="subheading border-b border-line px-5 py-4">Penalità</h2>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Cosa succede se non scelgo per il Gran Premio?</summary>
+        <p class="mt-2 text-muted">
+          Paghi comunque: ti viene tolta la spesa più bassa fatta da un altro giocatore del campionato per
+          quel Gran Premio, e perdi gli sconti della qualifica (il malus invece resta). Dalla
+          {{ penalty_first_points_miss }}ª scelta mancata perdi anche punti, {{ penalty_points_step }} in più
+          ogni volta: −{{ penalty_examples.0 }}, −{{ penalty_examples.1 }}, −{{ penalty_examples.2 }}… I
+          fantamilioni non vanno mai sotto zero.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">E se salto la qualifica del sabato?</summary>
+        {% with last=rulebook.regular_qualifying|last %}
+        <p class="mt-2 text-muted">
+          Nei weekend classici le prime {{ qualifying_grace }} volte della stagione sono di grazia, ma paghi
+          comunque come se il tuo pilota fosse arrivato ultimo in qualifica: +{{ last.credit_change }} FM sul
+          Gran Premio, moltiplicatore ×{{ last.points_multiplier }}, nessun punto ∂. Dalla
+          {{ qualifying_burn_from }}ª volta, oltre a questo, il pilota meglio classificato in quella qualifica
+          tra quelli che puoi ancora scegliere viene «bruciato»: conta come già usato e non potrai più
+          sceglierlo. Il malus non si sconta con il pupillo.
+        </p>
+        {% endwith %}
+        <p class="mt-2 text-muted">
+          È diverso dal Gran Premio, che ha le sue penalità (sopra). Nei weekend sprint invece la qualifica
+          del sabato, le Qualifiche Sprint e la Sprint sono facoltative: se non scegli perdi solo il bonus.
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Si può scegliere una gara che non si può pagare?</summary>
+        <p class="mt-2 text-muted">
+          No: il sito non salva una scelta che costa più dei fantamilioni che hai. Da regolamento una scelta
+          non pagabile verrebbe annullata e conterebbe come scelta mancata, con le stesse penalità.
+        </p>
+      </details>
+    </section>
+  </div>
+</div>
+{% endblock %}
