@@ -3688,6 +3688,24 @@ class SprintStartingGridTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class NextWeekendClickableNamesTests(WeekendPagesFixture, TestCase):
+    """#102: in Prossimo weekend i weekend si aprono cliccando il nome, senza
+    i pulsanti «Dettaglio weekend →» e «Apri →»."""
+
+    def test_weekend_names_open_the_weekend(self):
+        self.client.force_login(self.user)
+        c = self.championship.id
+
+        response = self.client.get(reverse("championship_next_weekend", args=[c]))
+
+        for weekend in (self.regular_weekend, self.sprint_weekend):
+            url = reverse("weekend_details", args=[c, weekend.id])
+            self.assertContains(response, f'href="{url}?from=play"')
+        self.assertNotContains(response, "Dettaglio weekend")
+        self.assertNotContains(response, "Apri →")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SaturdayQualifyingChoiceAccessTests(WeekendPagesFixture, TestCase):
     """#186: dopo il via la scelta della qualifica del sabato porta ai risultati."""
 

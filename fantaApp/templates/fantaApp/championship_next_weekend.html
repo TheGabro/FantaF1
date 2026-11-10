@@ -17,7 +17,10 @@
       <span class="pos-badge shrink-0 !h-12 !w-12 text-base">R{{ next_weekend.weekend.round_number }}</span>
       <div class="min-w-0 flex-1">
         <p class="label">Prossimo weekend</p>
-        <h2 class="heading truncate">{{ next_weekend.weekend.event_name }}</h2>
+        {# Il nome apre la pagina del weekend (#102), al posto di «Dettaglio weekend →». #}
+        <h2 class="heading truncate">
+          <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="hover:text-accent">{{ next_weekend.weekend.event_name }}</a>
+        </h2>
         <p class="truncate text-muted">{{ next_weekend.weekend.circuit.name }}</p>
       </div>
       {% if next_weekend.weekend.weekend_type == "sprint" %}<span class="badge-warn shrink-0">Sprint</span>{% endif %}
@@ -100,11 +103,6 @@
       {% endfor %}
     </ul>
 
-    <div class="border-t border-line px-5 py-3">
-      <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="btn-ghost -ml-2">
-        Dettaglio weekend →
-      </a>
-    </div>
   </section>
 
   {% if other_weekends %}
@@ -118,10 +116,13 @@
       </div>
       <ul class="divide-y divide-line">
         {% for item in other_weekends %}
-          <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+          <li>
+            {# Tutta la riga apre il weekend (#102), come le card del calendario. #}
+            <a href="{% url 'weekend_details' championship.id item.weekend.id %}?from=play"
+               class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
             <span class="pos-badge shrink-0">R{{ item.weekend.round_number }}</span>
             <div class="min-w-0 flex-1">
-              <h3 class="truncate font-semibold">{{ item.weekend.event_name }}</h3>
+              <h3 class="truncate font-semibold group-hover:text-accent">{{ item.weekend.event_name }}</h3>
               <p class="note truncate">
                 {{ item.weekend.circuit.name }}{% if item.deadline %} · dal {{ item.deadline|date:"j M"|lower }}{% endif %}
               </p>
@@ -132,7 +133,7 @@
             {% elif current_championship_player %}
               <span class="badge-ok shrink-0">✓</span>
             {% endif %}
-            <a href="{% url 'weekend_details' championship.id item.weekend.id %}?from=play" class="btn-ghost shrink-0">Apri →</a>
+            </a>
           </li>
         {% endfor %}
       </ul>
