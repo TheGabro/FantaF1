@@ -250,10 +250,19 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
       </details>
       <details class="border-b border-line px-5 py-3">
         <summary class="cursor-pointer font-semibold">E se salto la qualifica del sabato?</summary>
+        {% with last=rulebook.regular_qualifying|last %}
         <p class="mt-2 text-muted">
-          Nei weekend classici anche la qualifica del sabato ha una penalità se manca la scelta. Le
-          Qualifiche Sprint, la Sprint e la qualifica dei weekend sprint invece sono facoltative: se non scegli
-          perdi solo il bonus.
+          Nei weekend classici le prime {{ qualifying_grace }} volte della stagione sono di grazia, ma paghi
+          comunque come se il tuo pilota fosse arrivato ultimo in qualifica: +{{ last.credit_change }} FM sul
+          Gran Premio, moltiplicatore ×{{ last.points_multiplier }}, nessun punto ∂. Dalla
+          {{ qualifying_burn_from }}ª volta, oltre a questo, il pilota meglio classificato in quella qualifica
+          tra quelli che puoi ancora scegliere viene «bruciato»: conta come già usato e non potrai più
+          sceglierlo. Il malus non si sconta con il pupillo.
+        </p>
+        {% endwith %}
+        <p class="mt-2 text-muted">
+          È diverso dal Gran Premio, che ha le sue penalità (sopra). Nei weekend sprint invece la qualifica
+          del sabato, le Qualifiche Sprint e la Sprint sono facoltative: se non scegli perdi solo il bonus.
         </p>
       </details>
       <details class="px-5 py-3">

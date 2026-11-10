@@ -4,10 +4,12 @@ from ...services import rules
 from ..rulebook import rulebook
 
 # Valori del regolamento che services/rules.py non ha ancora: restano qui, in un
-# punto solo, finché il backend non li aggiunge (penalità C.3: #154; fasce delle
-# Qualifiche Sprint: #257). Poi si leggono da rules.py come il resto.
+# punto solo, finché il backend non li aggiunge (penalità del GP, C.3: #154;
+# grazia della qualifica del sabato, D.1.a.2: #153; fasce delle Qualifiche
+# Sprint: #257). Poi si leggono da rules.py come il resto.
 PENALTY_POINTS_STEP = 5
 PENALTY_FREE_MISSES = 2
+QUALIFYING_GRACE_MISSES = 2
 SPRINT_SHOOTOUT_CUTS = {"sq1": 16, "sq2": 10, "sq3": 5}
 
 
@@ -23,6 +25,8 @@ def faq(request):
             "penalty_points_step": PENALTY_POINTS_STEP,
             "penalty_first_points_miss": PENALTY_FREE_MISSES + 1,
             "penalty_examples": [PENALTY_POINTS_STEP * n for n in (1, 2, 3)],
+            "qualifying_grace": QUALIFYING_GRACE_MISSES,
+            "qualifying_burn_from": QUALIFYING_GRACE_MISSES + 1,
             "shootout_cuts": SPRINT_SHOOTOUT_CUTS,
             # Extra da classifica piloti: il primo e l'ultimo posto che costano.
             "standings_extra_first": rules.COST_BY_STANDINGS_POSITION[1],

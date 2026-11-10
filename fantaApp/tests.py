@@ -2526,6 +2526,8 @@ class GameFaqPageTests(TestCase):
         for anchor in ("weekend", "costi", "pupillo", "qualifiche-sprint"):
             self.assertContains(response, f'href="{reverse("game_rules")}#{anchor}"')
         self.assertContains(response, 'id="penalita"')
+        # Qualifica del sabato: grazia e pilota bruciato (#153), diversa dal GP (#154).
+        self.assertContains(response, "«bruciato»")
 
     def test_numbers_come_from_the_rules(self):
         from .services import rules
