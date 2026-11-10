@@ -4483,3 +4483,41 @@ class UserDashboardTests(TestCase):
             self.client.get(reverse("user_dashboard"))
 
         self.assertEqual(len(many), len(few))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ErrorPagesTests(TestCase):
+    """#68: pagine d'errore con lo stile del sito. Nei test DEBUG è False, come
+    in produzione, quindi Django usa 404.html e 500.html."""
+
+    def test_unknown_address_shows_the_404_page(self):
+        response = self.client.get("/pagina-che-non-esiste/")
+
+        self.assertTemplateUsed(response, "404.html")
+        self.assertContains(response, "Pagina non trovata", status_code=404)
+        self.assertContains(response, f'href="{reverse("home")}"', status_code=404)
+        self.assertNotContains(response, "I miei campionati", status_code=404)
+
+    def test_logged_in_users_can_go_back_to_their_championships(self):
+        user = get_user_model().objects.create_user(
+            username="perso", email="perso@example.com", password="pw123456!"
+        )
+        self.client.force_login(user)
+
+        # Anche i 404 delle view (get_object_or_404) usano la stessa pagina.
+        response = self.client.get(reverse("championship_dashboard", args=[999]))
+
+        self.assertContains(response, "Pagina non trovata", status_code=404)
+        self.assertContains(
+            response, f'href="{reverse("user_dashboard")}"', status_code=404
+        )
+
+    def test_server_error_shows_the_500_page(self):
+        self.client.raise_request_exception = False
+
+        with patch("fantaApp.views.site.home.render", side_effect=RuntimeError):
+            response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 500)
+        self.assertContains(response, "Qualcosa è andato storto", status_code=500)
+        self.assertContains(response, 'href="/"', status_code=500)
