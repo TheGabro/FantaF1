@@ -2680,6 +2680,20 @@ class F1RaceResultsPageTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class FooterRulesLinksTests(TestCase):
+    """#232: il footer, presente in tutte le pagine, porta a regolamento e
+    domande frequenti."""
+
+    def test_footer_links_on_every_page(self):
+        for name in ("home", "game", "login", "f1_drivers_standings"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("game_rules")}"')
+                self.assertContains(response, f'href="{reverse("game_faq")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class DriversStandingsTests(TestCase):
     """#95: classifica piloti F1 dopo l'ultimo round importato, aperta a tutti."""
 
