@@ -31,6 +31,8 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
       <li><a href="#costi" class="hover:text-accent">Costo dei piloti</a></li>
       <li><a href="#pupillo" class="hover:text-accent">Pupillo</a></li>
       <li><a href="#classifiche" class="hover:text-accent">Classifiche</a></li>
+      <li><a href="#spareggi" class="hover:text-accent">Spareggi</a></li>
+      <li><a href="#penalita" class="hover:text-accent">Penalità</a></li>
     </ol>
   </nav>
 
@@ -100,7 +102,7 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
         <h2 class="subheading">Qualifiche del sabato — weekend sprint</h2>
         <p class="mt-2 text-muted">
           Si pronosticano {{ rulebook.multi_choice_slot_sizes.q1_pass }} piloti che passano il Q1,
-          {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e la top {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3.
+          {{ rulebook.multi_choice_slot_sizes.q2_pass }} che passano il Q2 e i primi {{ rulebook.multi_choice_slot_sizes.q3_top3 }} del Q3, in qualsiasi ordine.
           I livelli sono a scaletta: vale quello più alto raggiunto, non la somma.
           I punti qualifica seguono la qualifica; sconto e moltiplicatore del Gran Premio seguono la
           griglia di partenza: passa il Q1 chi parte entro la {{ rulebook.grid_q1_pass_max_position }}ª
@@ -135,9 +137,13 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
       <div class="px-5 pt-5">
         <h2 class="subheading">Qualifiche Sprint del venerdì</h2>
         <p class="mt-2 text-muted">
-          Si indica un pilota per ciascuna fascia di eliminazione. I punti vinti qui si sommano al
-          punteggio della Sprint e valgono per la classifica campionato sprint; lo sconto vale sul costo
-          della Sprint. L'esito si valuta sulla griglia di partenza della Sprint (penalità incluse).
+          Lo shootout del venerdì, diverso dalla qualifica del sabato. Per ogni turno si sceglie un pilota
+          che <strong class="text-ink">non</strong> passerà il taglio: fuori dai primi {{ rulebook.shootout_cuts.sq1 }}
+          in SQ1, dai primi {{ rulebook.shootout_cuts.sq2 }} in SQ2, dai primi {{ rulebook.shootout_cuts.sq3 }} in SQ3.
+          I turni sono a cascata: SQ2 conta solo se hai indovinato SQ1, SQ3 solo se hai indovinato anche SQ2.
+          Lo sconto vale sul costo della Sprint, i punti si sommano a quelli della Sprint e al campionato
+          sprint; senza un pilota scelto per la Sprint il bonus non vale. L'esito si valuta sulla griglia
+          di partenza della Sprint (penalità incluse).
         </p>
       </div>
       <div class="mt-3 overflow-x-auto">
@@ -227,6 +233,10 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
         Nel Gran Premio uno dei due piloti è il pupillo. Confermare lo stesso pupillo di weekend in weekend
         sconta {{ rulebook.pupillo_step }} fantamilioni ogni volta, fino a un massimo di {{ rulebook.pupillo_max }}.
       </p>
+      <p class="mt-2 text-muted">
+        Se lo sconto supera il costo del pupillo, la parte che avanza si toglie dal costo dell'altro pilota.
+        Il totale del Gran Premio non scende mai sotto zero e il malus della qualifica non si sconta.
+      </p>
     </section>
 
     <section id="classifiche" class="card-pad scroll-mt-24">
@@ -243,9 +253,85 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
         <div>
           <dt class="font-semibold">Magate e sucate</dt>
           <dd class="text-muted">
-            Magata: Gran Premio da {{ rulebook.magata_points }} punti o più, le sprint non contano.
-            Sucata: gara da {{ rulebook.sucata_points }} punti o meno, sprint incluse.
+            Magata: Gran Premio da {{ rulebook.magata_points }} punti o più. Sucata: Gran Premio da
+            {{ rulebook.sucata_points }} punti o meno, compresi i Gran Premi con penalità. Le Sprint non contano:
+            un weekend sprint con 8 punti dalla Sprint e 2 dal Gran Premio è una sucata.
           </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="spareggi" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Spareggi</h2>
+      <p class="mt-2 text-muted">A parità di punti si guarda, in quest'ordine:</p>
+      <div class="mt-3 grid gap-6 sm:grid-cols-2">
+        <div>
+          <h3 class="font-semibold">Lega e generale</h3>
+          <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted">
+            <li>più punti qualifica (∂)</li>
+            <li>meno sucate</li>
+            <li>più magate</li>
+            <li>più fantamilioni rimasti</li>
+            <li>ordine d'iscrizione</li>
+          </ol>
+        </div>
+        <div>
+          <h3 class="font-semibold">Campionato Sprint</h3>
+          <ol class="mt-2 list-decimal space-y-1 pl-5 text-muted">
+            <li>più scelte inserite per le Sprint</li>
+            <li>più scelte inserite per le Qualifiche Sprint</li>
+            <li>più punti bonus delle Qualifiche Sprint</li>
+            <li>meno fantamilioni spesi nelle Sprint, al netto dei bonus</li>
+            <li>più fantamilioni rimasti (classifica generale)</li>
+            <li>ordine d'iscrizione</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="penalita" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Penalità</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Gran Premio non scelto (o due piloti uguali)</dt>
+          <dd class="text-muted">
+            Si paga la spesa più bassa fatta da un altro giocatore del campionato per quel Gran Premio,
+            senza gli sconti della qualifica (il malus invece resta). Dalla {{ rulebook.penalty_first_points_miss }}ª
+            scelta mancata della stagione si perdono anche punti, {{ rulebook.penalty_points_step }} in più ogni
+            volta: −{{ rulebook.penalty_examples.0 }}, −{{ rulebook.penalty_examples.1 }},
+            −{{ rulebook.penalty_examples.2 }}… Se nessuno ha scelto, la penalità in fantamilioni non si applica.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Scelta che non si può pagare</dt>
+          <dd class="text-muted">
+            Viene annullata per intero e conta come scelta mancata, con le stesse penalità. Sul sito non
+            succede: una scelta che costa più dei fantamilioni disponibili non si salva.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Qualifica del sabato non scelta (weekend classici)</dt>
+          {% with last=rulebook.qualifying_last %}
+          <dd class="text-muted">
+            È un processo diverso dal Gran Premio. Le prime {{ rulebook.qualifying_grace }} volte della stagione
+            sono di grazia: si paga solo il malus come se il pilota fosse arrivato ultimo
+            (+{{ last.credit_change }} fantamilioni sul Gran Premio, moltiplicatore ×{{ last.points_multiplier }},
+            nessun punto ∂). Dalla {{ rulebook.qualifying_burn_from }}ª volta, in più, il pilota meglio classificato
+            in quella qualifica tra quelli ancora disponibili viene «bruciato»: conta come già usato. Il malus
+            non si sconta con il pupillo.
+          </dd>
+          {% endwith %}
+        </div>
+        <div>
+          <dt class="font-semibold">Sprint e qualifiche dei weekend sprint</dt>
+          <dd class="text-muted">
+            Sprint, Qualifiche Sprint e qualifica del sabato dei weekend sprint sono facoltative: se non si
+            sceglie si perde solo il bonus.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Fantamilioni</dt>
+          <dd class="text-muted">Le penalità non portano mai i fantamilioni sotto zero.</dd>
         </div>
       </dl>
     </section>
