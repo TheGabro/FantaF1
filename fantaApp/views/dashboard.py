@@ -404,11 +404,15 @@ def _season_standings_rows(championship, players):
             .annotate(
                 races_scored=Count("id"),
                 spent=Sum("credit_spent"),
+                # Magate e sucate solo sul Gran Premio, mai sulla Sprint (C.2, #258).
                 magate=Count(
                     "id",
                     filter=Q(race__type="regular", total_points__gte=MAGATA_POINTS),
                 ),
-                sucate=Count("id", filter=Q(total_points__lte=SUCATA_POINTS)),
+                sucate=Count(
+                    "id",
+                    filter=Q(race__type="regular", total_points__lte=SUCATA_POINTS),
+                ),
             )
         )
     }
@@ -508,8 +512,9 @@ def _season_standings_legend(total_races, remaining_races):
         {
             "term": "Magate e sucate",
             "description": (
-                f"Gran Premio da {MAGATA_POINTS} punti o più (le sprint non contano) "
-                f"e gare da {SUCATA_POINTS} punti o meno."
+                f"Magata: Gran Premio da {MAGATA_POINTS} punti o più. "
+                f"Sucata: Gran Premio da {SUCATA_POINTS} punti o meno. "
+                "Le Sprint non contano."
             ),
         },
         {

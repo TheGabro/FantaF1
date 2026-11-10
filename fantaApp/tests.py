@@ -3273,7 +3273,8 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
 
 
 class SucateMagateTests(WeekendPagesFixture, TestCase):
-    """#167: sucata = 5 punti o meno, magata = 43 punti o più (regolamento C.2, E.2)."""
+    """#167: sucata = 5 punti o meno, magata = 43 punti o più (regolamento C.2, E.2).
+    #258: tutte e due solo sul Gran Premio, mai sulla Sprint."""
 
     def _result(self, player, race, total_points):
         PlayerRaceResult.objects.create(
@@ -3310,12 +3311,23 @@ class SucateMagateTests(WeekendPagesFixture, TestCase):
         )
 
         self._result(player, self.regular_race, 43)  # magata
-        self._result(player, self.sprint_race, 5)  # sucata, anche se sprint
-        self._result(player, sprint_weekend_race, 6)  # né l'una né l'altra
+        self._result(player, sprint_weekend_race, 5)  # sucata
         self._result(other, self.regular_race, 42.9)
-        self._result(other, self.sprint_race, 5.1)
+        self._result(other, self.sprint_race, 5)  # Sprint: non conta
+        self._result(other, sprint_weekend_race, 5.1)
 
         self.assertEqual(self._stats(), {"Giocatore": ("1", "1"), "Altro": ("0", "0")})
+
+    def test_a_weekend_with_points_only_from_the_sprint_is_a_sucata(self):
+        # Esempio di Davide (10/11): 8 punti dalla Sprint e 2 dal GP → sucata.
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        sprint_weekend_race = Race.objects.get(
+            weekend=self.sprint_weekend, type="regular"
+        )
+        self._result(player, self.sprint_race, 8)
+        self._result(player, sprint_weekend_race, 2)
+
+        self.assertEqual(self._stats(), {"Giocatore": ("0", "1")})
 
 
 @override_settings(STORAGES=TEST_STORAGES)
