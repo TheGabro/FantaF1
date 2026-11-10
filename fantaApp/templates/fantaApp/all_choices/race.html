@@ -1,18 +1,18 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
 {% comment %}
-Scelte dei giocatori nel Gran Premio (#203, epica #202). Dal via: una riga per
-giocatore con piloti (★ pupillo), fantamilioni spesi e punti; prima del via solo
-quanti hanno scelto. Filtro per lega (la propria preselezionata) e intestazioni
+Scelte dei giocatori in una gara (epica #202): Gran Premio (#203) e Sprint (#204).
+Dal via: una riga per giocatore con piloti (★ pupillo nel GP), fantamilioni spesi
+e punti della gara; prima del via solo quanti hanno scelto. Filtro per lega (la propria preselezionata) e intestazioni
 ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
 {% endcomment %}
 
-{% block title %}{{ weekend.event_name }} · Scelte dei giocatori — Fanta F1{% endblock %}
+{% block title %}{{ weekend.event_name }} · Scelte dei giocatori · {{ race_label }} — Fanta F1{% endblock %}
 
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
 <h2 class="heading mb-5">
-  {{ weekend.event_name }} · <span class="text-accent">Scelte dei giocatori</span>
+  {{ weekend.event_name }} · <span class="text-accent">Scelte dei giocatori · {{ race_label }}</span>
 </h2>
 
 <div class="championship-subtabs mb-5" aria-label="Filtra per lega">
@@ -23,7 +23,7 @@ ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
 
 {% if not started %}
   <div class="card-pad">
-    <p class="font-semibold">Le scelte dei giocatori si vedono dal via del Gran Premio{% if race_start %}, {{ race_start|date:"l j F · H:i"|lower }}{% endif %}.</p>
+    <p class="font-semibold">Le scelte dei giocatori si vedono dal via {% if is_sprint %}della Sprint{% else %}del Gran Premio{% endif %}{% if race_start %}, {{ race_start|date:"l j F · H:i"|lower }}{% endif %}.</p>
     <p class="mt-1 text-muted">
       Finora hanno scelto <strong class="text-ink">{{ chosen_count }}/{{ shown_count }}</strong>
       {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}.
@@ -40,11 +40,15 @@ ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
         <tr>
           <th><a href="{{ headers.name.url }}" class="hover:text-accent{% if headers.name.active %} text-accent{% endif %}">Giocatore {{ headers.name.arrow }}</a></th>
           <th><a href="{{ headers.league.url }}" class="hover:text-accent{% if headers.league.active %} text-accent{% endif %}">Lega {{ headers.league.arrow }}</a></th>
-          <th>Piloti</th>
+          <th>{% if is_sprint %}Pilota{% else %}Piloti{% endif %}</th>
           <th class="!text-right"><a href="{{ headers.spent.url }}" class="hover:text-accent{% if headers.spent.active %} text-accent{% endif %}">FM spesi {{ headers.spent.arrow }}</a></th>
-          <th class="!text-right">Punti F1</th>
-          <th class="!text-right">Molt.</th>
-          <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Totale {{ headers.points.arrow }}</a></th>
+          {% if is_sprint %}
+            <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Punti F1 {{ headers.points.arrow }}</a></th>
+          {% else %}
+            <th class="!text-right">Punti F1</th>
+            <th class="!text-right">Molt.</th>
+            <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Totale {{ headers.points.arrow }}</a></th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -66,10 +70,12 @@ ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
               {% endfor %}
             </td>
             <td class="text-right tabular-nums">{% if row.choices %}{{ row.spent }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-            {% if row.result %}
+            {% if is_sprint %}
+              <td class="text-right font-black tabular-nums">{% if row.result %}{{ row.points }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+            {% elif row.result %}
               <td class="text-right tabular-nums">{{ row.result.fia_points }}</td>
               <td class="text-right tabular-nums">×{{ row.result.point_multiplier }}</td>
-              <td class="text-right font-black tabular-nums">{{ row.result.total_points }}</td>
+              <td class="text-right font-black tabular-nums">{{ row.points }}</td>
             {% else %}
               <td class="text-right text-muted">—</td>
               <td class="text-right text-muted">—</td>
@@ -77,11 +83,17 @@ ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
             {% endif %}
           </tr>
         {% empty %}
-          <tr><td colspan="7" class="text-muted">Nessun giocatore in questa lega.</td></tr>
+          <tr><td colspan="{% if is_sprint %}5{% else %}7{% endif %}" class="text-muted">Nessun giocatore in questa lega.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-  <p class="note mt-3">I punti compaiono quando il Gran Premio è stato calcolato. ★ = pupillo.</p>
+  <p class="note mt-3">
+    {% if is_sprint %}
+      I punti compaiono quando la Sprint è stata calcolata. Il bonus delle Qualifiche Sprint non è compreso: ha la sua pagina.
+    {% else %}
+      I punti compaiono quando il Gran Premio è stato calcolato. ★ = pupillo.
+    {% endif %}
+  </p>
 {% endif %}
 {% endblock %}

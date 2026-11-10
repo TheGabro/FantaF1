@@ -8,6 +8,7 @@ from fantaApp.views.account import profile as account_profile
 from fantaApp.views.account import security as account_security
 from fantaApp.views.championship import entry as championship_entry
 from fantaApp.views.all_choices import regular_race as all_choices_regular_race
+from fantaApp.views.all_choices import sprint_race as all_choices_sprint_race
 from fantaApp.views.championship import leave as championship_leave
 from fantaApp.views.championship import manage as championship_manage
 from fantaApp.views.game import landing as game_landing
@@ -188,6 +189,13 @@ urlpatterns = [
         "race/regular/<int:event_id>/all-choices/",
         all_choices_regular_race.regular_race_all_choices,
         name="regular_race_all_choices",
+    ),
+    # Scelte dei giocatori nella Sprint, dal via (#204)
+    path(
+        "championships/<int:championship_id>/weekends/<int:weekend_id>/"
+        "race/sprint/<int:event_id>/all-choices/",
+        all_choices_sprint_race.sprint_race_all_choices,
+        name="sprint_race_all_choices",
     ),
     # Indirizzi vecchi (prima di #89) che possono stare nei segnalibri o nelle chat:
     # portano alla pagina nuova invece di dare 404.
