@@ -2542,6 +2542,25 @@ class GameFaqPageTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class GamePageRulesLinksTests(TestCase):
+    """#231: la pagina del gioco porta al regolamento e alle domande frequenti,
+    da anonimi e da utenti con l'accesso."""
+
+    def test_links_for_everyone(self):
+        user = get_user_model().objects.create_user(
+            username="lettore", email="lettore@example.com", password="pw123456!"
+        )
+        for login in (False, True):
+            if login:
+                self.client.force_login(user)
+            with self.subTest(login=login):
+                response = self.client.get(reverse("game"))
+
+                self.assertContains(response, f'href="{reverse("game_rules")}"')
+                self.assertContains(response, f'href="{reverse("game_faq")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SiteHeaderTests(TestCase):
     """Header e footer uguali ovunque, menu accessibili (#93). Nell'header solo il
     logo, il tema e accesso/iscrizione o il menu utente, anche su mobile (#131)."""
