@@ -8,9 +8,14 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="heading mb-5">
-  {{ weekend.event_name }} · <span class="text-accent">Risultati {{ race_label }}</span>
-</h2>
+<div class="mb-5 flex flex-wrap items-center gap-3">
+  <h2 class="heading">
+    {{ weekend.event_name }} · <span class="text-accent">Risultati {{ race_label }}</span>
+  </h2>
+  {% if all_choices_url %}
+    <a href="{{ all_choices_url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Scelte di tutti</a>
+  {% endif %}
+</div>
 
 {# Stato della gara dal via, finché mancano i risultati (#191) #}
 {% if session_state == "running" %}
