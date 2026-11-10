@@ -2,6 +2,7 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from fantaApp.views import auth, dashboard, invites, qualifying_results, weekend
+from fantaApp.views.site import race_results as site_race_results
 from fantaApp.views.account import overview as account_overview
 from fantaApp.views.account import profile as account_profile
 from fantaApp.views.account import security as account_security
@@ -14,6 +15,11 @@ from fantaApp.views.site import home, standings_drivers
 
 urlpatterns = [
     path("", home.home, name="home"),
+    path(
+        "results/<int:season>/<int:round_number>/",
+        site_race_results.race_results,
+        name="f1_race_results",
+    ),
     path(
         "standings/drivers/",
         standings_drivers.standings_drivers,

@@ -45,52 +45,7 @@
     {% if results %}
     <!-- Classifica ufficiale -->
     <section id="arrivo" data-tab-panel="arrivo" class="scroll-mt-24" {% if start_grid %}role="tabpanel" aria-labelledby="tab-arrivo"{% endif %}>
-    <div class="card overflow-x-auto">
-    <table class="table-clean min-w-[560px]">
-      <thead>
-        <tr>
-          <th class="w-16 !text-center">Pos.</th>
-          <th class="w-20 !text-center">+/−</th>
-          <th>Pilota</th>
-          <th class="w-20 !text-center">Griglia</th>
-          <th class="!text-right">Punti</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for result in results %}
-        <tr {% if result.driver_id in selected_driver_ids %}class="row-selected"{% endif %}>
-          <td class="text-center">
-            <span class="pos-badge {% if result.position == 1 %}!bg-accent-strong !text-white !border-accent-strong{% endif %}">
-              {% if result.position %}P{{ result.position }}{% else %}—{% endif %}
-            </span>
-          </td>
-          <td class="text-center font-bold">
-            {% if result.position_delta is not None %}
-              {% if result.position_delta > 0 %}
-                <span class="text-ok">▲ {{ result.position_delta }}</span>
-              {% elif result.position_delta < 0 %}
-                <span class="text-accent">▼ {{ result.position_delta|cut:"-" }}</span>
-              {% else %}
-                <span class="text-muted">=</span>
-              {% endif %}
-            {% else %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td class="team-{{ result.driver.team.short_name|slugify }}">
-            <span class="team-chip {% if result.driver_id in selected_driver_ids %}text-accent{% endif %}">
-              {{ result.driver.first_name }} {{ result.driver.last_name }}
-            </span>
-            <span class="note ml-1">{{ result.driver.team.short_name }}</span>
-            {% if result.driver_id in selected_driver_ids %}<span class="badge-accent ml-1">Tuo</span>{% endif %}
-          </td>
-          <td class="text-center text-muted">{% if result.starting_grid %}P{{ result.starting_grid }}{% else %}—{% endif %}</td>
-          <td class="text-right font-black">{{ result.points }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
+    {% include "fantaApp/_race_classification.html" %}
     </section>
     {% endif %}
 
