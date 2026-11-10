@@ -12,6 +12,7 @@ from fantaApp.views.all_choices import sprint_race as all_choices_sprint_race
 from fantaApp.views.championship import leave as championship_leave
 from fantaApp.views.championship import manage as championship_manage
 from fantaApp.views.game import landing as game_landing
+from fantaApp.views.game import faq as game_faq
 from fantaApp.views.game import rules as game_rules
 from fantaApp.views.site import home, standings_drivers
 
@@ -29,6 +30,7 @@ urlpatterns = [
     ),
     path("game/", game_landing.landing, name="game"),
     path("game/rules/", game_rules.rules, name="game_rules"),
+    path("game/faq/", game_faq.faq, name="game_faq"),
     path("auth/register/", auth.register, name="register"),
     path("auth/login/", auth.login, name="login"),
     path("auth/logout/", auth.logout, name="logout"),

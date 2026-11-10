@@ -2090,6 +2090,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "home",
         "game",
         "game_rules",
+        "game_faq",
         "f1_drivers_standings",
         "login",
         "register",
@@ -2511,6 +2512,31 @@ class GameRulesPageTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, f'href="{reverse("game_rules")}"')
         self.assertNotContains(response, "Costo dei piloti")
         self.assertNotIn("rulebook", response.context)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class GameFaqPageTests(TestCase):
+    """#229: domande frequenti pubbliche, con i numeri del regolamento e i link
+    alle sue sezioni."""
+
+    def test_open_to_everyone_with_links_to_the_rules(self):
+        response = self.client.get(reverse("game_faq"))
+
+        self.assertContains(response, "Domande frequenti")
+        for anchor in ("weekend", "costi", "pupillo", "qualifiche-sprint"):
+            self.assertContains(response, f'href="{reverse("game_rules")}#{anchor}"')
+        self.assertContains(response, 'id="penalita"')
+
+    def test_numbers_come_from_the_rules(self):
+        from .services import rules
+
+        with patch.object(rules, "PUPILLO_DISCOUNT_STEP", 7), patch.dict(
+            rules.COST_BY_STANDINGS_POSITION, {1: 99}
+        ):
+            response = self.client.get(reverse("game_faq"))
+
+        self.assertContains(response, "scende di 7 FM")
+        self.assertContains(response, "99 FM per il primo")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
