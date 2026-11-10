@@ -70,7 +70,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | News | `/news/`, `/news/<slug>/` | `news_list`, `news_detail` | futura (#111) |
 | | Chi siamo, privacy, termini, supportaci | `/about/`, `/privacy/`, `/terms/`, `/support/` | `about`, `privacy`, `terms`, `support` | futura (#107–#110) |
 | Il gioco | Presentazione del gioco | `/game/` | `game` | c'è, oggi su `/` (#90) |
-| | Regolamento | `/game/rules/` | `game_rules` | c'è, oggi nella scheda Info (#81) |
+| | Regolamento | `/game/rules/` | `game_rules` | c'è (#81; la scheda Info porta qui, #230) |
 | Accesso | Accedi, registrati, esci | `/auth/login/`, `/auth/register/`, `/auth/logout/` | `login`, `register`, `logout` | c'è |
 | Account | Panoramica | `/account/` | `account` | c'è |
 | | Dati personali | `/account/profile/` | `account_profile` | c'è |

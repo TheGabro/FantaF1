@@ -2084,7 +2084,14 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     """Rete di sicurezza per i refactoring (#53): ogni rotta si apre senza errori."""
 
     # Pagine aperte anche senza login.
-    PUBLIC_PAGES = {"home", "game", "f1_drivers_standings", "login", "register"}
+    PUBLIC_PAGES = {
+        "home",
+        "game",
+        "game_rules",
+        "f1_drivers_standings",
+        "login",
+        "register",
+    }
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
     # ChampionshipManageTests).
     ACTIONS = {
@@ -2456,6 +2463,43 @@ class LegacyUrlRedirectTests(TestCase):
         self.assertEqual(
             reverse("weekend_details", args=[7, 3]), "/championships/7/weekends/3/"
         )
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class GameRulesPageTests(WeekendPagesFixture, TestCase):
+    """#81, #230: il regolamento è una pagina pubblica del gioco, letta da
+    rules.py; la scheda Info del campionato porta lì."""
+
+    def test_open_to_everyone_with_the_tables(self):
+        response = self.client.get(reverse("game_rules"))
+
+        self.assertContains(response, "Regolamento")
+        self.assertContains(response, 'id="qualifiche-classico"')
+        self.assertContains(response, 'href="#costi"')
+        credit = ChampionshipPlayer._meta.get_field("available_credit").default
+        self.assertContains(response, f"Ogni giocatore ha {credit} fantamilioni")
+
+    def test_numbers_come_from_the_rules(self):
+        from .services import rules
+
+        with patch.object(rules, "PUPILLO_DISCOUNT_STEP", 7), patch.dict(
+            rules.MULTI_CHOICE_SLOT_SIZES, {"q1_pass": 9}
+        ):
+            response = self.client.get(reverse("game_rules"))
+
+        self.assertContains(response, "sconta 7 fantamilioni")
+        self.assertContains(response, "Si pronosticano 9 piloti che passano il Q1")
+
+    def test_championship_info_links_to_the_rules(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse("championship_info", args=[self.championship.id])
+        )
+
+        self.assertContains(response, f'href="{reverse("game_rules")}"')
+        self.assertNotContains(response, "Costo dei piloti")
+        self.assertNotIn("rulebook", response.context)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
