@@ -2077,6 +2077,7 @@ class WeekendPagesFixture:
             "regular_race_results": [c, rw, self.regular_race.id],
             "race_qualifying_results": [c, rw, self.regular_qualifying.id],
             "regular_race_all_choices": [c, rw, self.regular_race.id],
+            "sprint_race_all_choices": [c, sw, self.sprint_race.id],
         }
 
 
@@ -4229,6 +4230,53 @@ class GrandPrixAllChoicesTests(WeekendPagesFixture, TestCase):
             self.client.get(self.url)
 
         self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SprintAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#204: scelte di tutti i giocatori nella Sprint, con i soli punti della
+    gara (il bonus delle Qualifiche Sprint ha la sua pagina, #207)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "sprint_race_all_choices",
+            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
+        )
+        self.me = ChampionshipPlayer.objects.get(user=self.user)
+
+    def test_before_the_start_only_the_count(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "si vedono dal via della Sprint")
+        self.assertNotIn("rows", response.context)
+
+    def test_from_the_start_the_race_points_without_the_bonus(self):
+        self.sprint_weekend.sprint_start = timezone.now() - timedelta(hours=1)
+        self.sprint_weekend.save()
+        PlayerRaceChoice.objects.create(
+            player=self.me,
+            race=self.sprint_race,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+            spent_amount=50,
+        )
+        PlayerRaceResult.objects.create(
+            player=self.me,
+            race=self.sprint_race,
+            credit_spent=50,
+            fia_points=8,
+            point_modifier=2,
+            total_points=10.0,
+        )
+
+        response = self.client.get(self.url)
+
+        row = response.context["rows"][0]
+        self.assertEqual((row["spent"], row["points"]), (50, 8))
+        self.assertContains(response, "Scelte dei giocatori · Sprint")
+        self.assertContains(response, "Il bonus delle Qualifiche Sprint non è compreso")
+        self.assertNotContains(response, "Molt.")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
