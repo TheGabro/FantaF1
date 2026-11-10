@@ -5,8 +5,10 @@
   Gestione → Giocatori (#70): gli iscritti divisi per lega, solo per i manager.
   Da qui un manager rende manager un altro giocatore o gli toglie il ruolo:
   non c'è gerarchia, tutti i manager hanno gli stessi poteri.
+  In cima, chi deve ancora fare le scelte del prossimo weekend (#71).
   Richiede in context: leagues (con participants__user in prefetch),
-  manager_user_ids (insieme degli user_id dei manager).
+  manager_user_ids (insieme degli user_id dei manager), board (None senza
+  weekend aperti: weekend, sessions, rows con player/cells/missing, players_missing).
 {% endcomment %}
 
 {% block title %}Giocatori — {{ championship.name }} — Fanta F1{% endblock %}
@@ -15,6 +17,69 @@
 
 {% block section_content %}
 <div class="grid gap-6">
+  <section class="card">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <div class="min-w-0">
+        <h2 class="subheading">Scelte del prossimo weekend</h2>
+        {% if board %}
+          <p class="text-muted">
+            <a href="{% url 'weekend_details' championship.id board.weekend.id %}" class="hover:text-accent">R{{ board.weekend.round_number }} {{ board.weekend.event_name }}</a>
+            · solo le sessioni ancora aperte
+          </p>
+        {% endif %}
+      </div>
+      {% if board.rows %}
+        {% if board.players_missing == 0 %}
+          <span class="badge-ok">✓ Tutti in pari</span>
+        {% elif board.players_missing == 1 %}
+          <span class="badge-warn">1 giocatore deve ancora scegliere</span>
+        {% else %}
+          <span class="badge-warn">{{ board.players_missing }} giocatori devono ancora scegliere</span>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% if not board %}
+      <p class="px-5 py-4 text-muted">Nessun weekend con scelte ancora aperte.</p>
+    {% elif not board.rows %}
+      <p class="px-5 py-4 text-muted">Nessun giocatore iscritto.</p>
+    {% else %}
+      <div class="overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Giocatore</th>
+              <th>Lega</th>
+              {% for s in board.sessions %}
+                <th class="!text-center">
+                  {{ s.label }}
+                  <span class="block font-normal">{{ s.start|date:"D j M · H:i"|default:"orario da definire" }}{% if s.grid_missing %} · senza griglia{% endif %}</span>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in board.rows %}
+              <tr>
+                <td class="font-semibold">{{ row.player.player_name }}</td>
+                <td class="text-muted">{{ row.player.league.name }}</td>
+                {% for done in row.cells %}
+                  <td class="!text-center">
+                    {% if done %}
+                      <span class="font-bold text-ok" aria-hidden="true">✓</span><span class="sr-only">Scelta fatta</span>
+                    {% else %}
+                      <span class="font-bold text-accent" aria-hidden="true">✗</span><span class="sr-only">Da fare</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+
   {% for league in leagues %}
     {% with players=league.participants.all %}
       <section class="card">

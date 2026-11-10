@@ -1165,23 +1165,7 @@ def _choice_counts(championship, player, sessions):
     league_id = player.league_id if player else None
     league_players = {pid for pid, lid in players if league_id and lid == league_id}
 
-    chosen = defaultdict(set)
-    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
-    for race_id, player_id in PlayerRaceChoice.objects.filter(
-        race_id__in=race_ids, player__championship=championship
-    ).values_list("race_id", "player_id"):
-        chosen[("race", race_id)].add(player_id)
-    qualifying_ids = [s["event"].id for s in sessions if s["entity"] == "qualifying"]
-    for model in (
-        PlayerQualifyingChoice,
-        PlayerQualifyingMultiChoice,
-        PlayerSprintQualifyingChoice,
-    ):
-        for qualifying_id, player_id in model.objects.filter(
-            qualifying_id__in=qualifying_ids, player__championship=championship
-        ).values_list("qualifying_id", "player_id"):
-            chosen[("qualifying", qualifying_id)].add(player_id)
-
+    chosen = _players_with_choice(championship, sessions)
     for session in sessions:
         made = chosen[(session["entity"], session["event"].id)]
         session["chosen_total"] = len(made)
@@ -1199,6 +1183,29 @@ _CHOICE_SLOT_LABELS = {
     "sq2": "SQ2 – eliminato",
     "sq3": "SQ3 – posizione 6‑10",
 }
+
+
+def _players_with_choice(championship, sessions):
+    """Per ogni sessione, chiave (entity, event_id), gli id dei giocatori del
+    campionato con una scelta salvata (#201, #71). Una query per tipo di scelta,
+    qualunque sia il numero di giocatori."""
+    chosen = defaultdict(set)
+    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
+    for race_id, player_id in PlayerRaceChoice.objects.filter(
+        race_id__in=race_ids, player__championship=championship
+    ).values_list("race_id", "player_id"):
+        chosen[("race", race_id)].add(player_id)
+    qualifying_ids = [s["event"].id for s in sessions if s["entity"] == "qualifying"]
+    for model in (
+        PlayerQualifyingChoice,
+        PlayerQualifyingMultiChoice,
+        PlayerSprintQualifyingChoice,
+    ):
+        for qualifying_id, player_id in model.objects.filter(
+            qualifying_id__in=qualifying_ids, player__championship=championship
+        ).values_list("qualifying_id", "player_id"):
+            chosen[("qualifying", qualifying_id)].add(player_id)
+    return chosen
 
 
 @login_required

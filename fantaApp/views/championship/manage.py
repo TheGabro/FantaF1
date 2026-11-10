@@ -38,9 +38,45 @@ def players(request, championship_id):
             "manager_user_ids": set(
                 championship.managers.values_list("user_id", flat=True)
             ),
+            "board": _next_weekend_board(championship, context["open_weekends"]),
         }
     )
     return render(request, "fantaApp/championship_manage_players.html", context)
+
+
+def _next_weekend_board(championship, open_weekends):
+    """#71: who still has picks to make for the next weekend, one row per player.
+
+    Only the sessions still open: the started ones can no longer be chosen.
+    "Done" means a saved choice, the same rule as "Prossimo weekend". Constant
+    queries: players, grids and one per choice type, however many players.
+    """
+    if not open_weekends:
+        return None
+    next_weekend = open_weekends[0]
+    sessions = next_weekend["sessions"]
+    dashboard._mark_missing_grids(sessions)
+    chosen = dashboard._players_with_choice(championship, sessions)
+
+    rows = []
+    for player in (
+        ChampionshipPlayer.objects.filter(championship=championship)
+        .select_related("league")
+        .order_by("player_name")
+    ):
+        cells = [
+            player.id in chosen[(session["entity"], session["event"].id)]
+            for session in sessions
+        ]
+        rows.append({"player": player, "cells": cells, "missing": cells.count(False)})
+    # Who still has to choose first; sort() is stable, so names stay in order.
+    rows.sort(key=lambda row: row["missing"] == 0)
+    return {
+        "weekend": next_weekend["weekend"],
+        "sessions": sessions,
+        "rows": rows,
+        "players_missing": sum(1 for row in rows if row["missing"]),
+    }
 
 
 @login_required
