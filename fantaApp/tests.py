@@ -4232,6 +4232,49 @@ class GrandPrixAllChoicesTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
+    """#209: dai risultati del GP il pulsante «Scelte di tutti» porta a #203,
+    solo per giocatori e manager del campionato."""
+
+    def setUp(self):
+        super().setUp()
+        c = self.championship.id
+        self.results_url = reverse(
+            "regular_race_results",
+            args=[c, self.regular_weekend.id, self.regular_race.id],
+        )
+        self.all_choices_url = reverse(
+            "regular_race_all_choices",
+            args=[c, self.regular_weekend.id, self.regular_race.id],
+        )
+
+    def test_players_see_the_button(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.results_url)
+
+        self.assertContains(response, f'href="{self.all_choices_url}"')
+        self.assertContains(response, "Scelte di tutti")
+
+    def test_outsiders_do_not(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.results_url)
+
+        self.assertNotContains(response, "Scelte di tutti")
+
+    def test_not_on_the_sprint_results_yet(self):
+        # La pagina delle scelte della Sprint è #204.
+        self.client.force_login(self.user)
+        url = reverse(
+            "sprint_race_results",
+            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
+        )
+
+        self.assertNotContains(self.client.get(url), "Scelte di tutti")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class GrandPrixResultsStartingGridTests(WeekendPagesFixture, TestCase):
     """#233: nei risultati del GP la griglia di partenza in sola lettura, in una
     seconda scheda con i risultati, da sola durante la gara."""
