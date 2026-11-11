@@ -4375,8 +4375,8 @@ class SprintAllChoicesTests(WeekendPagesFixture, TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
-    """#209: dai risultati del GP il pulsante «Scelte di tutti» porta a #203,
-    solo per giocatori e manager del campionato."""
+    """#209, #210: dai risultati del GP e della Sprint il pulsante «Scelte di
+    tutti» porta a #203 e #204, solo per giocatori e manager del campionato."""
 
     def setUp(self):
         super().setUp()
@@ -4405,15 +4405,15 @@ class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
 
         self.assertNotContains(response, "Scelte di tutti")
 
-    def test_not_on_the_sprint_results_yet(self):
-        # La pagina delle scelte della Sprint è #204.
+    def test_sprint_results_link_to_the_sprint_choices(self):
         self.client.force_login(self.user)
-        url = reverse(
-            "sprint_race_results",
-            args=[self.championship.id, self.sprint_weekend.id, self.sprint_race.id],
-        )
+        args = [self.championship.id, self.sprint_weekend.id, self.sprint_race.id]
 
-        self.assertNotContains(self.client.get(url), "Scelte di tutti")
+        response = self.client.get(reverse("sprint_race_results", args=args))
+
+        self.assertContains(
+            response, f'href="{reverse("sprint_race_all_choices", args=args)}"'
+        )
 
 
 @override_settings(STORAGES=TEST_STORAGES)
