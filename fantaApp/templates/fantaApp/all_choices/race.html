@@ -1,4 +1,5 @@
 {% extends 'fantaApp/all_choices/base.html' %}
+{% load numbers %}
 {% comment %}
 Scelte dei giocatori in una gara (epica #202): Gran Premio (#203) e Sprint (#204).
 Dal via: una riga per giocatore con piloti (★ pupillo nel GP), fantamilioni spesi
@@ -43,11 +44,11 @@ e punti della gara.
             </td>
             <td class="text-right tabular-nums">{% if row.choices %}{{ row.spent }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
             {% if is_sprint %}
-              <td class="text-right font-black tabular-nums">{% if row.result %}{{ row.points }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+              <td class="text-right font-black tabular-nums">{% if row.result %}{{ row.points|decimals }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
             {% elif row.result %}
               <td class="text-right tabular-nums">{{ row.result.fia_points }}</td>
-              <td class="text-right tabular-nums">×{{ row.result.point_multiplier }}</td>
-              <td class="text-right font-black tabular-nums">{{ row.points }}</td>
+              <td class="text-right tabular-nums">×{{ row.result.point_multiplier|decimals }}</td>
+              <td class="text-right font-black tabular-nums">{{ row.points|decimals }}</td>
             {% else %}
               <td class="text-right text-muted">—</td>
               <td class="text-right text-muted">—</td>

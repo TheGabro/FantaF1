@@ -1,4 +1,5 @@
 {% extends "fantaApp/championship_section_base.html" %}
+{% load numbers %}
 
 {% block title %}Le mie scelte — {{ championship.name }} — Fanta F1{% endblock %}
 
@@ -8,7 +9,7 @@
     <div class="stat-row">
       <div class="stat-cell">
         <p class="stat-label">Punti dai weekend</p>
-        <p class="stat-value">{{ season_points|floatformat:"-2" }}</p>
+        <p class="stat-value">{{ season_points|decimals }}</p>
         <p class="note mt-2">In classifica: <span class="font-semibold text-ink">{{ current_championship_player.total_score }}</span></p>
       </div>
       <div class="stat-cell">
@@ -47,7 +48,7 @@
         <div class="shrink-0 text-right">
           <p class="stat-label">Punti</p>
           {% if item.is_scored %}
-            <p class="text-3xl font-black leading-none tabular-nums text-accent">{{ item.points|floatformat:"-2" }}</p>
+            <p class="text-3xl font-black leading-none tabular-nums text-accent">{{ item.points|decimals }}</p>
           {% else %}
             <p class="note font-semibold">non ancora calcolati</p>
           {% endif %}
@@ -101,7 +102,7 @@
                   </div>
                   <div class="px-4 py-2">
                     <p class="stat-label">Molt.</p>
-                    <p class="mt-0.5 text-xl font-bold tabular-nums">×{{ s.result.point_multiplier|floatformat:"-2" }}</p>
+                    <p class="mt-0.5 text-xl font-bold tabular-nums">×{{ s.result.point_multiplier|decimals }}</p>
                   </div>
                   {% if s.result.point_modifier %}
                     <div class="px-4 py-2">
@@ -111,7 +112,7 @@
                   {% endif %}
                   <div class="px-4 py-2">
                     <p class="stat-label">Totale</p>
-                    <p class="mt-0.5 text-2xl font-black tabular-nums text-accent">{{ s.result.total_points|floatformat:"-2" }}</p>
+                    <p class="mt-0.5 text-2xl font-black tabular-nums text-accent">{{ s.result.total_points|decimals }}</p>
                   </div>
                 </div>
               {% endif %}

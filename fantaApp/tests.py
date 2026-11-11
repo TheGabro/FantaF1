@@ -13,11 +13,12 @@ from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection
+from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.test import Client, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from . import urls as fanta_urls
 from .views import dashboard, invites
@@ -4302,8 +4303,8 @@ class GrandPrixAllChoicesTests(WeekendPagesFixture, TestCase):
         self.assertEqual(names(by_spent), ["carla", "Giocatore"])
         # Senza punti calcolati si va in fondo.
         self.assertEqual(names(by_points), ["Giocatore", "carla"])
-        # Pagina in italiano: virgola decimale.
-        self.assertContains(by_points, "×2,0")
+        # Al massimo due decimali, senza zeri inutili (#270).
+        self.assertContains(by_points, "×2</td>")
 
     def test_only_players_and_managers(self):
         self.client.force_login(self.outsider)
@@ -4857,6 +4858,69 @@ class WeekendAllChoicesTests(WeekendPagesFixture, TestCase):
             self.client.get(url)
 
         self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PointsDecimalsTests(WeekendPagesFixture, TestCase):
+    """#270: i punti del GP sono punti F1 × moltiplicatore in virgola mobile
+    (26 × 1,3 = 33,800000000000004): le pagine ne mostrano al massimo due
+    decimali, arrotondati."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.regular_weekend.race_start = timezone.now() - timedelta(days=1)
+        self.regular_weekend.save()
+        me = ChampionshipPlayer.objects.get(user=self.user)
+        PlayerRaceChoice.objects.create(
+            player=me,
+            race=self.regular_race,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+            spent_amount=50,
+        )
+        PlayerRaceResult.objects.create(
+            player=me,
+            race=self.regular_race,
+            credit_spent=50,
+            fia_points=26,
+            point_multiplier=1.3,
+            total_points=26 * 1.3,
+        )
+        self.args = [
+            self.championship.id,
+            self.regular_weekend.id,
+            self.regular_race.id,
+        ]
+
+    def test_all_choices_of_the_grand_prix(self):
+        response = self.client.get(reverse("regular_race_all_choices", args=self.args))
+
+        self.assertContains(response, "33,8</td>")
+        self.assertContains(response, "×1,3</td>")
+        self.assertNotContains(response, "33,800")
+
+    def test_grand_prix_results(self):
+        response = self.client.get(reverse("regular_race_results", args=self.args))
+
+        self.assertContains(response, "33,8</dd>")
+        self.assertNotContains(response, "33,800")
+
+    def test_the_filter(self):
+        template = Template("{% load numbers %}{{ value|decimals }}")
+        cases = [
+            (26 * 1.3, "33,8"),
+            (12.0, "12"),
+            (39.6, "39,6"),
+            (1.25, "1,25"),
+            (33.7999999999, "33,8"),  # arrotonda, non tronca
+            (1500, "1500"),
+            (None, ""),
+        ]
+        with translation.override("it"):
+            for value, expected in cases:
+                self.assertEqual(
+                    template.render(Context({"value": value})), expected, value
+                )
 
 
 @override_settings(STORAGES=TEST_STORAGES)

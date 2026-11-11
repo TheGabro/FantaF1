@@ -1,4 +1,5 @@
 {% extends 'fantaApp/all_choices/base.html' %}
+{% load numbers %}
 {% load static %}
 {% comment %}
 Riepilogo del weekend per giocatore (#208). Una riga per giocatore con le somme del
@@ -49,7 +50,7 @@ quanti hanno scelto, sessione per sessione.
             </td>
             <td class="text-muted">{{ row.player.league.name }}</td>
             <td class="text-right tabular-nums">{% if row.spent is not None %}{{ row.spent }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-            <td class="text-right font-black tabular-nums">{% if row.points is not None %}{{ row.points|floatformat:"-2" }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+            <td class="text-right font-black tabular-nums">{% if row.points is not None %}{{ row.points|decimals }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
             <td class="text-right tabular-nums">{% if row.qualifying_points is not None %}{{ row.qualifying_points }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           </tr>
           <tr id="sessions-{{ row.player.id }}" class="expandable-detail">
@@ -66,7 +67,7 @@ quanti hanno scelto, sessione per sessione.
                       {% elif s.label == "Qualifiche Sprint" %}bonus sulla Sprint {% if s.bonus is not None %}<strong>+{{ s.bonus }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
                       {% elif not s.chose %}<span class="text-muted">Nessuna scelta</span>
                       {% elif s.label == "Qualifiche" %}punti qualifica {% if s.qualifying_points is not None %}<strong>{{ s.qualifying_points }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
-                      {% else %}{{ s.spent }} FM · {% if s.result %}<strong>{{ s.points|floatformat:"-2" }}</strong> {% if s.label == "Sprint" %}punti F1{% else %}punti{% endif %}{% else %}<span class="text-muted">punti —</span>{% endif %}{% endif %}
+                      {% else %}{{ s.spent }} FM · {% if s.result %}<strong>{{ s.points|decimals }}</strong> {% if s.label == "Sprint" %}punti F1{% else %}punti{% endif %}{% else %}<span class="text-muted">punti —</span>{% endif %}{% endif %}
                     </p>
                   </li>
                 {% endfor %}
