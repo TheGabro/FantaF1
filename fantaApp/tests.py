@@ -4504,19 +4504,6 @@ class SaturdayQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
             fetch_redirect_response=False,
         )
 
-    def test_not_for_the_sprint_weekend_qualifying_yet(self):
-        # La qualifica a slot dei weekend sprint è #206.
-        url = reverse(
-            "race_qualifying_all_choices",
-            args=[
-                self.championship.id,
-                self.sprint_weekend.id,
-                self.sprint_weekend_qualifying.id,
-            ],
-        )
-
-        self.assertEqual(self.client.get(url).status_code, 404)
-
     def test_queries_do_not_grow_with_the_players(self):
         self._start()
         self._choose(self.me, self.d1)
@@ -4524,6 +4511,163 @@ class SaturdayQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
             self.client.get(self.url)
         for n in range(3):
             self._choose(self._player(f"extra{n}"), self.d2)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SprintWeekendQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#206: scelte di tutti nella qualifica a slot dei weekend sprint. Solo gli
+    esiti, a cascata sulla classifica (punti) e sulla griglia del GP (sconto e
+    moltiplicatore), come nei risultati (#196)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.qualifying = self.sprint_weekend_qualifying
+        self.url = reverse(
+            "race_qualifying_all_choices",
+            args=[self.championship.id, self.sprint_weekend.id, self.qualifying.id],
+        )
+        self.me = ChampionshipPlayer.objects.get(user=self.user)
+        team = Team.objects.create(
+            name="Scuderia Slot", short_name="SLT", api_id="team-slot", nationality="IT"
+        )
+        drivers = [
+            Driver.objects.create(
+                first_name=f"Slot{n}",
+                last_name=f"Pilota{n:02d}",
+                number=40 + n,
+                short_name=f"S{n:02d}",
+                team=team,
+                season=2026,
+                api_id=f"drv-slot-{n}",
+            )
+            for n in range(1, 15)
+        ]
+        self.slots = {
+            "q1_pass": drivers[:6],
+            "q2_pass": drivers[6:11],
+            "q3_top3": drivers[11:],
+        }
+        passed_q1 = self.slots["q1_pass"] + self.slots["q2_pass"]
+        lap = timedelta(minutes=1, seconds=20)
+        for position, driver in enumerate(drivers, start=1):
+            # In classifica: tutti i Q1 e i Q2 passano il Q1, nessuno il Q2.
+            QualifyingResult.objects.create(
+                qualifying=self.qualifying,
+                driver=driver,
+                position=position,
+                q1_time=lap,
+                q2_time=lap if driver in passed_q1 else None,
+            )
+        # Sulla griglia del GP i Q2 nei primi 10, i Q1 entro il 16°, la top 3
+        # sbagliata: livello Q2.
+        gp = Race.objects.get(weekend=self.sprint_weekend, type="regular")
+        grid_order = (
+            self.slots["q2_pass"] + self.slots["q1_pass"] + self.slots["q3_top3"]
+        )
+        for position, driver in enumerate(grid_order, start=1):
+            RaceStartingGrid.objects.create(race=gp, driver=driver, position=position)
+
+    def _player(self, name):
+        user = get_user_model().objects.create_user(
+            username=name, email=f"{name}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=self.championship,
+            league=self.league,
+            player_name=name,
+        )
+
+    def _choose(self, player, slots=("q1_pass", "q2_pass", "q3_top3")):
+        for slot in slots:
+            for driver in self.slots[slot]:
+                PlayerQualifyingMultiChoice.objects.create(
+                    player=player,
+                    qualifying=self.qualifying,
+                    driver=driver,
+                    selection_slot=slot,
+                )
+
+    def _start(self):
+        self.sprint_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.sprint_weekend.save()
+
+    def test_before_the_start_only_the_count(self):
+        self._choose(self.me)
+        self._player("bruno")
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "si vedono dal via delle Qualifiche")
+        self.assertContains(response, '<strong class="text-ink">1/2</strong>')
+        self.assertNotIn("rows", response.context)
+
+    def test_levels_from_the_classification_and_the_grid_without_drivers(self):
+        self._start()
+        self._choose(self.me)
+        self._player("bruno")  # non ha scelto
+
+        response = self.client.get(self.url)
+
+        rows = {row["player"].player_name: row for row in response.context["rows"]}
+        mine = rows["Giocatore"]
+        self.assertEqual(
+            mine["qualifying_ticks"], [("Q1", True), ("Q2", False), ("Top 3", False)]
+        )
+        q1_rule = bonuses.get_qualifying_multichoice_bonus_rule("q1_pass")
+        self.assertEqual(mine["qualifying_points"], q1_rule["qualifying_points"])
+        self.assertEqual(
+            mine["grid_ticks"], [("Q1", True), ("Q2", True), ("Top 3", False)]
+        )
+        # Gli stessi numeri del servizio che applica lo sconto sul GP.
+        service = bonuses.get_qualifying_multichoice_bonus(
+            player=self.me, qualifying=self.qualifying
+        )
+        self.assertEqual(mine["credit_discount"], service["credit_discount"])
+        self.assertEqual(mine["points_multiplier"], service["points_multiplier"])
+        self.assertFalse(rows["bruno"]["chose"])
+        self.assertContains(response, "Nessuna scelta")
+        self.assertContains(response, "badge-ok")
+        # Solo gli esiti: i piloti scelti non si vedono.
+        self.assertNotContains(response, "Pilota01")
+
+    def test_while_results_are_missing_dashes(self):
+        self._start()
+        self._choose(self.me)
+        self.qualifying.qualifying_entries.all().delete()
+        RaceStartingGrid.objects.filter(race__weekend=self.sprint_weekend).delete()
+
+        response = self.client.get(self.url)
+
+        row = response.context["rows"][0]
+        self.assertTrue(row["chose"])
+        self.assertIsNone(row["qualifying_ticks"])
+        self.assertIsNone(row["credit_discount"])
+        self.assertContains(response, "(non ancora pubblicata)", count=2)
+
+    def test_sorting_by_discount(self):
+        self._start()
+        self._choose(self.me)  # livello Q2 in griglia
+        self._choose(self._player("ada"), slots=("q1_pass",))  # slot incompleti
+        self._player("zeno")  # non ha scelto: sempre in fondo
+
+        response = self.client.get(self.url + "?sort=discount")
+
+        names = [row["player"].player_name for row in response.context["rows"]]
+        self.assertEqual(names, ["Giocatore", "ada", "zeno"])
+
+    def test_queries_do_not_grow_with_the_players(self):
+        self._start()
+        self._choose(self.me)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(self.url)
+        for n in range(3):
+            self._choose(self._player(f"extra{n}"))
         with CaptureQueriesContext(connection) as many:
             self.client.get(self.url)
 

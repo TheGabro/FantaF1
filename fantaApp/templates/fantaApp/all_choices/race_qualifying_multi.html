@@ -1,0 +1,60 @@
+{% extends 'fantaApp/all_choices/base.html' %}
+{% comment %}
+Scelte dei giocatori nelle Qualifiche dei weekend sprint, a slot (#206). Dal via:
+una riga per giocatore con i soli esiti, senza i piloti scelti. Livelli Q1, Q2 e
+Top 3 a cascata due volte, come nei risultati della qualifica (#196): in
+classifica per i punti qualifica, sulla griglia del GP per sconto e moltiplicatore.
+{% endcomment %}
+
+{% block choices_table %}
+  {# relative: le etichette sr-only dei livelli restano dentro lo scorrimento della tabella. #}
+  <div class="card relative overflow-x-auto">
+    <table class="table-clean min-w-[560px]">
+      <thead>
+        <tr>
+          <th><a href="{{ headers.name.url }}" class="hover:text-accent{% if headers.name.active %} text-accent{% endif %}">Giocatore {{ headers.name.arrow }}</a></th>
+          <th><a href="{{ headers.league.url }}" class="hover:text-accent{% if headers.league.active %} text-accent{% endif %}">Lega {{ headers.league.arrow }}</a></th>
+          <th>In qualifica</th>
+          <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Punti qualifica {{ headers.points.arrow }}</a></th>
+          <th>Griglia GP</th>
+          <th class="!text-right"><a href="{{ headers.discount.url }}" class="hover:text-accent{% if headers.discount.active %} text-accent{% endif %}">FM sul GP {{ headers.discount.arrow }}</a></th>
+          <th class="!text-right">Molt. GP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr{% if row.player.id == player.id %} class="row-selected"{% endif %}>
+            <td class="font-semibold">
+              {{ row.player.player_name }}
+              {% if row.player.id == player.id %}<span class="badge-accent ml-1">Tu</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ row.player.league.name }}</td>
+            <td>
+              {% if not row.chose %}<span class="text-muted">Nessuna scelta</span>
+              {% elif row.qualifying_ticks %}{% include "fantaApp/_level_ticks.html" with ticks=row.qualifying_ticks in_table=True %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-right font-black tabular-nums">{% if row.qualifying_points is not None %}{{ row.qualifying_points }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if row.grid_ticks %}{% include "fantaApp/_level_ticks.html" with ticks=row.grid_ticks in_table=True %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-right whitespace-nowrap tabular-nums">
+              {% if row.credit_discount is None %}<span class="text-muted">—</span>
+              {% elif row.credit_discount %}<span class="font-bold text-ok">−{{ row.credit_discount }}</span>
+              {% else %}<span class="text-muted">0</span>{% endif %}
+            </td>
+            <td class="text-right tabular-nums">{% if row.points_multiplier is not None %}×{{ row.points_multiplier|floatformat:"-2" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-muted">Nessun giocatore in questa lega.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note mt-3">
+    Si vedono solo gli esiti, non i piloti scelti. In qualifica e punti compaiono con la classifica delle Qualifiche{% if not has_results %} (non ancora pubblicata){% endif %};
+    griglia, FM e moltiplicatore sul Gran Premio con la griglia di partenza del GP, penalità comprese{% if not has_grid %} (non ancora pubblicata){% endif %}.
+    FM sul GP: − sconto sul costo dei piloti del Gran Premio.
+  </p>
+{% endblock %}

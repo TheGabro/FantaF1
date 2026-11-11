@@ -2,9 +2,11 @@
 Livelli della qualifica a slot (Q1, Q2, Top 3) con ✓ o ✗, a cascata (#196).
 
 Contesto atteso:
-  ticks   lista di (etichetta, superato), da qualifying_results._level_ticks
+  ticks     lista di (etichetta, superato), da qualifying_results._level_ticks
+  in_table  facoltativo, nelle celle delle tabelle (#206): senza margine sopra e
+            senza andare a capo dentro un livello
 {% endcomment %}
-<ul class="mt-2 flex flex-wrap gap-2">
+<ul class="{% if in_table %}whitespace-nowrap{% else %}mt-2{% endif %} flex flex-wrap gap-2">
   {% for label, passed in ticks %}
     <li class="{% if passed %}badge-ok{% else %}badge-muted{% endif %}">
       <span aria-hidden="true">{% if passed %}✓{% else %}✗{% endif %}</span>
