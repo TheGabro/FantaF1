@@ -2561,6 +2561,27 @@ class GamePageRulesLinksTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class RulesPenaltiesAndTiebreakersTests(TestCase):
+    """#259: il regolamento pubblico descrive penalità e spareggi come da
+    regolamento 2026, con sucate solo sul GP e i tagli dello shootout del 2026."""
+
+    def test_sections_and_corrected_texts(self):
+        response = self.client.get(reverse("game_rules"))
+
+        for anchor in ("spareggi", "penalita"):
+            self.assertContains(response, f'id="{anchor}"')
+            self.assertContains(response, f'href="#{anchor}"')
+        # Due processi diversi: GP (C.3, #154) e qualifica del sabato (D.1.a.2, #153).
+        self.assertContains(response, "Gran Premio non scelto")
+        self.assertContains(response, "«bruciato»")
+        self.assertContains(response, "Le Sprint non contano")
+        self.assertNotContains(response, "sprint incluse")
+        self.assertContains(response, "fuori dai primi 16")
+        self.assertNotContains(response, "oltre la 15")
+        self.assertContains(response, "la parte che avanza si toglie dal costo")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class SiteHeaderTests(TestCase):
     """Header e footer uguali ovunque, menu accessibili (#93). Nell'header solo il
     logo, il tema e accesso/iscrizione o il menu utente, anche su mobile (#131)."""

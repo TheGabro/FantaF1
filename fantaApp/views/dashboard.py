@@ -845,8 +845,10 @@ def championship_sprint_standings(request, championship_id):
             {
                 "term": "Bonus Qualifiche Sprint",
                 "description": (
-                    "Punti aggiunti dal pronostico sulle Qualifiche Sprint: "
-                    "+1 indovinando la fascia 11-15, +2 indovinando la 6-10."
+                    "Punti aggiunti dal pronostico sulle Qualifiche Sprint, a cascata: "
+                    f"+{rules.SPRINT_BONUS_RULES['sq2_hit']['points_modifier']} con SQ1 e SQ2 "
+                    f"indovinati, +{rules.SPRINT_BONUS_RULES['sq3_hit']['points_modifier']} "
+                    "con tutti e tre i turni."
                 ),
             },
             {

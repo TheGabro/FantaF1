@@ -170,8 +170,8 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
         <p class="mt-2 text-muted">
           È lo shootout che decide la griglia della Sprint, un evento diverso dalla qualifica del sabato. Per
           ogni turno scegli un pilota che <strong class="text-ink">non</strong> passerà il taglio: fuori dai primi
-          {{ shootout_cuts.sq1 }} in SQ1, fuori dai primi {{ shootout_cuts.sq2 }} in SQ2, fuori dai primi
-          {{ shootout_cuts.sq3 }} in SQ3. Anche qui ogni turno sblocca il successivo. Già inserire il pronostico
+          {{ rulebook.shootout_cuts.sq1 }} in SQ1, fuori dai primi {{ rulebook.shootout_cuts.sq2 }} in SQ2, fuori dai primi
+          {{ rulebook.shootout_cuts.sq3 }} in SQ3. Anche qui ogni turno sblocca il successivo. Già inserire il pronostico
           vale uno sconto sulla Sprint; indovinando i turni lo sconto sale e si aggiungono punti alla Sprint.
           Il bonus vale solo se scegli anche il pilota della Sprint.
           <a href="{% url 'game_rules' %}#qualifiche-sprint" class="text-accent">Tabella →</a>
@@ -243,19 +243,19 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
         <p class="mt-2 text-muted">
           Paghi comunque: ti viene tolta la spesa più bassa fatta da un altro giocatore del campionato per
           quel Gran Premio, e perdi gli sconti della qualifica (il malus invece resta). Dalla
-          {{ penalty_first_points_miss }}ª scelta mancata perdi anche punti, {{ penalty_points_step }} in più
-          ogni volta: −{{ penalty_examples.0 }}, −{{ penalty_examples.1 }}, −{{ penalty_examples.2 }}… I
+          {{ rulebook.penalty_first_points_miss }}ª scelta mancata perdi anche punti, {{ rulebook.penalty_points_step }} in più
+          ogni volta: −{{ rulebook.penalty_examples.0 }}, −{{ rulebook.penalty_examples.1 }}, −{{ rulebook.penalty_examples.2 }}… I
           fantamilioni non vanno mai sotto zero.
         </p>
       </details>
       <details class="border-b border-line px-5 py-3">
         <summary class="cursor-pointer font-semibold">E se salto la qualifica del sabato?</summary>
-        {% with last=rulebook.regular_qualifying|last %}
+        {% with last=rulebook.qualifying_last %}
         <p class="mt-2 text-muted">
-          Nei weekend classici le prime {{ qualifying_grace }} volte della stagione sono di grazia, ma paghi
+          Nei weekend classici le prime {{ rulebook.qualifying_grace }} volte della stagione sono di grazia, ma paghi
           comunque come se il tuo pilota fosse arrivato ultimo in qualifica: +{{ last.credit_change }} FM sul
           Gran Premio, moltiplicatore ×{{ last.points_multiplier }}, nessun punto ∂. Dalla
-          {{ qualifying_burn_from }}ª volta, oltre a questo, il pilota meglio classificato in quella qualifica
+          {{ rulebook.qualifying_burn_from }}ª volta, oltre a questo, il pilota meglio classificato in quella qualifica
           tra quelli che puoi ancora scegliere viene «bruciato»: conta come già usato e non potrai più
           sceglierlo. Il malus non si sconta con il pupillo.
         </p>
