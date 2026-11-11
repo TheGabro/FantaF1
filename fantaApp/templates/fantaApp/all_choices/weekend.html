@@ -1,0 +1,90 @@
+{% extends 'fantaApp/all_choices/base.html' %}
+{% load static %}
+{% comment %}
+Riepilogo del weekend per giocatore (#208). Una riga per giocatore con le somme del
+weekend e, sotto, il dettaglio per sessione: un <tbody> per giocatore. Senza
+JavaScript i dettagli sono tutti aperti; expand-rows.js li chiude e mostra il
+pulsante ▸ per aprirli uno alla volta. Prima del via della prima sessione solo
+quanti hanno scelto, sessione per sessione.
+{% endcomment %}
+
+{% block extra_head %}<script defer src="{% static 'fantaApp/js/expand-rows.js' %}"></script>{% endblock %}
+
+{% block chosen_before_start %}
+  <p class="mt-1 text-muted">
+    Finora hanno scelto {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}:
+    {% for s in session_counts %}{{ s.label }} <strong class="text-ink">{{ s.chosen }}/{{ shown_count }}</strong>{% if not forloop.last %} · {% endif %}{% endfor %}.
+  </p>
+{% endblock %}
+
+{% block chosen_after_start %}
+  <p class="mb-3 text-muted">
+    Hanno scelto {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}:
+    {% for s in session_counts %}{{ s.label }} {{ s.chosen }}/{{ shown_count }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+  </p>
+{% endblock %}
+
+{% block choices_table %}
+  {# relative: le etichette sr-only dei pulsanti restano dentro lo scorrimento della tabella. #}
+  <div class="card relative overflow-x-auto">
+    <table class="table-clean min-w-[560px]">
+      <thead>
+        <tr>
+          <th><a href="{{ headers.name.url }}" class="hover:text-accent{% if headers.name.active %} text-accent{% endif %}">Giocatore {{ headers.name.arrow }}</a></th>
+          <th><a href="{{ headers.league.url }}" class="hover:text-accent{% if headers.league.active %} text-accent{% endif %}">Lega {{ headers.league.arrow }}</a></th>
+          <th class="!text-right"><a href="{{ headers.spent.url }}" class="hover:text-accent{% if headers.spent.active %} text-accent{% endif %}">FM spesi {{ headers.spent.arrow }}</a></th>
+          <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Punti {{ headers.points.arrow }}</a></th>
+          <th class="!text-right"><a href="{{ headers.qualifying_points.url }}" class="hover:text-accent{% if headers.qualifying_points.active %} text-accent{% endif %}">Punti qualifica {{ headers.qualifying_points.arrow }}</a></th>
+        </tr>
+      </thead>
+      {% for row in rows %}
+        <tbody class="expandable">
+          <tr{% if row.player.id == player.id %} class="row-selected"{% endif %}>
+            <td class="font-semibold whitespace-nowrap">
+              <button type="button" class="expand-toggle" data-expand aria-controls="sessions-{{ row.player.id }}" aria-expanded="true" hidden>
+                <span aria-hidden="true">▸</span><span class="sr-only">Dettaglio per sessione di {{ row.player.player_name }}</span>
+              </button>
+              {{ row.player.player_name }}
+              {% if row.player.id == player.id %}<span class="badge-accent ml-1">Tu</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ row.player.league.name }}</td>
+            <td class="text-right tabular-nums">{% if row.spent is not None %}{{ row.spent }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="text-right font-black tabular-nums">{% if row.points is not None %}{{ row.points|floatformat:"-2" }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+            <td class="text-right tabular-nums">{% if row.qualifying_points is not None %}{{ row.qualifying_points }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          </tr>
+          <tr id="sessions-{{ row.player.id }}" class="expandable-detail">
+            <td colspan="5">
+              {# Su mobile in colonna: la tabella scorre, i riquadri restano tutti a sinistra. #}
+              <ul class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap">
+                {% for s in row.sessions %}
+                  <li class="rounded-lg border border-line px-3 py-2">
+                    <p class="label">{{ s.label }}</p>
+                    <p class="mt-0.5 whitespace-nowrap">
+                      {% if not s.started %}<span class="text-muted">da disputare</span>
+                      {# Un bonus registrato senza scelta (#240) si mostra lo stesso: è nei punti. #}
+                      {% elif s.label == "Qualifiche Sprint" and not s.chose and not s.bonus %}<span class="text-muted">Nessuna scelta</span>
+                      {% elif s.label == "Qualifiche Sprint" %}bonus sulla Sprint {% if s.bonus is not None %}<strong>+{{ s.bonus }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
+                      {% elif not s.chose %}<span class="text-muted">Nessuna scelta</span>
+                      {% elif s.label == "Qualifiche" %}punti qualifica {% if s.qualifying_points is not None %}<strong>{{ s.qualifying_points }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}
+                      {% else %}{{ s.spent }} FM · {% if s.result %}<strong>{{ s.points|floatformat:"-2" }}</strong> {% if s.label == "Sprint" %}punti F1{% else %}punti{% endif %}{% else %}<span class="text-muted">punti —</span>{% endif %}{% endif %}
+                    </p>
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      {% empty %}
+        <tbody><tr><td colspan="5" class="text-muted">Nessun giocatore in questa lega.</td></tr></tbody>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="note mt-3">
+    {% if weekend.weekend_type == "sprint" %}
+      Punti del weekend = Sprint (punti F1 + bonus delle Qualifiche Sprint) + Gran Premio (punti F1 × moltiplicatore), come nelle classifiche; compaiono quando le gare sono calcolate.
+    {% else %}
+      Punti del weekend = punti del Gran Premio (punti F1 × moltiplicatore), come nelle classifiche; compaiono quando la gara è calcolata.
+    {% endif %}
+    Le sessioni non ancora iniziate sono «da disputare». Le penalità per le scelte mancate compariranno quando il gioco le applicherà.
+  </p>
+{% endblock %}
