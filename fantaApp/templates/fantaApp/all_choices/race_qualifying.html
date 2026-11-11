@@ -1,0 +1,64 @@
+{% extends 'fantaApp/all_choices/base.html' %}
+{% comment %}
+Scelte dei giocatori nelle Qualifiche del sabato, weekend regular (#205). Dal via:
+una riga per giocatore con il pilota scelto, posizione e punti qualifica dalla
+classifica delle Qualifiche, posizione in griglia, sconto o malus e moltiplicatore
+sul Gran Premio dalla griglia del GP, come nei risultati della qualifica (#195).
+{% endcomment %}
+
+{% block choices_table %}
+  <div class="card overflow-x-auto">
+    <table class="table-clean min-w-[560px]">
+      <thead>
+        <tr>
+          <th><a href="{{ headers.name.url }}" class="hover:text-accent{% if headers.name.active %} text-accent{% endif %}">Giocatore {{ headers.name.arrow }}</a></th>
+          <th><a href="{{ headers.league.url }}" class="hover:text-accent{% if headers.league.active %} text-accent{% endif %}">Lega {{ headers.league.arrow }}</a></th>
+          <th>Pilota</th>
+          <th class="!text-right"><a href="{{ headers.position.url }}" class="hover:text-accent{% if headers.position.active %} text-accent{% endif %}">Pos. {{ headers.position.arrow }}</a></th>
+          <th class="!text-right"><a href="{{ headers.points.url }}" class="hover:text-accent{% if headers.points.active %} text-accent{% endif %}">Punti qualifica {{ headers.points.arrow }}</a></th>
+          <th class="!text-right"><a href="{{ headers.grid.url }}" class="hover:text-accent{% if headers.grid.active %} text-accent{% endif %}">Griglia GP {{ headers.grid.arrow }}</a></th>
+          <th class="!text-right">FM sul GP</th>
+          <th class="!text-right">Molt. GP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr{% if row.player.id == player.id %} class="row-selected"{% endif %}>
+            <td class="font-semibold">
+              {{ row.player.player_name }}
+              {% if row.player.id == player.id %}<span class="badge-accent ml-1">Tu</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ row.player.league.name }}</td>
+            <td>
+              {% if row.driver %}
+                <span class="team-{{ row.driver.team.short_name|slugify }}">
+                  <span class="team-chip">{{ row.driver.first_name }} {{ row.driver.last_name }}</span>
+                  <span class="note ml-1">{{ row.driver.team.short_name }}</span>
+                </span>
+              {% else %}
+                <span class="text-muted">Nessuna scelta</span>
+              {% endif %}
+            </td>
+            <td class="text-right tabular-nums">{% if row.position %}P{{ row.position }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="text-right font-black tabular-nums">{% if row.qualifying_points is not None %}{{ row.qualifying_points }}{% else %}<span class="font-normal text-muted">—</span>{% endif %}</td>
+            <td class="text-right tabular-nums">{% if row.grid_position %}P{{ row.grid_position }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="text-right whitespace-nowrap tabular-nums">
+              {% if row.credit_change is None %}<span class="text-muted">—</span>
+              {% elif row.credit_change < 0 %}<span class="font-bold text-ok">−{% widthratio row.credit_change 1 -1 %}</span>
+              {% elif row.credit_change > 0 %}<span class="font-bold text-accent">+{{ row.credit_change }}</span>
+              {% else %}<span class="text-muted">0</span>{% endif %}
+            </td>
+            <td class="text-right tabular-nums">{% if row.points_multiplier is not None %}×{{ row.points_multiplier|floatformat:"-2" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="text-muted">Nessun giocatore in questa lega.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note mt-3">
+    Posizione e punti qualifica compaiono con la classifica delle Qualifiche{% if not has_results %} (non ancora pubblicata){% endif %};
+    griglia, FM e moltiplicatore sul Gran Premio con la griglia di partenza del GP, penalità comprese{% if not has_grid %} (non ancora pubblicata){% endif %}.
+    FM sul GP: − sconto, + malus sul costo dei piloti del Gran Premio.
+  </p>
+{% endblock %}

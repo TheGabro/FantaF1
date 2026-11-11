@@ -2078,6 +2078,7 @@ class WeekendPagesFixture:
             "race_qualifying_results": [c, rw, self.regular_qualifying.id],
             "regular_race_all_choices": [c, rw, self.regular_race.id],
             "sprint_race_all_choices": [c, sw, self.sprint_race.id],
+            "race_qualifying_all_choices": [c, rw, self.regular_qualifying.id],
         }
 
 
@@ -4371,6 +4372,162 @@ class SprintAllChoicesTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, "Scelte dei giocatori · Sprint")
         self.assertContains(response, "Il bonus delle Qualifiche Sprint non è compreso")
         self.assertNotContains(response, "Molt.")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SaturdayQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#205: scelte di tutti i giocatori nelle Qualifiche del sabato. Posizione e
+    punti qualifica dalla classifica, sconto e moltiplicatore dalla griglia del GP."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.url = reverse(
+            "race_qualifying_all_choices",
+            args=[
+                self.championship.id,
+                self.regular_weekend.id,
+                self.regular_qualifying.id,
+            ],
+        )
+        self.me = ChampionshipPlayer.objects.get(user=self.user)
+        self.d1 = Driver.objects.get(api_id="drv-smoke-1")
+        self.d2 = Driver.objects.get(api_id="drv-smoke-2")
+
+    def _player(self, name, league=None):
+        user = get_user_model().objects.create_user(
+            username=name, email=f"{name}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=self.championship,
+            league=league or self.league,
+            player_name=name,
+        )
+
+    def _choose(self, player, driver):
+        PlayerQualifyingChoice.objects.create(
+            player=player, qualifying=self.regular_qualifying, driver=driver
+        )
+
+    def _start(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+    def test_before_the_start_only_the_count(self):
+        self._choose(self.me, self.d1)
+        self._player("bruno")
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "si vedono dal via delle Qualifiche")
+        self.assertContains(response, '<strong class="text-ink">1/2</strong>')
+        self.assertNotContains(response, "Smoke1")
+        self.assertNotIn("rows", response.context)
+
+    def test_position_and_points_from_the_classification_bonus_from_the_grid(self):
+        self._start()
+        self._choose(self.me, self.d2)  # P2 in qualifica
+        self._player("bruno")  # non ha scelto
+        # Penalità di un altro: in griglia il pilota scelto parte primo.
+        RaceStartingGrid.objects.filter(race=self.regular_race, driver=self.d1).update(
+            position=3
+        )
+        RaceStartingGrid.objects.filter(race=self.regular_race, driver=self.d2).update(
+            position=1
+        )
+
+        response = self.client.get(self.url)
+
+        rows = {row["player"].player_name: row for row in response.context["rows"]}
+        mine = rows["Giocatore"]
+        from_classification = bonuses.get_regular_qualifying_bonus_rule(2)
+        from_grid = bonuses.get_regular_qualifying_bonus_rule(1)
+        self.assertEqual(mine["position"], 2)
+        self.assertEqual(
+            mine["qualifying_points"], from_classification["qualifying_points"]
+        )
+        self.assertEqual(mine["grid_position"], 1)
+        self.assertEqual(mine["credit_change"], from_grid["credit_change"])
+        self.assertEqual(mine["points_multiplier"], from_grid["points_multiplier"])
+        # Gli stessi numeri del proprio pronostico nei risultati (#195).
+        self.assertEqual(
+            mine["credit_change"],
+            bonuses.get_regular_qualifying_choice_bonus(
+                player=self.me, qualifying=self.regular_qualifying
+            )["credit_change"],
+        )
+        self.assertIsNone(rows["bruno"]["driver"])
+        self.assertContains(response, "Pilota2 Smoke2")
+        self.assertContains(response, "Nessuna scelta")
+        self.assertContains(response, "row-selected")
+
+    def test_while_results_are_missing_dashes(self):
+        self._start()
+        self._choose(self.me, self.d1)
+        self.regular_qualifying.qualifying_entries.all().delete()
+        RaceStartingGrid.objects.filter(race=self.regular_race).delete()
+
+        response = self.client.get(self.url)
+
+        row = response.context["rows"][0]
+        self.assertEqual(row["driver"], self.d1)
+        self.assertIsNone(row["qualifying_points"])
+        self.assertIsNone(row["points_multiplier"])
+        self.assertContains(response, "(non ancora pubblicata)", count=2)
+
+    def test_sorting_by_qualifying_points(self):
+        self._start()
+        self._choose(self.me, self.d1)  # P1
+        self._choose(self._player("ada"), self.d2)  # P2
+        self._player("zeno")  # non ha scelto: sempre in fondo
+
+        by_name = self.client.get(self.url)
+        by_points = self.client.get(self.url + "?sort=points")
+        by_points_asc = self.client.get(self.url + "?sort=points&dir=asc")
+
+        names = lambda r: [row["player"].player_name for row in r.context["rows"]]
+        self.assertEqual(names(by_name), ["ada", "Giocatore", "zeno"])
+        self.assertEqual(names(by_points), ["Giocatore", "ada", "zeno"])
+        self.assertEqual(names(by_points_asc), ["ada", "Giocatore", "zeno"])
+        # Pagina in italiano: virgola decimale.
+        self.assertContains(by_points, "×1,7")
+
+    def test_only_players_and_managers(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(
+            response,
+            reverse("championship_dashboard", args=[self.championship.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_not_for_the_sprint_weekend_qualifying_yet(self):
+        # La qualifica a slot dei weekend sprint è #206.
+        url = reverse(
+            "race_qualifying_all_choices",
+            args=[
+                self.championship.id,
+                self.sprint_weekend.id,
+                self.sprint_weekend_qualifying.id,
+            ],
+        )
+
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_queries_do_not_grow_with_the_players(self):
+        self._start()
+        self._choose(self.me, self.d1)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(self.url)
+        for n in range(3):
+            self._choose(self._player(f"extra{n}"), self.d2)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
 
 
 @override_settings(STORAGES=TEST_STORAGES)
