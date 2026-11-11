@@ -46,23 +46,14 @@ def race_qualifying_all_choices(request, championship_id, weekend_id, event_id):
     qualifying = get_object_or_404(
         Qualifying, pk=event_id, weekend=weekend, type="regular"
     )
+    qualifying.weekend = weekend  # già caricato: niente query in più
     is_sprint_weekend = weekend.weekend_type == "sprint"
-    if is_sprint_weekend:
-        # Si mostrano solo gli esiti, non i piloti: bastano gli id per slot.
-        picks = defaultdict(lambda: defaultdict(list))
-        for player_id, slot, driver_id in PlayerQualifyingMultiChoice.objects.filter(
-            qualifying=qualifying, player__championship=champ
-        ).values_list("player_id", "selection_slot", "driver_id"):
-            picks[player_id][slot].append(driver_id)
-        template = "fantaApp/all_choices/race_qualifying_multi.html"
-    else:
-        picks = {
-            choice.player_id: choice
-            for choice in PlayerQualifyingChoice.objects.filter(
-                qualifying=qualifying, player__championship=champ
-            ).select_related("driver", "driver__team")
-        }
-        template = "fantaApp/all_choices/race_qualifying.html"
+    picks = qualifying_picks(qualifying, champ)
+    template = (
+        "fantaApp/all_choices/race_qualifying_multi.html"
+        if is_sprint_weekend
+        else "fantaApp/all_choices/race_qualifying.html"
+    )
 
     context = page_context(
         request,
@@ -78,21 +69,14 @@ def race_qualifying_all_choices(request, championship_id, weekend_id, event_id):
         # Prima del via solo i numeri: chi ha scelto cosa resta nascosto.
         return render(request, template, context)
 
-    results = {entry.driver_id: entry for entry in qualifying.qualifying_entries.all()}
-    grid = {
-        row.driver_id: row
-        for row in RaceStartingGrid.objects.filter(
-            race__weekend=weekend, race__type="regular"
-        )
-    }
+    results, grid = qualifying_outcomes(qualifying)
     shown = context["shown"]
-    if is_sprint_weekend:
-        rows = [_multi_row(p, picks.get(p.id), results, grid) for p in shown]
-        sorts = MULTI_SORTS
-    else:
+    if not is_sprint_weekend:
         use_weekend_teams(weekend, [picks[p.id].driver for p in shown if p.id in picks])
-        rows = [_regular_row(p, picks.get(p.id), results, grid) for p in shown]
-        sorts = REGULAR_SORTS
+    rows = [
+        qualifying_row(qualifying, p, picks.get(p.id), results, grid) for p in shown
+    ]
+    sorts = MULTI_SORTS if is_sprint_weekend else REGULAR_SORTS
 
     sort, direction = sort_rows(request, rows, sorts)
     context.update(
@@ -104,6 +88,45 @@ def race_qualifying_all_choices(request, championship_id, weekend_id, event_id):
         }
     )
     return render(request, template, context)
+
+
+# Usate anche dal riepilogo del weekend (#208), così i punti qualifica sono
+# gli stessi delle due pagine.
+def qualifying_picks(qualifying, champ):
+    """{player_id: scelta} dei giocatori del campionato. Nei weekend sprint la
+    scelta è {slot: [driver_id]}: si mostrano solo gli esiti, bastano gli id."""
+    if qualifying.weekend.weekend_type == "sprint":
+        picks = defaultdict(lambda: defaultdict(list))
+        for player_id, slot, driver_id in PlayerQualifyingMultiChoice.objects.filter(
+            qualifying=qualifying, player__championship=champ
+        ).values_list("player_id", "selection_slot", "driver_id"):
+            picks[player_id][slot].append(driver_id)
+        return picks
+    return {
+        choice.player_id: choice
+        for choice in PlayerQualifyingChoice.objects.filter(
+            qualifying=qualifying, player__championship=champ
+        ).select_related("driver", "driver__team")
+    }
+
+
+def qualifying_outcomes(qualifying):
+    """(classifica, griglia del GP), ognuna per driver_id: vuote finché non ci sono."""
+    results = {entry.driver_id: entry for entry in qualifying.qualifying_entries.all()}
+    grid = {
+        row.driver_id: row
+        for row in RaceStartingGrid.objects.filter(
+            race__weekend=qualifying.weekend, race__type="regular"
+        )
+    }
+    return results, grid
+
+
+def qualifying_row(qualifying, player, pick, results, grid):
+    """La riga del giocatore secondo il tipo di weekend."""
+    if qualifying.weekend.weekend_type == "sprint":
+        return _multi_row(player, pick, results, grid)
+    return _regular_row(player, pick, results, grid)
 
 
 def _regular_row(player, choice, results, grid):

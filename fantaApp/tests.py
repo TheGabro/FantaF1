@@ -2079,6 +2079,7 @@ class WeekendPagesFixture:
             "regular_race_all_choices": [c, rw, self.regular_race.id],
             "sprint_race_all_choices": [c, sw, self.sprint_race.id],
             "race_qualifying_all_choices": [c, rw, self.regular_qualifying.id],
+            "weekend_all_choices": [c, rw],
         }
 
 
@@ -4670,6 +4671,190 @@ class SprintWeekendQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
             self._choose(self._player(f"extra{n}"))
         with CaptureQueriesContext(connection) as many:
             self.client.get(self.url)
+
+        self.assertEqual(len(few.captured_queries), len(many.captured_queries))
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class WeekendAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#208: riepilogo del weekend per giocatore. Somme di fantamilioni, punti e
+    punti qualifica, uguali alle pagine delle sessioni; dettaglio per sessione;
+    le sessioni non iniziate restano «da disputare» senza dati."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.me = ChampionshipPlayer.objects.get(user=self.user)
+        self.d1 = Driver.objects.get(api_id="drv-smoke-1")
+        self.d2 = Driver.objects.get(api_id="drv-smoke-2")
+        self.sprint_gp = Race.objects.get(weekend=self.sprint_weekend, type="regular")
+
+    def _url(self, weekend):
+        return reverse("weekend_all_choices", args=[self.championship.id, weekend.id])
+
+    def _player(self, name):
+        user = get_user_model().objects.create_user(
+            username=name, email=f"{name}@example.com", password="pw123456!"
+        )
+        return ChampionshipPlayer.objects.create(
+            user=user,
+            championship=self.championship,
+            league=self.league,
+            player_name=name,
+        )
+
+    def _gp_choice(self, player, race, spent=(30, 20)):
+        PlayerRaceChoice.objects.create(
+            player=player, race=race, driver=self.d1, spent_amount=spent[0]
+        )
+        PlayerRaceChoice.objects.create(
+            player=player, race=race, driver=self.d2, spent_amount=spent[1]
+        )
+
+    def test_before_the_first_session_only_the_counts(self):
+        PlayerQualifyingChoice.objects.create(
+            player=self.me, qualifying=self.regular_qualifying, driver=self.d1
+        )
+        self._player("bruno")
+
+        response = self.client.get(self._url(self.regular_weekend))
+
+        self.assertContains(response, "si vedono dal via delle Qualifiche")
+        self.assertContains(
+            response, 'Qualifiche <strong class="text-ink">1/2</strong>'
+        )
+        self.assertContains(
+            response, 'Gran Premio <strong class="text-ink">0/2</strong>'
+        )
+        self.assertNotIn("rows", response.context)
+
+    def test_sessions_not_started_give_no_data(self):
+        # Qualifiche iniziate, Gran Premio ancora da correre: la scelta del GP
+        # c'è ma non si vede, nemmeno nei fantamilioni.
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        PlayerQualifyingChoice.objects.create(
+            player=self.me, qualifying=self.regular_qualifying, driver=self.d1
+        )
+        self._gp_choice(self.me, self.regular_race)
+
+        response = self.client.get(self._url(self.regular_weekend))
+
+        row = response.context["rows"][0]
+        self.assertIsNone(row["spent"])
+        self.assertEqual(
+            row["qualifying_points"],
+            bonuses.get_regular_qualifying_bonus_rule(1)["qualifying_points"],
+        )
+        gp = row["sessions"][1]
+        self.assertEqual((gp["label"], gp["started"]), ("Gran Premio", False))
+        self.assertNotIn("spent", gp)
+        self.assertContains(response, "da disputare")
+        self.assertNotContains(response, "50 FM")
+
+    def test_sprint_weekend_sums_match_the_session_pages(self):
+        past = timezone.now() - timedelta(days=1)
+        self.sprint_weekend.sprint_qualifying_start = past - timedelta(days=1)
+        self.sprint_weekend.sprint_start = past - timedelta(hours=20)
+        self.sprint_weekend.qualifying_start = past - timedelta(hours=18)
+        self.sprint_weekend.race_start = past
+        self.sprint_weekend.save()
+        PlayerSprintQualifyingChoice.objects.create(
+            player=self.me,
+            qualifying=self.sprint_qualifying,
+            driver=self.d1,
+            selection_slot="sq1",
+        )
+        PlayerRaceChoice.objects.create(
+            player=self.me, race=self.sprint_race, driver=self.d1, spent_amount=40
+        )
+        PlayerRaceResult.objects.create(
+            player=self.me,
+            race=self.sprint_race,
+            credit_spent=40,
+            fia_points=8,
+            point_modifier=2,
+            total_points=10.0,
+        )
+        self._gp_choice(self.me, self.sprint_gp)
+        PlayerRaceResult.objects.create(
+            player=self.me,
+            race=self.sprint_gp,
+            credit_spent=50,
+            fia_points=25,
+            point_multiplier=1.2,
+            total_points=30.0,
+        )
+        self._player("bruno")  # non ha scelto
+
+        response = self.client.get(self._url(self.sprint_weekend))
+
+        rows = {row["player"].player_name: row for row in response.context["rows"]}
+        mine = rows["Giocatore"]
+        labels = [s["label"] for s in mine["sessions"]]
+        self.assertEqual(
+            labels, ["Qualifiche Sprint", "Sprint", "Qualifiche", "Gran Premio"]
+        )
+        sq, sprint, _, gp = mine["sessions"]
+        self.assertEqual(sq["bonus"], 2)
+        self.assertEqual(sprint["points"], 8)
+        # Le pagine delle gare (#203, #204) danno gli stessi numeri.
+        args = [self.championship.id, self.sprint_weekend.id]
+        sprint_page = self.client.get(
+            reverse("sprint_race_all_choices", args=args + [self.sprint_race.id])
+        )
+        gp_page = self.client.get(
+            reverse("regular_race_all_choices", args=args + [self.sprint_gp.id])
+        )
+        mine_in = lambda page: next(
+            row for row in page.context["rows"] if row["player"] == self.me
+        )
+        sprint_row, gp_row = mine_in(sprint_page), mine_in(gp_page)
+        self.assertEqual(mine["spent"], sprint_row["spent"] + gp_row["spent"])
+        self.assertEqual(
+            mine["points"], sprint_row["points"] + sq["bonus"] + gp_row["points"]
+        )
+        # E le classifiche sommano i total_points.
+        self.assertEqual(mine["points"], 40)
+        self.assertIsNone(rows["bruno"]["points"])
+        self.assertContains(response, "Nessuna scelta")
+        self.assertContains(response, "+2")
+
+    def test_details_open_without_javascript(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+        response = self.client.get(self._url(self.regular_weekend))
+
+        # Il pulsante parte nascosto: lo mostra expand-rows.js.
+        self.assertContains(response, f'aria-controls="sessions-{self.me.id}"')
+        self.assertContains(response, "data-expand")
+        self.assertContains(response, " hidden>")
+        self.assertContains(response, "expand-rows.js")
+
+    def test_only_players_and_managers(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self._url(self.regular_weekend))
+
+        self.assertRedirects(
+            response,
+            reverse("championship_dashboard", args=[self.championship.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_queries_do_not_grow_with_the_players(self):
+        self.sprint_weekend.sprint_qualifying_start = timezone.now() - timedelta(
+            hours=1
+        )
+        self.sprint_weekend.save()
+        url = self._url(self.sprint_weekend)
+        with CaptureQueriesContext(connection) as few:
+            self.client.get(url)
+        for n in range(3):
+            self._gp_choice(self._player(f"extra{n}"), self.sprint_race)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(url)
 
         self.assertEqual(len(few.captured_queries), len(many.captured_queries))
 

@@ -7,7 +7,6 @@ ordinabili sono link con ?league=, ?sort= e ?dir=, senza JavaScript.
 {% endcomment %}
 
 {% block title %}{{ weekend.event_name }} · Scelte dei giocatori · {{ session_label }} — Fanta F1{% endblock %}
-
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
@@ -24,16 +23,20 @@ ordinabili sono link con ?league=, ?sort= e ?dir=, senza JavaScript.
 {% if not started %}
   <div class="card-pad">
     <p class="font-semibold">Le scelte dei giocatori si vedono dal via {{ session_of }}{% if event_start %}, {{ event_start|date:"l j F · H:i"|lower }}{% endif %}.</p>
+    {% block chosen_before_start %}
     <p class="mt-1 text-muted">
       Finora hanno scelto <strong class="text-ink">{{ chosen_count }}/{{ shown_count }}</strong>
       {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}.
     </p>
+    {% endblock %}
   </div>
 {% else %}
+  {% block chosen_after_start %}
   <p class="mb-3 text-muted">
     Hanno scelto {{ chosen_count }}/{{ shown_count }}
     {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}.
   </p>
+  {% endblock %}
   {% block choices_table %}{% endblock %}
 {% endif %}
 {% endblock %}

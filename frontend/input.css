@@ -167,6 +167,18 @@
   .table-clean th { @apply px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted bg-surface-2 border-b border-line; }
   .table-clean td { @apply px-3 py-2.5 border-b border-line; }
   .table-clean tbody tr:last-child td { @apply border-b-0; }
+  /* Righe con dettaglio espandibile (#208): un <tbody class="expandable"> per
+     riga, col dettaglio subito sotto (expand-rows.js lo apre e chiude). La riga
+     resta attaccata al suo dettaglio; il bordo separa un tbody dal successivo. */
+  .table-clean tbody.expandable tr:last-child td { @apply border-b; }
+  .table-clean tbody.expandable:last-child tr:last-child td { @apply border-b-0; }
+  .table-clean tbody.expandable tr:has(+ .expandable-detail:not([hidden])) td { @apply border-b-0; }
+  .table-clean .expandable-detail td { @apply pt-0; }
+  .expand-toggle {
+    @apply -ml-1 mr-1 inline-flex size-6 cursor-pointer items-center justify-center rounded
+      align-middle text-muted transition-transform hover:bg-surface-2 hover:text-ink;
+  }
+  .expand-toggle[aria-expanded="true"] { @apply rotate-90; }
 
   /* Campi form (gli input Django non hanno classi: si stilizzano per elemento) */
   .form-field label { @apply block text-base font-semibold mb-1; }
