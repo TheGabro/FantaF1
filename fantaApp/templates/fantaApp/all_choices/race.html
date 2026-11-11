@@ -1,39 +1,11 @@
-{% extends 'fantaApp/championship_flow_base.html' %}
+{% extends 'fantaApp/all_choices/base.html' %}
 {% comment %}
 Scelte dei giocatori in una gara (epica #202): Gran Premio (#203) e Sprint (#204).
 Dal via: una riga per giocatore con piloti (★ pupillo nel GP), fantamilioni spesi
-e punti della gara; prima del via solo quanti hanno scelto. Filtro per lega (la propria preselezionata) e intestazioni
-ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
+e punti della gara.
 {% endcomment %}
 
-{% block title %}{{ weekend.event_name }} · Scelte dei giocatori · {{ race_label }} — Fanta F1{% endblock %}
-
-{% block championship_content %}
-{% include "fantaApp/_breadcrumb.html" %}
-
-<h2 class="heading mb-5">
-  {{ weekend.event_name }} · <span class="text-accent">Scelte dei giocatori · {{ race_label }}</span>
-</h2>
-
-<div class="championship-subtabs mb-5" aria-label="Filtra per lega">
-  {% for f in league_filters %}
-    <a href="{{ f.url }}" class="championship-subtab{% if f.active %} championship-subtab-active{% endif %}"{% if f.active %} aria-current="true"{% endif %}>{{ f.label }}</a>
-  {% endfor %}
-</div>
-
-{% if not started %}
-  <div class="card-pad">
-    <p class="font-semibold">Le scelte dei giocatori si vedono dal via {% if is_sprint %}della Sprint{% else %}del Gran Premio{% endif %}{% if race_start %}, {{ race_start|date:"l j F · H:i"|lower }}{% endif %}.</p>
-    <p class="mt-1 text-muted">
-      Finora hanno scelto <strong class="text-ink">{{ chosen_count }}/{{ shown_count }}</strong>
-      {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}.
-    </p>
-  </div>
-{% else %}
-  <p class="mb-3 text-muted">
-    Hanno scelto {{ chosen_count }}/{{ shown_count }}
-    {% if league_param == "all" %}nel campionato{% else %}nella lega{% endif %}.
-  </p>
+{% block choices_table %}
   <div class="card overflow-x-auto">
     <table class="table-clean min-w-[560px]">
       <thead>
@@ -95,5 +67,4 @@ ordinabili, senza JavaScript: sono link con ?league=, ?sort= e ?dir=.
       I punti compaiono quando il Gran Premio è stato calcolato. ★ = pupillo.
     {% endif %}
   </p>
-{% endif %}
 {% endblock %}
