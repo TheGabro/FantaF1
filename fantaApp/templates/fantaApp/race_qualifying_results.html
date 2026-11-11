@@ -1,4 +1,5 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
+{% load numbers %}
 
 {% block title %}{{ weekend.event_name }} · Risultati qualifica — Fanta F1{% endblock %}
 
@@ -107,7 +108,7 @@
           </div>
           <div class="mt-1 flex items-center justify-between">
             <span class="note">Moltiplicatore punti GP</span>
-            <span class="font-bold">×{{ pick.points_multiplier|floatformat:"-2" }}</span>
+            <span class="font-bold">×{{ pick.points_multiplier|decimals }}</span>
           </div>
         {% else %}
           <p class="note mt-1">Sconto e moltiplicatore sul Gran Premio si conoscono con la griglia di partenza.</p>
@@ -143,7 +144,7 @@
         </div>
         <div class="flex items-center justify-between">
           <dt class="note">Moltiplicatore punti GP</dt>
-          <dd class="font-bold">×{{ pick.points_multiplier|floatformat:"-2" }}</dd>
+          <dd class="font-bold">×{{ pick.points_multiplier|decimals }}</dd>
         </div>
         {% else %}
         <p class="note">Sconto o malus e moltiplicatore sul Gran Premio si conoscono con la griglia di partenza, penalità incluse.</p>
