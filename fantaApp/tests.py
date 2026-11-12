@@ -4925,8 +4925,9 @@ class PointsDecimalsTests(WeekendPagesFixture, TestCase):
 
 @override_settings(STORAGES=TEST_STORAGES)
 class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
-    """#209, #210: dai risultati del GP e della Sprint il pulsante «Scelte di
-    tutti» porta a #203 e #204, solo per giocatori e manager del campionato."""
+    """#209, #210, #211, #212: dai risultati di GP, Sprint e qualifiche il
+    pulsante «Scelte di tutti» porta a #203, #204 e #205/#206, solo per
+    giocatori e manager del campionato."""
 
     def setUp(self):
         super().setUp()
@@ -4964,6 +4965,52 @@ class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
         self.assertContains(
             response, f'href="{reverse("sprint_race_all_choices", args=args)}"'
         )
+
+    def test_saturday_qualifying_results_link_to_its_choices(self):
+        self.client.force_login(self.user)
+        args = [
+            self.championship.id,
+            self.regular_weekend.id,
+            self.regular_qualifying.id,
+        ]
+
+        response = self.client.get(reverse("race_qualifying_results", args=args))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("race_qualifying_all_choices", args=args)}"',
+        )
+
+    def test_sprint_weekend_qualifying_results_link_to_its_choices(self):
+        # Pagina aperta dal via, ancora senza classifica.
+        self.sprint_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.sprint_weekend.save()
+        self.client.force_login(self.user)
+        args = [
+            self.championship.id,
+            self.sprint_weekend.id,
+            self.sprint_weekend_qualifying.id,
+        ]
+
+        response = self.client.get(reverse("race_qualifying_results", args=args))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("race_qualifying_all_choices", args=args)}"',
+        )
+
+    def test_outsiders_do_not_on_the_qualifying_results(self):
+        self.client.force_login(self.outsider)
+        args = [
+            self.championship.id,
+            self.regular_weekend.id,
+            self.regular_qualifying.id,
+        ]
+
+        response = self.client.get(reverse("race_qualifying_results", args=args))
+
+        self.assertContains(response, "1:21.123")  # la classifica la vedono
+        self.assertNotContains(response, "Scelte di tutti")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
