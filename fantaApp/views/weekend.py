@@ -12,7 +12,6 @@ from ..models import (
     Qualifying,
     Driver,
     PlayerQualifyingChoice,
-    RaceResult,
     RaceStartingGrid,
     PlayerRaceResult,
 )
@@ -28,10 +27,11 @@ from django.db.models import Count
 
 @login_required
 def weekend_detail(request, championship_id, weekend_id):
-    """Sessioni del weekend con orario, stato della scelta e un solo pulsante
-    secondo lo stato (#61), come Prossimo weekend (#193): «Scegli»/«Modifica»
-    finché si può scegliere, spento senza griglia, «Risultati» dal via.
-    Query costanti: sessioni e scelte arrivano dagli helper di dashboard."""
+    """Sessioni del weekend con orario, stato della scelta e i pulsanti secondo
+    lo stato (#61), come Prossimo weekend (#193): «Scegli»/«Modifica» finché si
+    può scegliere, spento senza griglia, «Risultati» e «Scelte di tutti» dal
+    via (#284). Query costanti: sessioni e scelte arrivano dagli helper di
+    dashboard."""
     championship = get_object_or_404(Championship, pk=championship_id)
     weekend = get_object_or_404(
         Weekend.objects.select_related("circuit").prefetch_related(
@@ -52,23 +52,6 @@ def weekend_detail(request, championship_id, weekend_id):
         ) in already_chosen
     _mark_missing_grids(sessions)
 
-    # Riquadro dei risultati ufficiali: le gare con la classifica importata.
-    race_ids = [s["event"].id for s in sessions if s["entity"] == "race"]
-    with_results = set(
-        RaceResult.objects.filter(race_id__in=race_ids).values_list(
-            "race_id", flat=True
-        )
-    )
-    results = [
-        {
-            "label": f"Risultati {session['label']}",
-            "url_name": session["results_url_name"],
-            "event_id": session["event"].id,
-        }
-        for session in sessions
-        if session["entity"] == "race" and session["event"].id in with_results
-    ]
-
     return render(
         request,
         "fantaApp/weekend_details.html",
@@ -79,9 +62,8 @@ def weekend_detail(request, championship_id, weekend_id):
             # Le sessioni restano nel percorso di partenza (#63, #156).
             "origin_query": _origin_query(request),
             "sessions": sessions,
-            "results": results,
             "player": player,
-            "all_choices_links": weekend_page_links(
+            "all_choices": weekend_page_links(
                 request, championship, weekend, player, sessions, _origin_query(request)
             ),
         },

@@ -120,39 +120,28 @@ def _session_items(championship, weekend, sessions, current, page_of, query):
 
 
 def weekend_page_links(request, championship, weekend, player, sessions, origin):
-    """Card «Scelte dei giocatori» della pagina del weekend (#214): una riga per
-    sessione con la sua pagina e in fondo il riepilogo del weekend (#208). Il
-    link c'è solo dal via; prima la riga dice «dal via». None per chi non gioca
-    e non gestisce il campionato: le pagine lo rimanderebbero indietro."""
+    """Scelte di tutti dalla pagina del weekend (#214, #284).
+
+    Aggiunge a ogni sessione all_choices_url, la sua pagina delle scelte di
+    tutti (None se non ce l'ha ancora, #207): la riga mostra «Scelte di tutti»
+    accanto a «Risultati» dal via. Ritorna {"summary_url"}, il riepilogo del
+    weekend (#208) dal via della prima sessione, None prima. Ritorna None per
+    chi non gioca e non gestisce il campionato: le pagine lo rimanderebbero
+    indietro, quindi niente pulsanti né riepilogo."""
     if player is None and not helper.is_championship_manager(
         request.user, championship
     ):
         return None
-    links = []
     for session in sessions:
         url_name = SESSION_PAGES.get((session["entity"], session["subtype"]))
-        if url_name is None:
-            continue
         args = [championship.pk, weekend.pk, session["event"].id]
-        links.append(
-            {
-                "label": session["label"],
-                "url": (
-                    reverse(url_name, args=args) + origin
-                    if session["has_started"]
-                    else None
-                ),
-            }
+        session["all_choices_url"] = (
+            reverse(url_name, args=args) + origin if url_name else None
         )
-    links.append(
-        {
-            "label": "Riepilogo del weekend",
-            "url": (
-                reverse("weekend_all_choices", args=[championship.pk, weekend.pk])
-                + origin
-                if any(session["has_started"] for session in sessions)
-                else None
-            ),
-        }
-    )
-    return links
+    return {
+        "summary_url": (
+            reverse("weekend_all_choices", args=[championship.pk, weekend.pk]) + origin
+            if any(session["has_started"] for session in sessions)
+            else None
+        )
+    }

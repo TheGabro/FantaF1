@@ -3342,6 +3342,10 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
         self.assertNotContains(page, "example.com")
 
     def test_weekend_page_keeps_the_origin_in_its_links(self):
+        # Qualifiche iniziate: «Risultati» sulla loro riga (#284), «Scegli» sul GP.
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
         page = self.client.get(f"{self.weekend_url}?from=play")
 
         self.assertEqual(
@@ -3354,8 +3358,12 @@ class WeekendBreadcrumbTests(WeekendPagesFixture, TestCase):
         )
         self.assertContains(page, f'href="{self.choice_url}?from=play"')
         results_url = reverse(
-            "regular_race_results",
-            args=[self.championship.id, self.regular_weekend.id, self.regular_race.id],
+            "race_qualifying_results",
+            args=[
+                self.championship.id,
+                self.regular_weekend.id,
+                self.regular_qualifying.id,
+            ],
         )
         self.assertContains(page, f'href="{results_url}?from=play"')
 
@@ -4927,29 +4935,28 @@ class PointsDecimalsTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
-class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
-    """#214: nella pagina del weekend la card «Scelte dei giocatori», con un link
-    per sessione dal via e il riepilogo del weekend; solo giocatori e manager."""
+class WeekendPageAllChoicesTests(WeekendPagesFixture, TestCase):
+    """#214, #284: nella pagina del weekend «Scelte di tutti» sulla riga di ogni
+    sessione dal via e, a destra, il riepilogo del weekend; solo giocatori e
+    manager. Niente più card «Risultati ufficiali»: i risultati stanno sulle righe."""
 
     def _get(self, weekend, query=""):
         return self.client.get(
             reverse("weekend_details", args=[self.championship.id, weekend.id]) + query
         )
 
-    def test_before_the_start_every_row_says_from_the_start(self):
+    def test_before_the_start_no_buttons_and_the_summary_says_from_the_start(self):
         self.client.force_login(self.user)
 
         response = self._get(self.regular_weekend)
 
-        labels = [link["label"] for link in response.context["all_choices_links"]]
-        self.assertEqual(labels, ["Qualifiche", "Gran Premio", "Riepilogo del weekend"])
-        self.assertTrue(
-            all(link["url"] is None for link in response.context["all_choices_links"])
-        )
-        self.assertContains(response, "Scelte dei giocatori")
-        self.assertContains(response, "dal via", count=3)
+        self.assertIsNone(response.context["all_choices"]["summary_url"])
+        self.assertNotContains(response, "Scelte di tutti")
+        self.assertContains(response, "Riepilogo del weekend")
+        self.assertContains(response, "dal via")
+        self.assertNotContains(response, "Risultati ufficiali")
 
-    def test_links_only_for_started_sessions(self):
+    def test_buttons_only_for_started_sessions(self):
         self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
         self.regular_weekend.save()
         self.client.force_login(self.user)
@@ -4960,7 +4967,13 @@ class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
         qualifying_url = reverse(
             "race_qualifying_all_choices", args=[c, w, self.regular_qualifying.id]
         )
-        self.assertContains(response, f'href="{qualifying_url}?from=play"')
+        self.assertContains(
+            response,
+            f'<a href="{qualifying_url}?from=play" class="btn-secondary shrink-0">'
+            "Scelte di tutti</a>",
+            html=True,
+        )
+        self.assertContains(response, "Scelte di tutti", count=1)
         self.assertContains(
             response,
             f'href="{reverse("weekend_all_choices", args=[c, w])}?from=play"',
@@ -4969,7 +4982,7 @@ class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
         self.assertNotContains(response, gp_url)
 
     def test_sprint_weekend_without_the_sprint_qualifying_page_yet(self):
-        # Le Qualifiche Sprint avranno la loro pagina con #207.
+        # Le Qualifiche Sprint avranno la loro pagina con #207: resta «Rivedi».
         past = timezone.now() - timedelta(days=1)
         self.sprint_weekend.sprint_qualifying_start = past
         self.sprint_weekend.sprint_start = past
@@ -4980,31 +4993,39 @@ class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
 
         response = self._get(self.sprint_weekend)
 
-        links = response.context["all_choices_links"]
-        self.assertEqual(
-            [link["label"] for link in links],
-            ["Sprint", "Qualifiche", "Gran Premio", "Riepilogo del weekend"],
+        urls = {s["label"]: s["all_choices_url"] for s in response.context["sessions"]}
+        self.assertIsNone(urls["Qualifiche Sprint"])
+        self.assertTrue(
+            all(urls[label] for label in ("Sprint", "Qualifiche", "Gran Premio"))
         )
-        self.assertTrue(all(link["url"] for link in links))
+        self.assertContains(response, "Scelte di tutti", count=3)
+        self.assertContains(response, ">Rivedi</a>")
 
-    def test_managers_who_do_not_play_see_it(self):
+    def test_managers_who_do_not_play_see_them(self):
         manager = get_user_model().objects.create_user(
             username="gestore", email="gestore@example.com", password="pw123456!"
         )
         ChampionshipManager.objects.create(user=manager, championship=self.championship)
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
         self.client.force_login(manager)
 
         response = self._get(self.regular_weekend)
 
-        self.assertIsNotNone(response.context["all_choices_links"])
+        self.assertIsNotNone(response.context["all_choices"])
+        self.assertContains(response, "Scelte di tutti", count=1)
 
-    def test_outsiders_do_not(self):
+    def test_outsiders_only_see_the_results(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
         self.client.force_login(self.outsider)
 
         response = self._get(self.regular_weekend)
 
-        self.assertIsNone(response.context["all_choices_links"])
+        self.assertIsNone(response.context["all_choices"])
+        self.assertNotContains(response, "Scelte di tutti")
         self.assertNotContains(response, "Scelte dei giocatori")
+        self.assertContains(response, ">Risultati</a>")
 
 
 @override_settings(STORAGES=TEST_STORAGES)

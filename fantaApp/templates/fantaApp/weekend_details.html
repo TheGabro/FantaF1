@@ -22,9 +22,10 @@
   {% endif %}
 </div>
 
-<div class="grid gap-6 lg:grid-cols-3">
+{# A destra il riepilogo del weekend, solo per chi gioca o gestisce il campionato (#284) #}
+<div class="grid gap-6 {% if all_choices %}lg:grid-cols-3{% endif %}">
   <!-- Sessioni e scelte -->
-  <section class="lg:col-span-2">
+  <section class="{% if all_choices %}lg:col-span-2{% endif %}">
     <h3 class="mb-3 section-title">Sessioni del weekend</h3>
     <div class="space-y-3">
       {% for s in sessions %}
@@ -41,8 +42,9 @@
           </div>
 
           {# Scelte solo per chi gioca: gli altri finirebbero respinti dalla pagina di scelta. I risultati sono per tutti. #}
+          {# flex-wrap: su mobile badge e due pulsanti vanno a capo invece di uscire dalla card #}
           {% if player or s.has_started and s.results_url_name %}
-          <div class="flex shrink-0 items-center gap-3 max-sm:pl-6">
+          <div class="flex flex-wrap items-center gap-3 max-sm:pl-6 sm:shrink-0">
             {% if player %}
               {% if s.has_started %}
                 <span class="badge-muted shrink-0">Scelte chiuse</span>
@@ -59,6 +61,10 @@
               {% else %}
                 {# Le Qualifiche Sprint non hanno ancora la pagina dei risultati (#197) #}
                 <a href="{% url s.url_name championship.id weekend.id s.event.id %}{{ origin_query }}" class="btn-secondary shrink-0">Rivedi</a>
+              {% endif %}
+              {# Scelte di tutti nella stessa sessione (#284), per chi gioca o gestisce il campionato #}
+              {% if s.all_choices_url %}
+                <a href="{{ s.all_choices_url }}" class="btn-secondary shrink-0">Scelte di tutti</a>
               {% endif %}
             {% elif s.grid_missing %}
               <span class="btn-secondary shrink-0" aria-disabled="true" title="Griglia non ancora disponibile">Scegli</span>
@@ -78,42 +84,29 @@
     </div>
   </section>
 
-  <!-- Risultati -->
+  {# Riepilogo del weekend (#208, #284): le scelte delle singole sessioni stanno sulle righe a sinistra. #}
+  {% if all_choices %}
   <aside>
-    <h3 class="mb-3 section-title">Risultati ufficiali</h3>
-    <div class="space-y-3">
-      {% for r in results %}
-        <a href="{% url r.url_name championship.id weekend.id r.event_id %}{{ origin_query }}"
-           class="card group flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
-          <span class="font-bold group-hover:text-accent">{{ r.label }}</span>
+    <h3 class="mb-3 section-title">Scelte dei giocatori</h3>
+    {% if all_choices.summary_url %}
+      <a href="{{ all_choices.summary_url }}"
+         class="card group block p-4 transition-shadow hover:shadow-md hover:border-accent/50">
+        <span class="flex items-center justify-between gap-3">
+          <span class="font-bold group-hover:text-accent">Riepilogo del weekend</span>
           <span class="text-muted">→</span>
-        </a>
-      {% empty %}
-        <div class="card-pad text-muted">
-          I risultati compariranno qui una volta conclusi gli eventi in pista.
-        </div>
-      {% endfor %}
-    </div>
-
-    {# Scelte di tutti i giocatori (#214): solo giocatori e manager, link dal via. #}
-    {% if all_choices_links %}
-      <h3 class="mb-3 mt-6 section-title">Scelte dei giocatori</h3>
-      <div class="card divide-y divide-line overflow-hidden">
-        {% for link in all_choices_links %}
-          {% if link.url %}
-            <a href="{{ link.url }}" class="group flex items-center justify-between gap-3 p-4 transition-colors hover:bg-surface-2">
-              <span class="font-bold group-hover:text-accent">{{ link.label }}</span>
-              <span class="text-muted">→</span>
-            </a>
-          {% else %}
-            <div class="flex items-center justify-between gap-3 p-4">
-              <span class="font-bold text-muted">{{ link.label }}</span>
-              <span class="note">dal via</span>
-            </div>
-          {% endif %}
-        {% endfor %}
+        </span>
+        <span class="note mt-1 block">Spesa e punti di tutti, sessione per sessione.</span>
+      </a>
+    {% else %}
+      <div class="card p-4">
+        <p class="flex items-center justify-between gap-3">
+          <span class="font-bold text-muted">Riepilogo del weekend</span>
+          <span class="note">dal via</span>
+        </p>
+        <p class="note mt-1">Spesa e punti di tutti, sessione per sessione.</p>
       </div>
     {% endif %}
   </aside>
+  {% endif %}
 </div>
 {% endblock %}
