@@ -937,7 +937,7 @@ def _render_race_results_page(
         "weekend": weekend,
         "breadcrumb": _breadcrumb(request, champ, weekend, f"Risultati {race_label}"),
         "session_bar": results_session_bar(
-            request, champ, weekend, ("race", race_type)
+            request, champ, weekend, ("race", race_type), _weekend_sessions(weekend)
         ),
         "event": race,
         "race_label": race_label,

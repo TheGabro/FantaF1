@@ -2,7 +2,9 @@
 percorsi fra loro e fra i risultati del weekend (#271).
 
 Qui e non in views/weekend.py, che ha già superato le ~1000 righe (#55). Il
-modulo non importa da views.weekend: è weekend.py a usarlo.
+modulo non importa da nessuna view (le sessioni di dashboard._weekend_sessions
+gliele passa chi lo chiama): lo usano weekend.py, qualifying_results.py e
+dashboard.py senza import circolari (#285).
 """
 
 from urllib.parse import urlencode
@@ -10,7 +12,6 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from ...services import helper
-from ..dashboard import _weekend_sessions
 
 # Pagina delle scelte di tutti di ogni sessione, per (entity, subtype) come in
 # dashboard._weekend_sessions. Le Qualifiche Sprint avranno la loro con #207.
@@ -23,7 +24,7 @@ SESSION_PAGES = {
 SUMMARY = "summary"
 
 
-def session_nav(request, championship, weekend, current, sessions=None):
+def session_nav(request, championship, weekend, current, sessions):
     """Percorsi di una pagina delle scelte di tutti (#271, #282).
 
     - session_bar: la barra delle sessioni sotto il titolo, stessa pagina per
@@ -36,8 +37,6 @@ def session_nav(request, championship, weekend, current, sessions=None):
 
     current è (entity, subtype) della sessione aperta, oppure SUMMARY.
     """
-    if sessions is None:
-        sessions = _weekend_sessions(weekend)
     query = _query(request, league=True)
     bar = _session_items(
         championship,
@@ -71,7 +70,7 @@ def session_nav(request, championship, weekend, current, sessions=None):
     return {"session_bar": bar, "results_url": results_url}
 
 
-def results_session_bar(request, championship, weekend, current):
+def results_session_bar(request, championship, weekend, current, sessions):
     """Barra delle sessioni nei risultati (#283): i risultati di un'altra
     sessione del weekend, senza il riepilogo (non ci sono risultati del weekend
     intero). Per tutti, come le pagine dei risultati; i link tengono la pagina
@@ -80,7 +79,7 @@ def results_session_bar(request, championship, weekend, current):
     return _session_items(
         championship,
         weekend,
-        _weekend_sessions(weekend),
+        sessions,
         current,
         lambda session: session["results_url_name"],
         _query(request),

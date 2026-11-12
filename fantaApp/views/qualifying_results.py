@@ -25,6 +25,7 @@ from ..services import bonuses, helper
 from . import session_state as ss
 from .weekend import _base_context, _breadcrumb, _origin_query
 from .all_choices.links import results_session_bar
+from .dashboard import _weekend_sessions
 from .weekend_teams import use_weekend_teams
 
 # Slot della qualifica dei weekend sprint, con i nomi della pagina di scelta.
@@ -181,7 +182,11 @@ def race_qualifying_results(request, championship_id, weekend_id, event_id):
             "breadcrumb": _breadcrumb(request, champ, weekend, "Risultati qualifica"),
             # Risultati delle altre sessioni del weekend (#283)
             "session_bar": results_session_bar(
-                request, champ, weekend, ("qualifying", "regular")
+                request,
+                champ,
+                weekend,
+                ("qualifying", "regular"),
+                _weekend_sessions(weekend),
             ),
             "event": qualifying,
             "session_state": state,

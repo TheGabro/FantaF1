@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from ...models import ChampionshipPlayer, PlayerRaceChoice, PlayerRaceResult, Race
 from ...services import helper
+from ..dashboard import _weekend_sessions
 from ..weekend import _base_context, _breadcrumb
 from ..weekend_teams import use_weekend_teams
 from .links import session_nav
@@ -78,7 +79,13 @@ def page_context(
         "breadcrumb": _breadcrumb(
             request, champ, weekend, f"Scelte dei giocatori · {label}"
         ),
-        **session_nav(request, champ, weekend, current, sessions),
+        **session_nav(
+            request,
+            champ,
+            weekend,
+            current,
+            _weekend_sessions(weekend) if sessions is None else sessions,
+        ),
         "session_label": label,
         "event_start": helper.event_start(event),
         "started": helper._event_has_started(event),
