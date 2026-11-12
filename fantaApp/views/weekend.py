@@ -21,6 +21,7 @@ from ..services import bonuses, costs, rules, helper
 from .weekend_teams import use_weekend_teams
 from .race_classification import race_classification
 from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
+from .all_choices.links import weekend_page_links
 from . import session_state as ss
 from django.db.models import Count
 
@@ -80,6 +81,9 @@ def weekend_detail(request, championship_id, weekend_id):
             "sessions": sessions,
             "results": results,
             "player": player,
+            "all_choices_links": weekend_page_links(
+                request, championship, weekend, player, sessions, _origin_query(request)
+            ),
         },
     )
 

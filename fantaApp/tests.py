@@ -4924,6 +4924,87 @@ class PointsDecimalsTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
+    """#214: nella pagina del weekend la card «Scelte dei giocatori», con un link
+    per sessione dal via e il riepilogo del weekend; solo giocatori e manager."""
+
+    def _get(self, weekend, query=""):
+        return self.client.get(
+            reverse("weekend_details", args=[self.championship.id, weekend.id]) + query
+        )
+
+    def test_before_the_start_every_row_says_from_the_start(self):
+        self.client.force_login(self.user)
+
+        response = self._get(self.regular_weekend)
+
+        labels = [link["label"] for link in response.context["all_choices_links"]]
+        self.assertEqual(labels, ["Qualifiche", "Gran Premio", "Riepilogo del weekend"])
+        self.assertTrue(
+            all(link["url"] is None for link in response.context["all_choices_links"])
+        )
+        self.assertContains(response, "Scelte dei giocatori")
+        self.assertContains(response, "dal via", count=3)
+
+    def test_links_only_for_started_sessions(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        self.client.force_login(self.user)
+        c, w = self.championship.id, self.regular_weekend.id
+
+        response = self._get(self.regular_weekend, "?from=play")
+
+        qualifying_url = reverse(
+            "race_qualifying_all_choices", args=[c, w, self.regular_qualifying.id]
+        )
+        self.assertContains(response, f'href="{qualifying_url}?from=play"')
+        self.assertContains(
+            response,
+            f'href="{reverse("weekend_all_choices", args=[c, w])}?from=play"',
+        )
+        gp_url = reverse("regular_race_all_choices", args=[c, w, self.regular_race.id])
+        self.assertNotContains(response, gp_url)
+
+    def test_sprint_weekend_without_the_sprint_qualifying_page_yet(self):
+        # Le Qualifiche Sprint avranno la loro pagina con #207.
+        past = timezone.now() - timedelta(days=1)
+        self.sprint_weekend.sprint_qualifying_start = past
+        self.sprint_weekend.sprint_start = past
+        self.sprint_weekend.qualifying_start = past
+        self.sprint_weekend.race_start = past
+        self.sprint_weekend.save()
+        self.client.force_login(self.user)
+
+        response = self._get(self.sprint_weekend)
+
+        links = response.context["all_choices_links"]
+        self.assertEqual(
+            [link["label"] for link in links],
+            ["Sprint", "Qualifiche", "Gran Premio", "Riepilogo del weekend"],
+        )
+        self.assertTrue(all(link["url"] for link in links))
+
+    def test_managers_who_do_not_play_see_it(self):
+        manager = get_user_model().objects.create_user(
+            username="gestore", email="gestore@example.com", password="pw123456!"
+        )
+        ChampionshipManager.objects.create(user=manager, championship=self.championship)
+        self.client.force_login(manager)
+
+        response = self._get(self.regular_weekend)
+
+        self.assertIsNotNone(response.context["all_choices_links"])
+
+    def test_outsiders_do_not(self):
+        self.client.force_login(self.outsider)
+
+        response = self._get(self.regular_weekend)
+
+        self.assertIsNone(response.context["all_choices_links"])
+        self.assertNotContains(response, "Scelte dei giocatori")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
     """#209, #210, #211, #212: dai risultati di GP, Sprint e qualifiche il
     pulsante «Scelte di tutti» porta a #203, #204 e #205/#206, solo per
