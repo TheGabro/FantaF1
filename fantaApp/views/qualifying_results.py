@@ -21,7 +21,7 @@ from ..models import (
     Qualifying,
     RaceStartingGrid,
 )
-from ..services import bonuses
+from ..services import bonuses, helper
 from . import session_state as ss
 from .weekend import _base_context, _breadcrumb, _origin_query
 from .weekend_teams import use_weekend_teams
@@ -185,6 +185,17 @@ def race_qualifying_results(request, championship_id, weekend_id, event_id):
             "player": player,
             "pick": pick,
             "is_sprint_weekend": is_sprint_weekend,
+            # Scelte di tutti i giocatori nella stessa qualifica (#211, #212),
+            # solo per chi gioca o gestisce il campionato.
+            "all_choices_url": (
+                reverse(
+                    "race_qualifying_all_choices",
+                    args=[champ.pk, weekend.pk, qualifying.pk],
+                )
+                + _origin_query(request)
+                if player or helper.is_championship_manager(request.user, champ)
+                else None
+            ),
             # Nei weekend sprint i piloti scelti sono 14: non si evidenziano.
             "selected_driver_id": (
                 pick["driver"].id if pick and not is_sprint_weekend else None
