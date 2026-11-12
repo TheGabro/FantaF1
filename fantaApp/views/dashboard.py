@@ -1280,6 +1280,8 @@ def championship_my_choices(request, championship_id):
                 # Senza PlayerRaceResult il punteggio non è "zero": non è ancora stato
                 # calcolato, e il template deve dirlo invece di mostrare uno 0 grande.
                 "is_scored": is_scored,
+                # Riepilogo del weekend di tutti i giocatori (#215), dal via.
+                "has_started": has_started,
             }
         )
 

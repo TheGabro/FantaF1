@@ -120,6 +120,13 @@
           {% endif %}
         {% endfor %}
       </ul>
+
+      {# Confronto con gli altri giocatori (#215): il riepilogo si apre dal via. #}
+      {% if item.has_started %}
+        <div class="border-t border-line px-5 py-3 text-right">
+          <a href="{% url 'weekend_all_choices' championship.id item.weekend.id %}" class="font-semibold text-accent hover:underline">Riepilogo del weekend →</a>
+        </div>
+      {% endif %}
     </section>
   {% empty %}
     <div class="card-pad text-center text-base text-muted">
