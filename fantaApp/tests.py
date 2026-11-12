@@ -5005,6 +5005,41 @@ class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class MyChoicesWeekendSummaryLinkTests(WeekendPagesFixture, TestCase):
+    """#215: in Le mie scelte ogni weekend giocato e già iniziato ha il link al
+    riepilogo del weekend di tutti i giocatori (#208)."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        PlayerQualifyingChoice.objects.create(
+            player=ChampionshipPlayer.objects.get(user=self.user),
+            qualifying=self.regular_qualifying,
+            driver=Driver.objects.get(api_id="drv-smoke-1"),
+        )
+        self.url = reverse("championship_my_choices", args=[self.championship.id])
+        self.summary_url = reverse(
+            "weekend_all_choices",
+            args=[self.championship.id, self.regular_weekend.id],
+        )
+
+    def test_not_before_the_weekend_starts(self):
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "GP Regular")  # il weekend giocato c'è
+        self.assertNotContains(response, self.summary_url)
+
+    def test_from_the_first_session(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'href="{self.summary_url}"')
+        self.assertContains(response, "Riepilogo del weekend")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
     """#209, #210, #211, #212: dai risultati di GP, Sprint e qualifiche il
     pulsante «Scelte di tutti» porta a #203, #204 e #205/#206, solo per
