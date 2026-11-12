@@ -5273,6 +5273,115 @@ class SelfHostedFontTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class ResultsSessionBarTests(WeekendPagesFixture, TestCase):
+    """#283: nei risultati la barra delle sessioni del weekend, senza il
+    riepilogo, per chiunque apra i risultati."""
+
+    def setUp(self):
+        super().setUp()
+        self.c = self.championship.id
+
+    def _start_sprint_weekend(self):
+        past = timezone.now() - timedelta(days=1)
+        self.sprint_weekend.sprint_qualifying_start = past
+        self.sprint_weekend.sprint_start = past
+        self.sprint_weekend.qualifying_start = past
+        self.sprint_weekend.race_start = past
+        self.sprint_weekend.save()
+
+    def test_grand_prix_results_in_a_sprint_weekend(self):
+        self._start_sprint_weekend()
+        self.client.force_login(self.user)
+        w = self.sprint_weekend.id
+        gp = Race.objects.get(weekend=self.sprint_weekend, type="regular")
+
+        response = self.client.get(
+            reverse("regular_race_results", args=[self.c, w, gp.id]) + "?from=play"
+        )
+
+        bar = {item["label"]: item for item in response.context["session_bar"]}
+        self.assertEqual(
+            list(bar), ["Qualifiche Sprint", "Sprint", "Qualifiche", "Gran Premio"]
+        )
+        # Le Qualifiche Sprint avranno i loro risultati con #197.
+        self.assertIsNone(bar["Qualifiche Sprint"]["url"])
+        self.assertEqual(bar["Qualifiche Sprint"]["reason"], "In arrivo")
+        self.assertEqual(
+            bar["Sprint"]["url"],
+            reverse("sprint_race_results", args=[self.c, w, self.sprint_race.id])
+            + "?from=play",
+        )
+        self.assertEqual(
+            bar["Qualifiche"]["url"],
+            reverse(
+                "race_qualifying_results",
+                args=[self.c, w, self.sprint_weekend_qualifying.id],
+            )
+            + "?from=play",
+        )
+        self.assertTrue(bar["Gran Premio"]["active"])
+        self.assertContains(response, 'aria-current="page">Gran Premio</span>')
+
+    def test_qualifying_results_before_the_race(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        self.client.force_login(self.user)
+        w = self.regular_weekend.id
+
+        response = self.client.get(
+            reverse(
+                "race_qualifying_results",
+                args=[self.c, w, self.regular_qualifying.id],
+            )
+        )
+
+        bar = response.context["session_bar"]
+        self.assertEqual(
+            [(item["label"], item["active"]) for item in bar],
+            [("Qualifiche", True), ("Gran Premio", False)],
+        )
+        self.assertEqual(bar[1]["reason"], "Dal via")
+        self.assertContains(response, 'aria-disabled="true" title="Dal via"')
+
+    def test_results_links_do_not_carry_the_league(self):
+        # La lega è un filtro delle scelte di tutti: i risultati non lo usano.
+        self._start_sprint_weekend()
+        self.client.force_login(self.user)
+        w = self.sprint_weekend.id
+        url = reverse("sprint_race_results", args=[self.c, w, self.sprint_race.id])
+
+        response = self.client.get(url + f"?league={self.league.id}")
+
+        bar = {item["label"]: item for item in response.context["session_bar"]}
+        gp = Race.objects.get(weekend=self.sprint_weekend, type="regular")
+        self.assertEqual(
+            bar["Gran Premio"]["url"],
+            reverse("regular_race_results", args=[self.c, w, gp.id]),
+        )
+
+    def test_outsiders_see_the_bar_too(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(days=1)
+        self.regular_weekend.race_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        self.client.force_login(self.outsider)
+        w = self.regular_weekend.id
+
+        response = self.client.get(
+            reverse("regular_race_results", args=[self.c, w, self.regular_race.id])
+        )
+
+        bar = {item["label"]: item for item in response.context["session_bar"]}
+        self.assertEqual(
+            bar["Qualifiche"]["url"],
+            reverse(
+                "race_qualifying_results",
+                args=[self.c, w, self.regular_qualifying.id],
+            ),
+        )
+        self.assertIsNone(response.context["all_choices_url"])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class ResultsAllChoicesButtonTests(WeekendPagesFixture, TestCase):
     """#209, #210, #211, #212: dai risultati di GP, Sprint e qualifiche il
     pulsante «Scelte di tutti» porta a #203, #204 e #205/#206, solo per

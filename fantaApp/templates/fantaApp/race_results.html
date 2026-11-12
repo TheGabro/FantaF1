@@ -9,7 +9,7 @@
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<div class="mb-5 flex flex-wrap items-center gap-3">
+<div class="mb-4 flex flex-wrap items-center gap-3">
   <h2 class="heading">
     {{ weekend.event_name }} · <span class="text-accent">Risultati {{ race_label }}</span>
   </h2>
@@ -17,6 +17,9 @@
     <a href="{{ all_choices_url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Scelte di tutti</a>
   {% endif %}
 </div>
+
+{# I risultati delle altre sessioni del weekend (#283) #}
+{% include "fantaApp/_session_bar.html" %}
 
 {# Stato della gara dal via, finché mancano i risultati (#191) #}
 {% if session_state == "running" %}

@@ -1,5 +1,5 @@
 """Ingressi alle pagine delle scelte di tutti (epica #202) dalle altre pagine e
-percorsi fra loro (#271).
+percorsi fra loro e fra i risultati del weekend (#271).
 
 Qui e non in views/weekend.py, che ha già superato le ~1000 righe (#55). Il
 modulo non importa da views.weekend: è weekend.py a usarlo.
@@ -38,33 +38,15 @@ def session_nav(request, championship, weekend, current, sessions=None):
     """
     if sessions is None:
         sessions = _weekend_sessions(weekend)
-    from_play = request.GET.get("from") == "play"
-    params = {}
-    if request.GET.get("league"):
-        params["league"] = request.GET["league"]
-    if from_play:
-        params["from"] = "play"
-    query = "?" + urlencode(params) if params else ""
-
-    bar = []
-    results_url = None
-    for session in sessions:
-        key = (session["entity"], session["subtype"])
-        url_name = SESSION_PAGES.get(key)
-        args = [championship.pk, weekend.pk, session["event"].id]
-        item = {"label": session["label"], "active": key == current, "url": None}
-        if item["active"]:
-            if session["has_started"] and session["results_url_name"]:
-                results_url = reverse(session["results_url_name"], args=args) + (
-                    "?from=play" if from_play else ""
-                )
-        elif url_name is None:
-            item["reason"] = "In arrivo"
-        elif not session["has_started"]:
-            item["reason"] = "Dal via"
-        else:
-            item["url"] = reverse(url_name, args=args) + query
-        bar.append(item)
+    query = _query(request, league=True)
+    bar = _session_items(
+        championship,
+        weekend,
+        sessions,
+        current,
+        lambda session: SESSION_PAGES.get((session["entity"], session["subtype"])),
+        query,
+    )
 
     summary = {"label": "Riepilogo", "active": current == SUMMARY, "url": None}
     if summary["active"]:
@@ -76,7 +58,65 @@ def session_nav(request, championship, weekend, current, sessions=None):
     else:
         summary["reason"] = "Dal via"
     bar.append(summary)
+
+    results_url = None
+    for session in sessions:
+        if (session["entity"], session["subtype"]) != current:
+            continue
+        if session["has_started"] and session["results_url_name"]:
+            args = [championship.pk, weekend.pk, session["event"].id]
+            results_url = reverse(session["results_url_name"], args=args) + _query(
+                request
+            )
     return {"session_bar": bar, "results_url": results_url}
+
+
+def results_session_bar(request, championship, weekend, current):
+    """Barra delle sessioni nei risultati (#283): i risultati di un'altra
+    sessione del weekend, senza il riepilogo (non ci sono risultati del weekend
+    intero). Per tutti, come le pagine dei risultati; i link tengono la pagina
+    di partenza del percorso. Le Qualifiche Sprint restano spente finché non
+    hanno i loro risultati (#197)."""
+    return _session_items(
+        championship,
+        weekend,
+        _weekend_sessions(weekend),
+        current,
+        lambda session: session["results_url_name"],
+        _query(request),
+    )
+
+
+def _query(request, league=False):
+    """«?league=…&from=play» per i link fra le pagine: la lega scelta (solo
+    nelle scelte di tutti) e la pagina di partenza del percorso (#156)."""
+    params = {}
+    if league and request.GET.get("league"):
+        params["league"] = request.GET["league"]
+    if request.GET.get("from") == "play":
+        params["from"] = "play"
+    return "?" + urlencode(params) if params else ""
+
+
+def _session_items(championship, weekend, sessions, current, page_of, query):
+    """Una voce della barra per sessione. `page_of(sessione)` è il nome della
+    rotta della pagina, None se la sessione non ce l'ha ancora."""
+    items = []
+    for session in sessions:
+        key = (session["entity"], session["subtype"])
+        url_name = page_of(session)
+        item = {"label": session["label"], "active": key == current, "url": None}
+        if item["active"]:
+            pass
+        elif url_name is None:
+            item["reason"] = "In arrivo"
+        elif not session["has_started"]:
+            item["reason"] = "Dal via"
+        else:
+            args = [championship.pk, weekend.pk, session["event"].id]
+            item["url"] = reverse(url_name, args=args) + query
+        items.append(item)
+    return items
 
 
 def weekend_page_links(request, championship, weekend, player, sessions, origin):
