@@ -93,6 +93,26 @@
         </div>
       {% endfor %}
     </div>
+
+    {# Scelte di tutti i giocatori (#214): solo giocatori e manager, link dal via. #}
+    {% if all_choices_links %}
+      <h3 class="mb-3 mt-6 section-title">Scelte dei giocatori</h3>
+      <div class="card divide-y divide-line overflow-hidden">
+        {% for link in all_choices_links %}
+          {% if link.url %}
+            <a href="{{ link.url }}" class="group flex items-center justify-between gap-3 p-4 transition-colors hover:bg-surface-2">
+              <span class="font-bold group-hover:text-accent">{{ link.label }}</span>
+              <span class="text-muted">→</span>
+            </a>
+          {% else %}
+            <div class="flex items-center justify-between gap-3 p-4">
+              <span class="font-bold text-muted">{{ link.label }}</span>
+              <span class="note">dal via</span>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
   </aside>
 </div>
 {% endblock %}
