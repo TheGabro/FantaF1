@@ -5050,7 +5050,7 @@ class CountryFlagsTests(WeekendPagesFixture, TestCase):
     # Circuit.country dei calendari 2025 e 2026, come li salva l'import.
     CALENDAR_COUNTRIES = [
         "Australia", "Austria", "Azerbaijan", "Bahrain", "Belgium", "Brazil",
-        "Canada", "China", "Hungary", "Italy", "Japan", "Mexico", "Monaco",
+        "Canada", "China", "Hungary", "Italy", "Japan", "Malaysia", "Mexico", "Monaco",
         "Netherlands", "Qatar", "Saudi Arabia", "Singapore", "Spain", "UAE",
         "UK", "USA",
     ]  # fmt: skip
@@ -5082,6 +5082,17 @@ class CountryFlagsTests(WeekendPagesFixture, TestCase):
         self.assertIn("pos-badge", html)
         self.assertIn("R1", html)
         self.assertNotIn("<img", html)
+
+    def test_grand_prix_held_in_another_country(self):
+        # #280: nel 2026 il GP del Bahrein si corre a Sepang, in Malesia.
+        self.regular_weekend.event_name = "Bahrain Grand Prix in Malaysia"
+        self.regular_weekend.circuit.country = "Malaysia"
+
+        html = self._flag(self.regular_weekend)
+
+        self.assertIn('alt="Bahrein"', html)
+        self.assertIn("fantaApp/img/flags/bh.svg", html)
+        self.assertEqual(countries.country_it("Malaysia"), "Malesia")
 
     def test_italian_country_names(self):
         self.assertEqual(countries.country_it("UK"), "Regno Unito")
