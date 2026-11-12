@@ -1,7 +1,8 @@
 {% extends 'fantaApp/championship_flow_base.html' %}
 {% comment %}
-Base delle pagine «Scelte dei giocatori» (epica #202): percorso, titolo, filtro per
-lega (la propria preselezionata) e, prima del via, solo quanti hanno scelto. Dal
+Base delle pagine «Scelte dei giocatori» (epica #202): percorso, titolo col
+pulsante «Risultati», barra delle sessioni (#282), filtro per lega (la propria
+preselezionata) e, prima del via, solo quanti hanno scelto. Dal
 via ogni pagina mette la sua tabella nel blocco «choices_table»; le intestazioni
 ordinabili sono link con ?league=, ?sort= e ?dir=, senza JavaScript.
 {% endcomment %}
@@ -10,9 +11,17 @@ ordinabili sono link con ?league=, ?sort= e ?dir=, senza JavaScript.
 {% block championship_content %}
 {% include "fantaApp/_breadcrumb.html" %}
 
-<h2 class="heading mb-5">
-  {{ weekend.event_name }} · <span class="text-accent">Scelte dei giocatori · {{ session_label }}</span>
-</h2>
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <h2 class="heading">
+    {{ weekend.event_name }} · <span class="text-accent">Scelte dei giocatori · {{ session_label }}</span>
+  </h2>
+  {# I risultati della stessa sessione, dal via (#282) #}
+  {% if results_url %}
+    <a href="{{ results_url }}" class="btn-secondary !px-3 !py-1.5 text-sm">Risultati</a>
+  {% endif %}
+</div>
+
+{% include "fantaApp/_session_bar.html" %}
 
 <div class="championship-subtabs mb-5" aria-label="Filtra per lega">
   {% for f in league_filters %}

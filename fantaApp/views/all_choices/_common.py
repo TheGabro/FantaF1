@@ -12,6 +12,7 @@ from ...models import ChampionshipPlayer, PlayerRaceChoice, PlayerRaceResult, Ra
 from ...services import helper
 from ..weekend import _base_context, _breadcrumb
 from ..weekend_teams import use_weekend_teams
+from .links import session_nav
 
 # Colonne ordinabili: chiave -> (valore della riga, ordine di partenza).
 # I numeri partono dal più alto; chi non ha un valore va sempre in fondo.
@@ -46,10 +47,14 @@ def page_access(request, championship_id, weekend_id):
     return champ, weekend, player, None
 
 
-def page_context(request, champ, weekend, player, event, *, label, chose):
-    """Contesto comune a tutte le pagine: percorso, filtro per lega, conteggio di
-    chi ha scelto e se la sessione è iniziata. `chose(giocatore)` dice se quel
-    giocatore ha scelto. Le righe da mostrare stanno in context["shown"]."""
+def page_context(
+    request, champ, weekend, player, event, *, label, chose, current, sessions=None
+):
+    """Contesto comune a tutte le pagine: percorso, barra delle sessioni e
+    pulsante «Risultati» (#282), filtro per lega, conteggio di chi ha scelto e
+    se la sessione è iniziata. `chose(giocatore)` dice se quel giocatore ha
+    scelto; `current` è la sessione aperta, come in links.session_nav. Le
+    righe da mostrare stanno in context["shown"]."""
     players = list(
         ChampionshipPlayer.objects.filter(championship=champ)
         .select_related("league")
@@ -73,6 +78,7 @@ def page_context(request, champ, weekend, player, event, *, label, chose):
         "breadcrumb": _breadcrumb(
             request, champ, weekend, f"Scelte dei giocatori · {label}"
         ),
+        **session_nav(request, champ, weekend, current, sessions),
         "session_label": label,
         "event_start": helper.event_start(event),
         "started": helper._event_has_started(event),
@@ -116,6 +122,7 @@ def render_race_all_choices(
         race,
         label=label,
         chose=lambda p: bool(choices_by_player[p.id]),
+        current=("race", race_type),
     )
     is_sprint = race_type == "sprint"
     context.update(
@@ -163,7 +170,7 @@ def render_race_all_choices(
         {
             "rows": rows,
             "headers": sort_headers(
-                context["league_param"], sort, direction, RACE_SORTS
+                request, context["league_param"], sort, direction, RACE_SORTS
             ),
         }
     )
@@ -188,9 +195,11 @@ def sort_rows(request, rows, sorts):
     return sort, direction
 
 
-def sort_headers(league_param, sort, direction, sorts):
+def sort_headers(request, league_param, sort, direction, sorts):
     """Intestazioni cliccabili: un clic ordina per quella colonna, un secondo
-    clic sulla stessa inverte l'ordine. Il filtro di lega resta."""
+    clic sulla stessa inverte l'ordine. Il filtro di lega e la pagina di
+    partenza del percorso restano."""
+    origin = _origin_params(request)
     headers = {}
     for key, (_, default_direction) in sorts.items():
         if key == sort:
@@ -199,16 +208,31 @@ def sort_headers(league_param, sort, direction, sorts):
             next_direction = default_direction
         headers[key] = {
             "url": "?"
-            + urlencode({"league": league_param, "sort": key, "dir": next_direction}),
+            + urlencode(
+                {
+                    "league": league_param,
+                    "sort": key,
+                    "dir": next_direction,
+                    **origin,
+                }
+            ),
             "active": key == sort,
             "arrow": ("▲" if direction == "asc" else "▼") if key == sort else "",
         }
     return headers
 
 
+def _origin_params(request):
+    """{"from": "play"} se si è partiti da Prossimo weekend (#156), così il
+    percorso in alto non cambia filtrando o ordinando."""
+    return {"from": "play"} if request.GET.get("from") == "play" else {}
+
+
 def _league_filters(request, leagues, league_param):
-    """Pulsanti «Tutte · Lega A · …», mantenendo l'ordinamento scelto."""
+    """Pulsanti «Tutte · Lega A · …», mantenendo l'ordinamento scelto e la
+    pagina di partenza del percorso."""
     keep = {k: request.GET[k] for k in ("sort", "dir") if request.GET.get(k)}
+    keep.update(_origin_params(request))
     filters = [
         {
             "label": "Tutte",
