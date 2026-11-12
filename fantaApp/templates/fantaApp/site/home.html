@@ -1,4 +1,5 @@
 {% extends 'fantaApp/base.html' %}
+{% load countries %}
 
 {% block title %}Fanta F1 — Formula 1 e fantagioco tra amici{% endblock %}
 
@@ -39,7 +40,7 @@
           {% if w.weekend_type == "sprint" %}<span class="badge-warn">Weekend sprint</span>{% endif %}
         </div>
         <h2 id="next-gp-title" class="heading mt-3">{{ w.event_name }}</h2>
-        <p class="text-muted">{{ w.circuit.name }} · {{ w.circuit.location }}, {{ w.circuit.country }}</p>
+        <p class="text-muted">{{ w.circuit.name }} · {{ w.circuit.location }}, {{ w.circuit.country|country_it }}</p>
         {% if next_weekend.sessions %}
           <dl class="mt-4 grid max-w-xl gap-y-2">
             {% for s in next_weekend.sessions %}
@@ -93,7 +94,7 @@
         {% with w=item.weekend %}
         <article class="card p-4">
           <div class="flex items-start gap-3">
-            <span class="pos-badge shrink-0 !h-10 !w-10">R{{ w.round_number }}</span>
+            {% weekend_flag w "md" %}
             <div class="min-w-0 flex-1">
               <h3 class="text-lg font-bold leading-tight">{{ w.event_name }}</h3>
               <p class="note truncate">{{ w.circuit.name }}</p>
@@ -131,7 +132,7 @@
         {% else %}
           <div class="flex items-center gap-3 rounded-lg border border-line px-3 py-2">
         {% endif %}
-          <span class="pos-badge shrink-0">R{{ item.weekend.round_number }}</span>
+          {% weekend_flag item.weekend %}
           <span class="min-w-0 flex-1 truncate{% if item.weekend.has_results %} group-hover:text-accent{% endif %}">{{ item.weekend.event_name }}</span>
           {% if item.weekend.race_start %}<span class="note shrink-0">{{ item.weekend.race_start|date:"j M"|lower }}</span>{% endif %}
           {% if item.weekend.has_results %}<span class="note shrink-0">Risultati →</span>{% endif %}

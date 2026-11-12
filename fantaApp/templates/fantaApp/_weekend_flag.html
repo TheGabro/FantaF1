@@ -1,0 +1,18 @@
+{% load static %}
+{% comment %}
+Bandiera del paese del Gran Premio (#132), da countries.weekend_flag. Le misure
+seguono quelle del badge del round che sostituisce; con un paese senza bandiera
+resta il badge «R1…R24».
+
+Contesto atteso:
+  weekend  il weekend (con il circuito già caricato)
+  code     codice ISO della bandiera, None se non c'è
+  name     nome del paese in italiano: testo alternativo e suggerimento
+  size     "" · "md" · "lg" · "xl"
+{% endcomment %}
+{% if code %}
+  <img src="{% static 'fantaApp/img/flags/'|add:code|add:'.svg' %}" alt="{{ name }}" title="{{ name }}" width="48" height="36" loading="lazy"
+       class="flag {% if size == 'xl' %}w-12{% elif size == 'lg' %}w-11{% elif size == 'md' %}w-10{% else %}w-9{% endif %}" />
+{% else %}
+  <span class="pos-badge shrink-0 {% if size == 'xl' %}!h-12 !w-12 text-base{% elif size == 'lg' %}!h-11 !w-11 text-base{% elif size == 'md' %}!h-10 !w-10{% endif %}">R{{ weekend.round_number }}</span>
+{% endif %}

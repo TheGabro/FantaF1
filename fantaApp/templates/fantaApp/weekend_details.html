@@ -1,4 +1,5 @@
 {% extends "fantaApp/championship_flow_base.html" %}
+{% load countries %}
 
 {% block title %}{{ weekend.event_name }} — Fanta F1{% endblock %}
 
@@ -6,11 +7,11 @@
 {% include "fantaApp/_breadcrumb.html" %}
 
 <div class="mb-6 flex flex-wrap items-center gap-3">
-  <span class="pos-badge !h-12 !w-12 text-base">R{{ weekend.round_number }}</span>
+  {% weekend_flag weekend "xl" %}
   <div>
     <h2 class="heading">{{ weekend.event_name }}</h2>
     <p class="text-muted">
-      {{ weekend.circuit.name }} · {{ weekend.circuit.country }}
+      Round {{ weekend.round_number }} · {{ weekend.circuit.name }} · {{ weekend.circuit.country|country_it }}
       {% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y"|lower }}{% endif %}
     </p>
   </div>

@@ -1,4 +1,5 @@
 {% extends "fantaApp/championship_section_base.html" %}
+{% load countries %}
 {% load numbers %}
 
 {% block title %}Le mie scelte — {{ championship.name }} — Fanta F1{% endblock %}
@@ -32,7 +33,7 @@
   {% for item in weekend_summaries %}
     <section class="card">
       <div class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-4">
-        <span class="pos-badge shrink-0 !h-11 !w-11 text-base">R{{ item.weekend.round_number }}</span>
+        {% weekend_flag item.weekend "lg" %}
         <div class="min-w-0 flex-1">
           <h3 class="truncate text-lg font-bold leading-tight">{{ item.weekend.event_name }}</h3>
           <p class="note truncate">
