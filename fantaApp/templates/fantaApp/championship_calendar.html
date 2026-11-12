@@ -1,4 +1,5 @@
 {% extends "fantaApp/championship_section_base.html" %}
+{% load countries %}
 
 {% block title %}Calendario {{ championship.year }} — {{ championship.name }} — Fanta F1{% endblock %}
 
@@ -12,7 +13,7 @@
     {% for w in weekends %}
       <a href="{% url 'weekend_details' championship.id w.id %}"
          class="card group flex min-w-0 items-center gap-4 p-4 transition-shadow hover:shadow-md hover:border-accent/50">
-        <span class="pos-badge shrink-0 !h-10 !w-10">R{{ w.round_number }}</span>
+        {% weekend_flag w "md" %}
         <div class="min-w-0 flex-1">
           <h3 class="truncate font-bold leading-tight group-hover:text-accent">{{ w.event_name }}</h3>
           <p class="note truncate">

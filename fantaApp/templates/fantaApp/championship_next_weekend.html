@@ -1,4 +1,5 @@
 {% extends "fantaApp/championship_section_base.html" %}
+{% load countries %}
 
 {% comment %}
   Landing del campionato: il weekend imminente in evidenza con le sue sessioni,
@@ -14,9 +15,9 @@
 {% if next_weekend %}
   <section class="card mb-6">
     <div class="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-4">
-      <span class="pos-badge shrink-0 !h-12 !w-12 text-base">R{{ next_weekend.weekend.round_number }}</span>
+      {% weekend_flag next_weekend.weekend "xl" %}
       <div class="min-w-0 flex-1">
-        <p class="label">Prossimo weekend</p>
+        <p class="label">Prossimo weekend · Round {{ next_weekend.weekend.round_number }}</p>
         {# Il nome apre la pagina del weekend (#102), al posto di «Dettaglio weekend →». #}
         <h2 class="heading truncate">
           <a href="{% url 'weekend_details' championship.id next_weekend.weekend.id %}?from=play" class="hover:text-accent">{{ next_weekend.weekend.event_name }}</a>
@@ -120,7 +121,7 @@
             {# Tutta la riga apre il weekend (#102), come le card del calendario. #}
             <a href="{% url 'weekend_details' championship.id item.weekend.id %}?from=play"
                class="group flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-            <span class="pos-badge shrink-0">R{{ item.weekend.round_number }}</span>
+            {% weekend_flag item.weekend %}
             <div class="min-w-0 flex-1">
               <h3 class="truncate font-semibold group-hover:text-accent">{{ item.weekend.event_name }}</h3>
               <p class="note truncate">

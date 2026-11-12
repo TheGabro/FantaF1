@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings as django_settings
+from django.contrib.staticfiles import finders
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.base import Message
@@ -21,6 +22,7 @@ from django.urls import reverse
 from django.utils import timezone, translation
 
 from . import urls as fanta_urls
+from .templatetags import countries
 from .views import dashboard, invites
 
 # In test DEBUG è sempre False, quindi lo storage WhiteNoise pretende il manifest
@@ -5037,6 +5039,66 @@ class MyChoicesWeekendSummaryLinkTests(WeekendPagesFixture, TestCase):
 
         self.assertContains(response, f'href="{self.summary_url}"')
         self.assertContains(response, "Riepilogo del weekend")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class CountryFlagsTests(WeekendPagesFixture, TestCase):
+    """#132: la bandiera del paese del GP al posto del badge «R1…R24», col nome
+    del paese in italiano; per un paese senza bandiera resta il badge."""
+
+    # Circuit.country dei calendari 2025 e 2026, come li salva l'import.
+    CALENDAR_COUNTRIES = [
+        "Australia", "Austria", "Azerbaijan", "Bahrain", "Belgium", "Brazil",
+        "Canada", "China", "Hungary", "Italy", "Japan", "Mexico", "Monaco",
+        "Netherlands", "Qatar", "Saudi Arabia", "Singapore", "Spain", "UAE",
+        "UK", "USA",
+    ]  # fmt: skip
+
+    def _flag(self, weekend, size=""):
+        return Template("{% load countries %}{% weekend_flag weekend size %}").render(
+            Context({"weekend": weekend, "size": size})
+        )
+
+    def test_every_calendar_country_has_a_flag(self):
+        for name in self.CALENDAR_COUNTRIES:
+            code, italian = countries.country(name)
+            self.assertIsNotNone(code, name)
+            self.assertIsNotNone(finders.find(f"fantaApp/img/flags/{code}.svg"), name)
+            self.assertNotEqual(italian, "", name)
+
+    def test_flag_with_the_italian_name(self):
+        html = self._flag(self.regular_weekend, "xl")
+
+        self.assertIn('alt="Italia"', html)
+        self.assertIn("fantaApp/img/flags/it.svg", html)
+        self.assertNotIn("pos-badge", html)
+
+    def test_unknown_country_keeps_the_round_badge(self):
+        self.regular_weekend.circuit.country = "Atlantide"
+
+        html = self._flag(self.regular_weekend)
+
+        self.assertIn("pos-badge", html)
+        self.assertIn("R1", html)
+        self.assertNotIn("<img", html)
+
+    def test_italian_country_names(self):
+        self.assertEqual(countries.country_it("UK"), "Regno Unito")
+        self.assertEqual(countries.country_it("USA"), "Stati Uniti")
+        self.assertEqual(countries.country_it("Atlantide"), "Atlantide")
+
+    def test_weekend_page(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(
+            reverse(
+                "weekend_details",
+                args=[self.championship.id, self.regular_weekend.id],
+            )
+        )
+
+        self.assertContains(response, 'alt="Italia"')
+        self.assertContains(response, "Round 1 · Monza · Italia")
 
 
 @override_settings(STORAGES=TEST_STORAGES)

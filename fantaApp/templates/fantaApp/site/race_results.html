@@ -1,4 +1,5 @@
 {% extends "fantaApp/base.html" %}
+{% load countries %}
 {% comment %}
 Risultati F1 di un weekend (#134), pagina pubblica: Gran Premio e, nei weekend
 sprint, Sprint. La tabella è la stessa della pagina dei risultati del gioco.
@@ -10,9 +11,9 @@ sprint, Sprint. La tabella è la stessa della pagina dei risultati del gioco.
 <a href="{% url 'home' %}" class="btn-ghost mb-4 -ml-2">← Home</a>
 
 <div class="mb-6 flex flex-wrap items-center gap-3">
-  <span class="pos-badge !h-12 !w-12 text-base">R{{ weekend.round_number }}</span>
+  {% weekend_flag weekend "xl" %}
   <div class="min-w-0">
-    <p class="eyebrow">Risultati F1 · stagione {{ weekend.season }}</p>
+    <p class="eyebrow">Risultati F1 · stagione {{ weekend.season }} · round {{ weekend.round_number }}</p>
     <h1 class="heading mt-1">{{ weekend.event_name }}</h1>
     <p class="text-muted">
       {{ weekend.circuit.name }}{% if weekend.race_start %} · {{ weekend.race_start|date:"j F Y"|lower }}{% endif %}
