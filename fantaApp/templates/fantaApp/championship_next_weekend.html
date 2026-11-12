@@ -42,9 +42,11 @@
     {% endif %}
 
     {% comment %}
-    Ogni sessione con un solo pulsante secondo lo stato (#193): «Risultati» dal
-    via, spento se la griglia non c'è ancora, altrimenti «Scegli»/«Modifica».
-    Sotto, quanti hanno già scelto nella propria lega e nel campionato (#201).
+    Ogni sessione con i pulsanti secondo lo stato (#193): «Risultati» e «Scelte
+    di tutti» dal via (#285), spento se la griglia non c'è ancora, altrimenti
+    «Scegli»/«Modifica». Sotto, quanti hanno già scelto nella propria lega e nel
+    campionato (#201): porta alle scelte di tutti della sessione, che prima del
+    via mostrano lo stesso conteggio lega per lega.
     {% endcomment %}
     <ul class="divide-y divide-line">
       {% for s in next_weekend.all_sessions %}
@@ -59,11 +61,13 @@
               </p>
               {% if choice_counts.total %}
                 <p class="note mt-1">
+                  {% if s.all_choices_url %}<a href="{{ s.all_choices_url }}" class="text-accent underline-offset-2 hover:underline">{% endif %}
                   Hanno scelto:
                   {% if choice_counts.league_size %}
-                    <strong class="text-ink">{{ s.chosen_league }}/{{ choice_counts.league_size }}</strong> nella tua lega ·
+                    <strong{% if not s.all_choices_url %} class="text-ink"{% endif %}>{{ s.chosen_league }}/{{ choice_counts.league_size }}</strong> nella tua lega ·
                   {% endif %}
                   {{ s.chosen_total }}/{{ choice_counts.total }} nel campionato
+                  {% if s.all_choices_url %}</a>{% endif %}
                 </p>
                 {% if choice_counts.league_size %}
                   <span class="mt-1 block h-1 w-full max-w-xs overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
@@ -74,7 +78,8 @@
             </div>
           </div>
 
-          <div class="flex shrink-0 items-center gap-3 max-sm:pl-6">
+          {# flex-wrap: su mobile badge e due pulsanti vanno a capo invece di uscire dalla card #}
+          <div class="flex flex-wrap items-center gap-3 max-sm:pl-6 sm:shrink-0">
             {% if s.has_started %}
               <span class="badge-muted shrink-0">Scelte chiuse</span>
             {% elif s.has_choice %}
@@ -89,6 +94,10 @@
               {% elif current_championship_player %}
                 {# Le Qualifiche Sprint non hanno ancora la pagina dei risultati (#197) #}
                 <a href="{% url s.url_name championship.id next_weekend.weekend.id s.event.id %}?from=play" class="btn-secondary shrink-0">Rivedi</a>
+              {% endif %}
+              {# Scelte di tutti nella stessa sessione (#285), per chi gioca o gestisce il campionato #}
+              {% if s.all_choices_url %}
+                <a href="{{ s.all_choices_url }}" class="btn-secondary shrink-0">Scelte di tutti</a>
               {% endif %}
             {% elif current_championship_player %}
               {% if s.grid_missing %}

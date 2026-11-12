@@ -3985,9 +3985,8 @@ class NextWeekendSessionsTests(WeekendPagesFixture, TestCase):
         self.assertEqual(
             response.context["choice_counts"], {"league_size": 2, "total": 3}
         )
-        self.assertContains(
-            response, '<strong class="text-ink">1/2</strong> nella tua lega'
-        )
+        # Dentro il link alle scelte di tutti (#285) il numero prende il suo colore.
+        self.assertContains(response, "<strong>1/2</strong> nella tua lega")
         self.assertContains(response, "2/3 nel campionato")
         # Solo numeri: nessun nome di chi ha scelto.
         self.assertNotContains(response, "rivale")
@@ -5158,6 +5157,82 @@ class AllChoicesSessionBarTests(WeekendPagesFixture, TestCase):
             self.assertIn("from=play", league_filter["url"])
         for header in response.context["headers"].values():
             self.assertIn("from=play", header["url"])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class NextWeekendAllChoicesLinksTests(WeekendPagesFixture, TestCase):
+    """#285: in Prossimo weekend «Hanno scelto X/Y» porta alle scelte di tutti
+    della sessione e, dal via, «Scelte di tutti» sta accanto a «Risultati», come
+    nella pagina del weekend. Solo giocatori e manager."""
+
+    def setUp(self):
+        super().setUp()
+        c, w = self.championship.id, self.regular_weekend.id
+        self.url = reverse("championship_next_weekend", args=[c])
+        self.qualifying_page = reverse(
+            "race_qualifying_all_choices", args=[c, w, self.regular_qualifying.id]
+        )
+        self.gp_page = reverse(
+            "regular_race_all_choices", args=[c, w, self.regular_race.id]
+        )
+
+    def test_the_count_leads_to_the_page_even_before_the_start(self):
+        # Prima del via quella pagina mostra quanti hanno scelto, lega per lega.
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'<a href="{self.gp_page}?from=play"')
+        self.assertContains(response, f'<a href="{self.qualifying_page}?from=play"')
+        self.assertNotContains(response, "Scelte di tutti")
+
+    def test_from_the_start_the_button_next_to_the_results(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(
+            response,
+            f'<a href="{self.qualifying_page}?from=play" class="btn-secondary shrink-0">'
+            "Scelte di tutti</a>",
+            html=True,
+        )
+        self.assertContains(response, "Scelte di tutti", count=1)
+
+    def test_the_sprint_qualifying_count_stays_plain(self):
+        # Le Qualifiche Sprint avranno la loro pagina con #207. Weekend regular
+        # già corso: il prossimo è quello sprint.
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(days=30)
+        self.regular_weekend.race_start = timezone.now() - timedelta(days=29)
+        self.regular_weekend.save()
+        self.client.force_login(self.user)
+
+        response = self.client.get(self.url)
+
+        sessions = response.context["next_weekend"]["all_sessions"]
+        urls = {s["label"]: s["all_choices_url"] for s in sessions}
+        self.assertIsNone(urls["Qualifiche Sprint"])
+        self.assertTrue(urls["Sprint"])
+
+    def test_managers_who_do_not_play_get_the_links(self):
+        manager = get_user_model().objects.create_user(
+            username="gestore", email="gestore@example.com", password="pw123456!"
+        )
+        ChampionshipManager.objects.create(user=manager, championship=self.championship)
+        self.client.force_login(manager)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, f'<a href="{self.gp_page}?from=play"')
+
+    def test_outsiders_get_no_links(self):
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, self.gp_page)
 
 
 @override_settings(STORAGES=TEST_STORAGES)

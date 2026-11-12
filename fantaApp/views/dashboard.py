@@ -26,6 +26,7 @@ from ..services import bonuses
 from ..services import costs
 from ..services import helper
 from ..services import rules
+from .all_choices.links import weekend_page_links
 from .invites import build_invite_url
 from .weekend_teams import use_weekend_teams, weekend_teams
 
@@ -1089,6 +1090,16 @@ def championship_next_weekend(request, championship_id):
         _mark_missing_grids(sessions)
         context["choice_counts"] = _choice_counts(
             championship, current_championship_player, sessions
+        )
+        # Conteggio cliccabile e «Scelte di tutti» dal via, come nella pagina
+        # del weekend (#285): all_choices_url su ogni sessione.
+        weekend_page_links(
+            request,
+            championship,
+            next_weekend["weekend"],
+            current_championship_player,
+            sessions,
+            "?from=play",
         )
     context.update(
         {
