@@ -304,6 +304,25 @@
   }
   .championship-subtab-active { @apply border-accent text-accent; }
 
+  /* Barra delle sessioni del weekend (#271): stessa pagina, altra sessione.
+     Le schede del campionato in piccolo, così si distingue dal filtro per lega
+     sottolineato che le sta sotto. Le sessioni non raggiungibili sono span con
+     aria-disabled e il motivo nel title. */
+  .session-bar {
+    @apply flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-line bg-surface-2 p-1;
+  }
+  .session-bar-item {
+    @apply shrink-0 whitespace-nowrap rounded-md px-3 py-1 text-base font-semibold
+      text-muted transition-colors hover:bg-surface hover:text-ink;
+  }
+  .session-bar-item-active {
+    @apply bg-accent text-white shadow-sm hover:bg-accent hover:text-white
+      dark:bg-accent-strong dark:hover:bg-accent-strong;
+  }
+  .session-bar-item[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-50 hover:bg-transparent hover:text-muted;
+  }
+
   /* Tabella classifiche: molte colonne numeriche, allineate e leggibili.
      Le colonne numeriche stanno strette sul contenuto; lo spazio in eccesso
      lo assorbe la colonna Giocatore (w-full), così i numeri di uno stesso

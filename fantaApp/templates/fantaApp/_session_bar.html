@@ -1,0 +1,25 @@
+{% comment %}
+Barra delle sessioni del weekend (#271): la stessa pagina per un'altra sessione.
+La costruisce links.session_nav in views/all_choices.
+
+Contesto atteso:
+  session_bar   lista di {label, url, active, reason}: la pagina aperta ha active,
+                quelle non raggiungibili (non ancora iniziate, senza pagina) non
+                hanno url e dicono il motivo in reason
+
+Su mobile la barra scorre di lato; relative tiene dentro lo scorrimento il testo
+sr-only, che altrimenti allargherebbe la pagina.
+{% endcomment %}
+{% if session_bar %}
+<nav class="session-bar relative mb-5" aria-label="Sessioni del weekend">
+  {% for item in session_bar %}
+    {% if item.active %}
+      <span class="session-bar-item session-bar-item-active" aria-current="page">{{ item.label }}</span>
+    {% elif item.url %}
+      <a href="{{ item.url }}" class="session-bar-item">{{ item.label }}</a>
+    {% else %}
+      <span class="session-bar-item" aria-disabled="true" title="{{ item.reason }}">{{ item.label }}<span class="sr-only"> ({{ item.reason|lower }})</span></span>
+    {% endif %}
+  {% endfor %}
+</nav>
+{% endif %}

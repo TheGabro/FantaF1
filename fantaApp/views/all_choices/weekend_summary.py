@@ -24,6 +24,7 @@ from django.shortcuts import render
 from ...models import PlayerRaceChoice, PlayerRaceResult, PlayerSprintQualifyingChoice
 from ..dashboard import _weekend_sessions
 from ._common import PLAYER_SORTS, page_access, page_context, sort_headers, sort_rows
+from .links import SUMMARY
 from .race_qualifying import qualifying_outcomes, qualifying_picks, qualifying_row
 
 SORTS = {
@@ -87,6 +88,8 @@ def weekend_all_choices(request, championship_id, weekend_id):
         first["event"],
         label="Riepilogo del weekend",
         chose=lambda p: any(p.id in s["chosen"] for s in sessions),
+        current=SUMMARY,
+        sessions=sessions,
     )
     shown = context["shown"]
     context.update(
@@ -124,20 +127,26 @@ def weekend_all_choices(request, championship_id, weekend_id):
         if "picks" in session and session["has_started"]:
             session["outcomes"] = qualifying_outcomes(session["event"])
 
-    rows = [_row(p, sessions, results, sprint) for p in shown]
+    # Nel dettaglio il nome della sessione porta alle sue scelte di tutti,
+    # come la barra delle sessioni (#282).
+    urls = {item["label"]: item["url"] for item in context["session_bar"]}
+    rows = [_row(p, sessions, results, sprint, urls) for p in shown]
     sort, direction = sort_rows(request, rows, SORTS)
     context.update(
         {
             "rows": rows,
-            "headers": sort_headers(context["league_param"], sort, direction, SORTS),
+            "headers": sort_headers(
+                request, context["league_param"], sort, direction, SORTS
+            ),
         }
     )
     return render(request, "fantaApp/all_choices/weekend.html", context)
 
 
-def _row(player, sessions, results, sprint):
+def _row(player, sessions, results, sprint, urls):
     """Somme del weekend e dettaglio per sessione di un giocatore. Le sessioni
-    non ancora iniziate non danno nessun dato."""
+    non ancora iniziate non danno nessun dato. `urls`: pagina delle scelte di
+    tutti di ogni sessione, per nome."""
     row = {
         "player": player,
         "sessions": [],
@@ -147,7 +156,11 @@ def _row(player, sessions, results, sprint):
     }
     for session in sessions:
         event = session["event"]
-        detail = {"label": session["label"], "started": session["has_started"]}
+        detail = {
+            "label": session["label"],
+            "started": session["has_started"],
+            "url": urls.get(session["label"]),
+        }
         row["sessions"].append(detail)
         if not session["has_started"]:
             continue

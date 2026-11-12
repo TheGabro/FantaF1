@@ -59,7 +59,12 @@ quanti hanno scelto, sessione per sessione.
               <ul class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap">
                 {% for s in row.sessions %}
                   <li class="rounded-lg border border-line px-3 py-2">
-                    <p class="label">{{ s.label }}</p>
+                    {# Il nome porta alle scelte di tutti della sessione, come la barra (#282) #}
+                    {% if s.url %}
+                      <a href="{{ s.url }}" class="label block text-accent underline-offset-2 hover:underline">{{ s.label }}</a>
+                    {% else %}
+                      <p class="label">{{ s.label }}</p>
+                    {% endif %}
                     <p class="mt-0.5 whitespace-nowrap">
                       {% if not s.started %}<span class="text-muted">da disputare</span>
                       {# Un bonus registrato senza scelta (#240) si mostra lo stesso: è nei punti. #}

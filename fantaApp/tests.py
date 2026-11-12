@@ -5008,6 +5008,138 @@ class WeekendPageAllChoicesCardTests(WeekendPagesFixture, TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class AllChoicesSessionBarTests(WeekendPagesFixture, TestCase):
+    """#282: nelle pagine delle scelte di tutti la barra delle sessioni del
+    weekend e, dal via, il pulsante «Risultati» della stessa sessione."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self.c = self.championship.id
+
+    def _start_sprint_weekend(self):
+        past = timezone.now() - timedelta(days=1)
+        self.sprint_weekend.sprint_qualifying_start = past
+        self.sprint_weekend.sprint_start = past
+        self.sprint_weekend.qualifying_start = past
+        self.sprint_weekend.race_start = past
+        self.sprint_weekend.save()
+
+    def test_before_the_start_only_the_open_page_is_lit(self):
+        w = self.regular_weekend.id
+        url = reverse(
+            "regular_race_all_choices", args=[self.c, w, self.regular_race.id]
+        )
+
+        response = self.client.get(url)
+
+        bar = response.context["session_bar"]
+        self.assertEqual(
+            [item["label"] for item in bar], ["Qualifiche", "Gran Premio", "Riepilogo"]
+        )
+        self.assertEqual([item["active"] for item in bar], [False, True, False])
+        self.assertTrue(all(item["url"] is None for item in bar))
+        self.assertEqual(bar[0]["reason"], "Dal via")
+        self.assertEqual(bar[2]["reason"], "Dal via")
+        self.assertIsNone(response.context["results_url"])
+        self.assertContains(response, 'aria-current="page">Gran Premio</span>')
+        self.assertContains(response, 'aria-disabled="true" title="Dal via"', count=2)
+
+    def test_sprint_weekend_links_keep_league_and_starting_page(self):
+        self._start_sprint_weekend()
+        w = self.sprint_weekend.id
+        url = reverse("sprint_race_all_choices", args=[self.c, w, self.sprint_race.id])
+        query = f"?league={self.league.id}&from=play"
+
+        response = self.client.get(url + query)
+
+        bar = {item["label"]: item for item in response.context["session_bar"]}
+        self.assertEqual(
+            list(bar),
+            ["Qualifiche Sprint", "Sprint", "Qualifiche", "Gran Premio", "Riepilogo"],
+        )
+        # Le Qualifiche Sprint avranno la loro pagina con #207.
+        self.assertIsNone(bar["Qualifiche Sprint"]["url"])
+        self.assertEqual(bar["Qualifiche Sprint"]["reason"], "In arrivo")
+        self.assertTrue(bar["Sprint"]["active"])
+        qualifying_url = reverse(
+            "race_qualifying_all_choices",
+            args=[self.c, w, self.sprint_weekend_qualifying.id],
+        )
+        self.assertEqual(bar["Qualifiche"]["url"], qualifying_url + query)
+        self.assertEqual(
+            bar["Riepilogo"]["url"],
+            reverse("weekend_all_choices", args=[self.c, w]) + query,
+        )
+        self.assertContains(
+            response, f'href="{qualifying_url}?league={self.league.id}&amp;from=play"'
+        )
+        # I risultati non hanno il filtro per lega: resta solo la pagina di partenza.
+        results_url = reverse(
+            "sprint_race_results", args=[self.c, w, self.sprint_race.id]
+        )
+        self.assertEqual(response.context["results_url"], results_url + "?from=play")
+        self.assertContains(response, f'href="{results_url}?from=play"')
+
+    def test_results_button_on_the_qualifying_page_from_the_start(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        w = self.regular_weekend.id
+        url = reverse(
+            "race_qualifying_all_choices",
+            args=[self.c, w, self.regular_qualifying.id],
+        )
+
+        response = self.client.get(url)
+
+        results_url = reverse(
+            "race_qualifying_results", args=[self.c, w, self.regular_qualifying.id]
+        )
+        self.assertContains(response, f'href="{results_url}"')
+        self.assertContains(response, ">Risultati</a>")
+        self.assertTrue(response.context["session_bar"][0]["active"])
+
+    def test_summary_lights_riepilogo_and_links_the_sessions(self):
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        w = self.regular_weekend.id
+
+        response = self.client.get(reverse("weekend_all_choices", args=[self.c, w]))
+
+        bar = {item["label"]: item for item in response.context["session_bar"]}
+        self.assertTrue(bar["Riepilogo"]["active"])
+        self.assertIsNone(response.context["results_url"])
+        qualifying_url = reverse(
+            "race_qualifying_all_choices",
+            args=[self.c, w, self.regular_qualifying.id],
+        )
+        self.assertEqual(bar["Qualifiche"]["url"], qualifying_url)
+        self.assertEqual(bar["Gran Premio"]["reason"], "Dal via")
+        # Nel dettaglio il nome della sessione porta alla sua pagina, dal via.
+        details = response.context["rows"][0]["sessions"]
+        self.assertEqual(
+            [(d["label"], d["url"]) for d in details],
+            [("Qualifiche", qualifying_url), ("Gran Premio", None)],
+        )
+        self.assertContains(response, f'<a href="{qualifying_url}" class="label')
+
+    def test_league_filter_and_sorting_keep_the_starting_page(self):
+        self.regular_weekend.race_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        w = self.regular_weekend.id
+        url = reverse(
+            "regular_race_all_choices", args=[self.c, w, self.regular_race.id]
+        )
+
+        response = self.client.get(url + "?from=play")
+
+        for league_filter in response.context["league_filters"]:
+            self.assertIn("from=play", league_filter["url"])
+        for header in response.context["headers"].values():
+            self.assertIn("from=play", header["url"])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class MyChoicesWeekendSummaryLinkTests(WeekendPagesFixture, TestCase):
     """#215: in Le mie scelte ogni weekend giocato e già iniziato ha il link al
     riepilogo del weekend di tutti i giocatori (#208)."""

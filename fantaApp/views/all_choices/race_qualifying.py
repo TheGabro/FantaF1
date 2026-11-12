@@ -63,6 +63,7 @@ def race_qualifying_all_choices(request, championship_id, weekend_id, event_id):
         qualifying,
         label="Qualifiche",
         chose=lambda p: p.id in picks,
+        current=("qualifying", "regular"),
     )
     context["session_of"] = "delle Qualifiche"
     if not context["started"]:
@@ -82,7 +83,9 @@ def race_qualifying_all_choices(request, championship_id, weekend_id, event_id):
     context.update(
         {
             "rows": rows,
-            "headers": sort_headers(context["league_param"], sort, direction, sorts),
+            "headers": sort_headers(
+                request, context["league_param"], sort, direction, sorts
+            ),
             "has_results": bool(results),
             "has_grid": bool(grid),
         }
