@@ -21,7 +21,7 @@ from ..services import bonuses, costs, rules, helper
 from .weekend_teams import use_weekend_teams
 from .race_classification import race_classification
 from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
-from .all_choices.links import weekend_page_links
+from .all_choices.links import results_session_bar, weekend_page_links
 from . import session_state as ss
 from django.db.models import Count
 
@@ -954,6 +954,9 @@ def _render_race_results_page(
         "championship": champ,
         "weekend": weekend,
         "breadcrumb": _breadcrumb(request, champ, weekend, f"Risultati {race_label}"),
+        "session_bar": results_session_bar(
+            request, champ, weekend, ("race", race_type)
+        ),
         "event": race,
         "race_label": race_label,
         # Scelte di tutti i giocatori nella stessa gara (GP #209, Sprint #210),
