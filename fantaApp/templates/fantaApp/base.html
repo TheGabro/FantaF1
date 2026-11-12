@@ -19,12 +19,8 @@
         document.documentElement.dataset.theme = theme;
       })();
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700;900&display=swap"
-      rel="stylesheet"
-    />
+    {# Font servito dal sito (#274): il testo normale si precarica, gli altri pesi arrivano con main.css. #}
+    <link rel="preload" href="{% static 'fantaApp/fonts/titillium-web/titillium-web-latin-400-normal.woff2' %}" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="{% static 'fantaApp/css/main.css' %}" />
     <script defer src="{% static 'fantaApp/js/app.js' %}"></script>
     {% block extra_head %}{% endblock %}

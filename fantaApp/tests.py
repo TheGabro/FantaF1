@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone as dt_timezone
 from io import StringIO
@@ -5099,6 +5100,33 @@ class CountryFlagsTests(WeekendPagesFixture, TestCase):
 
         self.assertContains(response, 'alt="Italia"')
         self.assertContains(response, "Round 1 · Monza · Italia")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SelfHostedFontTests(TestCase):
+    """#274: il font arriva dal nostro sito, nessuna pagina chiama Google Fonts
+    (l'IP di chi visita non va a Google)."""
+
+    def test_pages_do_not_call_google(self):
+        response = self.client.get(reverse("game"))
+
+        self.assertNotContains(response, "fonts.googleapis.com")
+        self.assertNotContains(response, "fonts.gstatic.com")
+        self.assertContains(response, "titillium-web-latin-400-normal.woff2")
+
+    def test_server_error_page_neither(self):
+        html = render_to_string("500.html")
+
+        self.assertNotIn("fonts.googleapis.com", html)
+
+    def test_every_font_in_the_css_exists(self):
+        css_path = finders.find("fantaApp/css/main.css")
+        with open(css_path, encoding="utf-8") as css:
+            urls = re.findall(r"url\(\"?\.\./(fonts/[^)\"]+)", css.read())
+
+        self.assertEqual(len(urls), 8)  # 4 pesi × latino e latino esteso
+        for url in urls:
+            self.assertIsNotNone(finders.find(f"fantaApp/{url}"), url)
 
 
 @override_settings(STORAGES=TEST_STORAGES)
