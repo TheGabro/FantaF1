@@ -2100,6 +2100,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "f1_drivers_standings",
         "login",
         "register",
+        "privacy",
     }
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
     # ChampionshipManageTests).
@@ -2718,6 +2719,48 @@ class FooterRulesLinksTests(TestCase):
 
                 self.assertContains(response, f'href="{reverse("game_rules")}"')
                 self.assertContains(response, f'href="{reverse("game_faq")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PrivacyPageTests(TestCase):
+    """#107: informativa privacy aperta a tutti, raggiungibile dal footer e
+    richiamata sotto il pulsante di registrazione."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("privacy"))
+
+        self.assertContains(response, "Informativa sulla privacy")
+        self.assertContains(response, "contitolari del trattamento")
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertContains(response, "17 novembre 2026")
+        for anchor in ("titolari", "dati", "conservazione", "cookie", "diritti"):
+            self.assertContains(response, f'id="{anchor}"')
+
+    def test_profile_link_only_with_login(self):
+        response = self.client.get(reverse("privacy"))
+        self.assertNotContains(response, f'href="{reverse("account_profile")}"')
+
+        user = get_user_model().objects.create_user(
+            username="lettore", email="lettore@example.com", password="pw123456!"
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("privacy"))
+        self.assertContains(response, f'href="{reverse("account_profile")}"')
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "game_rules"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("privacy")}"')
+
+    def test_sign_up_notice(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(response, "almeno 18 anni")
+        self.assertContains(response, f'href="{reverse("privacy")}"')
 
 
 @override_settings(STORAGES=TEST_STORAGES)
