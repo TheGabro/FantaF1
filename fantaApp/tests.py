@@ -2100,6 +2100,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "f1_drivers_standings",
         "login",
         "register",
+        "about",
         "privacy",
         "terms",
     }
@@ -2793,6 +2794,30 @@ class TermsPageTests(TestCase):
 
         self.assertContains(response, "accetti i")
         self.assertContains(response, f'href="{reverse("terms")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AboutPageTests(TestCase):
+    """#108: Chi siamo aperta a tutti, con i soprannomi del team e i contatti
+    senza telefoni."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("about"))
+
+        self.assertContains(response, "Chi siamo")
+        for nickname in ("Fede", "Pile", "Vice", "TheGabro"):
+            self.assertContains(response, nickname)
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertNotContains(response, "missionwinnow")
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "terms"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("about")}"')
 
 
 @override_settings(STORAGES=TEST_STORAGES)
