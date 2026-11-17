@@ -2549,6 +2549,25 @@ class GameFaqPageTests(TestCase):
         self.assertContains(response, "scende di 7 FM")
         self.assertContains(response, "99 FM per il primo")
 
+    def test_tips_follow_the_rules(self):
+        """#260: il gruppo Consigli prende i numeri dalle tabelle del regolamento."""
+        from .services import rules
+
+        response = self.client.get(reverse("game_faq"))
+        self.assertContains(response, 'href="#consigli"')
+        self.assertContains(response, 'id="consigli"')
+        self.assertContains(response, "circa 83 FM a")
+        self.assertContains(response, "Il top da 170 FM")
+        self.assertContains(response, "dalla posizione 7 in su")
+
+        with patch.dict(rules.REGULAR_RACE_COST_BY_GRID_POSITION, {1: 150}), patch.dict(
+            rules.SPRINT_RACE_COST_BY_GRID_POSITION, {1: 70}
+        ):
+            response = self.client.get(reverse("game_faq"))
+
+        self.assertContains(response, "Il top da 180 FM")
+        self.assertContains(response, "la pole costa 70 FM")
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class GamePageRulesLinksTests(TestCase):
