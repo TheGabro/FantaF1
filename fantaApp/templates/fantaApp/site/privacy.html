@@ -1,0 +1,221 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Informativa privacy (#107), aperta a tutti senza login. Testo della bozza approvata
+il 17/11/2026. Ancora da precisare entro il 1/3/2027: garanzie di Render e Neon per
+il trasferimento negli USA e durata dei log (verifiche del 1/2/2027), cosa resta
+nelle classifiche dopo la cancellazione (#106), regione dei server (#318).
+A ogni modifica del testo si aggiorna LAST_UPDATED in views/site/privacy.py.
+{% endcomment %}
+
+{% block title %}Privacy — Fanta F1{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="eyebrow">Fanta F1</p>
+  <h1 class="page-title mt-1">Informativa sulla privacy</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    Quali dati raccogliamo, perché, chi li vede e come puoi controllarli. Ultimo aggiornamento:
+    {{ last_updated|date:"j F Y"|lower }}.
+  </p>
+</div>
+
+<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+  <nav class="card-pad lg:sticky lg:top-20" aria-label="Indice dell'informativa">
+    <p class="label mb-2">Indice</p>
+    <ol class="space-y-2">
+      <li><a href="#titolari" class="hover:text-accent">Chi tratta i tuoi dati</a></li>
+      <li><a href="#dati" class="hover:text-accent">Quali dati raccogliamo</a></li>
+      <li><a href="#finalita" class="hover:text-accent">Perché li usiamo</a></li>
+      <li><a href="#destinatari" class="hover:text-accent">Chi vede i tuoi dati</a></li>
+      <li><a href="#conservazione" class="hover:text-accent">Dove sono conservati</a></li>
+      <li><a href="#durata" class="hover:text-accent">Per quanto tempo</a></li>
+      <li><a href="#cookie" class="hover:text-accent">Cookie e memoria del browser</a></li>
+      <li><a href="#eta" class="hover:text-accent">Età minima</a></li>
+      <li><a href="#diritti" class="hover:text-accent">I tuoi diritti</a></li>
+      <li><a href="#modifiche" class="hover:text-accent">Modifiche</a></li>
+    </ol>
+  </nav>
+
+  <div class="grid min-w-0 grid-cols-1 gap-6 lg:col-span-2">
+    <section id="titolari" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Chi tratta i tuoi dati</h2>
+      <p class="mt-2 text-muted">
+        Fanta F1 è un gioco amatoriale tra appassionati di Formula 1, senza scopo di lucro. I tuoi dati li
+        trattano Davide Vicenzi e Gabriele Sciurti, che sviluppano e gestiscono il sito, come
+        <strong class="text-ink">contitolari del trattamento</strong>. Per qualsiasi domanda sulla privacy
+        scrivi a <a href="mailto:{{ contact_email }}" class="text-accent">{{ contact_email }}</a>.
+      </p>
+      <p class="mt-2 text-muted">
+        I due contitolari hanno stabilito con un accordo chi si occupa di cosa. Puoi rivolgerti a uno
+        qualsiasi dei due, all'indirizzo qui sopra; su richiesta ti mandiamo i punti essenziali dell'accordo.
+      </p>
+    </section>
+
+    <section id="dati" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Quali dati raccogliamo</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Dati dell'account</dt>
+          <dd class="text-muted">
+            Username, email e password. La password è salvata cifrata: nemmeno noi possiamo leggerla. Nome e
+            cognome solo se li aggiungi nel profilo.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Dati di gioco</dt>
+          <dd class="text-muted">
+            I campionati a cui partecipi, il nome da giocatore e la lega, le scelte di ogni weekend, i punteggi
+            e le classifiche.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Dati tecnici</dt>
+          <dd class="text-muted">
+            Quando visiti il sito, il server registra indirizzo IP, data e ora e pagina richiesta, per la
+            sicurezza e per risolvere i problemi.
+          </dd>
+        </div>
+      </dl>
+      <p class="mt-3 text-muted">
+        Non raccogliamo dati di pagamento, data di nascita o dati particolari (salute, opinioni e simili).
+      </p>
+    </section>
+
+    <section id="finalita" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Perché li usiamo</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Per farti giocare</dt>
+          <dd class="text-muted">
+            Creare e gestire l'account, salvare le scelte, calcolare punteggi e classifiche, mostrare il tuo
+            nome da giocatore agli altri partecipanti. Base giuridica: il servizio che ci chiedi iscrivendoti
+            (art. 6.1.b GDPR).
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Per tenere il sito sicuro e funzionante</dt>
+          <dd class="text-muted">
+            Log tecnici e prevenzione degli abusi. Base giuridica: il nostro legittimo interesse (art. 6.1.f
+            GDPR).
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Per scriverti solo quando serve</dt>
+          <dd class="text-muted">
+            Modifiche a questa informativa o ai termini, problemi con il tuo account. Niente newsletter né
+            pubblicità.
+          </dd>
+        </div>
+      </dl>
+      <p class="mt-3 text-muted">
+        Non vendiamo né cediamo i tuoi dati a nessuno e non li usiamo per profilazione o pubblicità.
+      </p>
+    </section>
+
+    <section id="destinatari" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Chi vede i tuoi dati</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Gli altri giocatori</dt>
+          <dd class="text-muted">
+            Nei campionati a cui partecipi vedono il tuo nome da giocatore, la lega, i punteggi e le tue
+            scelte, queste ultime solo dopo il via della sessione.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">I manager dei campionati</dt>
+          <dd class="text-muted">Vedono anche il tuo username, per gestire leghe e giocatori.</dd>
+        </div>
+        <div>
+          <dt class="font-semibold">I fornitori</dt>
+          <dd class="text-muted">
+            Render (hosting del sito) e Neon (database) fanno funzionare il sito come responsabili del
+            trattamento: trattano i dati solo per nostro conto.
+          </dd>
+        </div>
+      </dl>
+      <p class="mt-3 text-muted">
+        Email, nome e cognome non sono mostrati a nessuno. Le autorità ricevono dati solo quando la legge lo
+        impone.
+      </p>
+    </section>
+
+    <section id="conservazione" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Dove sono conservati</h2>
+      <p class="mt-2 text-muted">
+        I server di Render e Neon che usiamo si trovano oggi <strong class="text-ink">negli Stati Uniti</strong>.
+        Il trasferimento avviene con le garanzie previste dal GDPR nei loro accordi sul trattamento dei dati:
+        l'adesione all'EU-U.S. Data Privacy Framework o le clausole contrattuali tipo della Commissione
+        europea. Stiamo valutando di spostare i dati in un data center nell'Unione europea: quando succede
+        aggiorniamo questa pagina.
+      </p>
+    </section>
+
+    <section id="durata" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Per quanto tempo</h2>
+      <dl class="mt-2 space-y-3">
+        <div>
+          <dt class="font-semibold">Account e dati di gioco</dt>
+          <dd class="text-muted">
+            Finché hai l'account. Le classifiche delle stagioni concluse restano come archivio del campionato:
+            se cancelli l'account, lì il tuo nome da giocatore viene reso anonimo.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Log tecnici</dt>
+          <dd class="text-muted">
+            Per un periodo limitato, stabilito dal fornitore dell'hosting, poi si cancellano da soli.
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="cookie" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Cookie e memoria del browser</h2>
+      <p class="mt-2 text-muted">
+        Usiamo solo <strong class="text-ink">cookie tecnici</strong>, necessari al funzionamento del sito: il
+        cookie di sessione, per restare collegato, e il cookie di sicurezza che protegge i moduli (CSRF). Il
+        tema chiaro o scuro è salvato nella memoria del tuo browser (localStorage) e non ci viene inviato.
+      </p>
+      <p class="mt-2 text-muted">
+        Niente cookie di profilazione, di statistica o di terze parti: per questo non trovi il banner dei
+        cookie. Anche i caratteri del sito arrivano dai nostri server: aprendo le pagine non contatti servizi
+        esterni.
+      </p>
+    </section>
+
+    <section id="eta" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Età minima</h2>
+      <p class="mt-2 text-muted">
+        Il sito è riservato ai maggiorenni: iscrivendoti dichiari di avere almeno 18 anni. Se scopriamo
+        l'account di un minore, lo chiudiamo.
+      </p>
+    </section>
+
+    <section id="diritti" class="card-pad scroll-mt-24">
+      <h2 class="subheading">I tuoi diritti</h2>
+      <p class="mt-2 text-muted">
+        In qualsiasi momento puoi chiederci di accedere ai tuoi dati, correggerli, cancellarli, limitarne
+        l'uso, riceverli in un formato leggibile da un computer (portabilità) e opporti ai trattamenti basati
+        sul nostro legittimo interesse.
+      </p>
+      <p class="mt-2 text-muted">
+        Username, nome e cognome li modifichi da
+        {% if user.is_authenticated %}<a href="{% url 'account_profile' %}" class="text-accent">Account</a>{% else %}Account{% endif %}.
+        Per tutto il resto, compresa la cancellazione dell'account, scrivi a
+        <a href="mailto:{{ contact_email }}" class="text-accent">{{ contact_email }}</a>: rispondiamo entro un
+        mese. Puoi anche presentare reclamo al Garante per la protezione dei dati personali
+        (<a href="https://www.garanteprivacy.it" class="text-accent" rel="noopener">garanteprivacy.it</a>).
+      </p>
+    </section>
+
+    <section id="modifiche" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Modifiche</h2>
+      <p class="mt-2 text-muted">
+        Se cambiamo questa informativa aggiorniamo la data in cima. Per i cambiamenti importanti ti avvisiamo
+        via email o con un avviso sul sito.
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}

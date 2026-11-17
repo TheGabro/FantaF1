@@ -93,13 +93,14 @@
     <footer class="border-t border-line py-4">
       <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 note sm:flex-row sm:items-center sm:justify-between">
         <p>Fanta F1 — gioco tra amici, non affiliato a Formula 1&reg;</p>
-        {# Chi siamo, Privacy, Termini e Supportaci si aggiungono qui quando esistono le pagine (#107–#110). #}
+        {# Chi siamo, Termini e Supportaci si aggiungono qui quando esistono le pagine (#108–#110). #}
         <nav aria-label="Link del sito" class="flex flex-wrap gap-x-4 gap-y-1">
           <a href="{% url 'home' %}" class="hover:text-ink">Home</a>
           <a href="{% url 'f1_drivers_standings' %}" class="hover:text-ink">Classifica piloti F1</a>
           <a href="{% url 'game' %}" class="hover:text-ink">Il gioco</a>
           <a href="{% url 'game_rules' %}" class="hover:text-ink">Regolamento</a>
           <a href="{% url 'game_faq' %}" class="hover:text-ink">Domande frequenti</a>
+          <a href="{% url 'privacy' %}" class="hover:text-ink">Privacy</a>
         </nav>
       </div>
     </footer>
