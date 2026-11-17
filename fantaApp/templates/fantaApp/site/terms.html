@@ -1,0 +1,209 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Termini e condizioni d'uso (#109), aperti a tutti senza login. Testo della bozza
+approvata il 17/11/2026. Ancora da precisare entro il 1/3/2027: la licenza del codice
+(il repository pubblico non ha un file LICENSE, decisione all'incontro del 15/2/2027)
+e le correzioni di chi rilegge i testi legali.
+A ogni modifica del testo si aggiorna LAST_UPDATED in views/site/terms.py.
+{% endcomment %}
+
+{% block title %}Termini — Fanta F1{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="eyebrow">Fanta F1</p>
+  <h1 class="page-title mt-1">Termini e condizioni d'uso</h1>
+  <p class="mt-2 max-w-2xl text-muted">Ultimo aggiornamento: {{ last_updated|date:"j F Y"|lower }}.</p>
+</div>
+
+<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+  <nav class="card-pad lg:sticky lg:top-20" aria-label="Indice dei termini">
+    <p class="label mb-2">Indice</p>
+    <ol class="space-y-2">
+      <li><a href="#account" class="hover:text-accent">Account e iscrizione</a></li>
+      <li><a href="#servizio" class="hover:text-accent">Il servizio</a></li>
+      <li><a href="#comportamento" class="hover:text-accent">Regole di comportamento</a></li>
+      <li><a href="#dati-gare" class="hover:text-accent">Dati delle gare e correzioni</a></li>
+      <li><a href="#disponibilita" class="hover:text-accent">Disponibilità del sito</a></li>
+      <li><a href="#responsabilita" class="hover:text-accent">Responsabilità</a></li>
+      <li><a href="#terzi" class="hover:text-accent">Formula 1 e siti di terzi</a></li>
+      <li><a href="#contenuti" class="hover:text-accent">Contenuti</a></li>
+      <li><a href="#chiusura" class="hover:text-accent">Chiusura dell'account</a></li>
+      <li><a href="#modifiche" class="hover:text-accent">Modifiche</a></li>
+      <li><a href="#legge" class="hover:text-accent">Legge applicabile</a></li>
+    </ol>
+  </nav>
+
+  <div class="grid min-w-0 grid-cols-1 gap-6 lg:col-span-2">
+    <section class="card-pad">
+      <p class="text-muted">
+        Benvenuto su Fanta F1, il fantasy game di Formula 1 nato tra amici e cresciuto fino a diventare una
+        community di appassionati. Il sito è sviluppato e gestito da Davide Vicenzi e Gabriele Sciurti, per gli
+        amici IDSA – Istituto di Disagio e Statistica Avanzata «D. Kvyat»: un nome scherzoso, non una società
+        né un'associazione.
+      </p>
+      <p class="mt-2 text-muted">
+        Questi termini regolano l'uso del sito. Creando un account li accetti, insieme al
+        <a href="{% url 'game_rules' %}" class="text-accent">regolamento del gioco</a> della stagione in corso,
+        che ne fa parte. Se non sei d'accordo, non usare il sito.
+      </p>
+    </section>
+
+    <section id="account" class="card-pad scroll-mt-24">
+      <h2 class="subheading">1. Account e iscrizione</h2>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>Per giocare serve un account. Devi avere almeno 18 anni.</li>
+        <li>Un account per persona, con un indirizzo email tuo e funzionante.</li>
+        <li>
+          Le credenziali sono personali: tienile per te. Quello che succede con il tuo account si considera
+          fatto da te; se pensi che qualcun altro lo usi, scrivici subito.
+        </li>
+        <li>
+          Username, nomi da giocatore e nomi di campionati e leghe non devono essere offensivi, volgari o
+          ingannevoli (per esempio, fingersi qualcun altro). Possiamo chiederti di cambiarli, o cambiarli noi.
+        </li>
+        <li>
+          Le iscrizioni ai campionati seguono le regole e le scadenze del regolamento e del manager del
+          campionato.
+        </li>
+      </ul>
+    </section>
+
+    <section id="servizio" class="card-pad scroll-mt-24">
+      <h2 class="subheading">2. Il servizio</h2>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>
+          Fanta F1 è <strong class="text-ink">gratuito e senza scopo di lucro</strong>. Il sito non chiede né
+          gestisce pagamenti, quote d'iscrizione o premi, in denaro o di altro tipo.
+        </li>
+        <li>
+          Eventuali accordi tra i giocatori di un campionato, come quote o premi, si prendono fuori dal sito,
+          sotto la sola responsabilità di chi li prende, e non riguardano il sito né chi lo gestisce.
+        </li>
+        <li>
+          Il gioco segue il regolamento pubblicato sul sito. Se un testo del sito e il regolamento non
+          coincidono, vale il regolamento.
+        </li>
+        <li>
+          Chi crea un campionato ne è il manager: ne gestisce leghe e giocatori con gli strumenti del sito e ne
+          risponde.
+        </li>
+        <li>Il sito e i suoi contenuti sono per uso personale e non commerciale.</li>
+      </ul>
+    </section>
+
+    <section id="comportamento" class="card-pad scroll-mt-24">
+      <h2 class="subheading">3. Regole di comportamento</h2>
+      <p class="mt-2 text-muted">
+        Usando il sito ti impegni a rispettare la legge, gli altri giocatori e queste regole. In particolare non
+        puoi:
+      </p>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>creare più account per avere un vantaggio o per aggirare un'esclusione;</li>
+        <li>usare robot, scraper o altri strumenti automatici per accedere al sito o raccoglierne i dati;</li>
+        <li>
+          aggirare le protezioni del sito, entrare in account o dati di altri, decompilare o manomettere il
+          software;
+        </li>
+        <li>caricare o inviare virus o altro codice pensato per danneggiare il sito o chi lo usa;</li>
+        <li>sfruttare di proposito un errore del sito per avere un vantaggio nel gioco: se ne trovi uno, segnalacelo.</li>
+      </ul>
+      <p class="mt-2 text-muted">
+        Se violi queste regole possiamo, secondo la gravità, annullare le scelte coinvolte, escluderti da un
+        campionato, sospendere o chiudere il tuo account.
+      </p>
+    </section>
+
+    <section id="dati-gare" class="card-pad scroll-mt-24">
+      <h2 class="subheading">4. Dati delle gare, punteggi e correzioni</h2>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>
+          Calendario, griglie di partenza e risultati arrivano da fonti pubbliche di dati sulla Formula 1
+          (OpenF1 e Jolpica) e sono elaborati in automatico: possono contenere errori o arrivare in ritardo.
+        </li>
+        <li>
+          Quando un dato è sbagliato o cambia, per esempio per una penalità decisa dopo la gara, possiamo
+          correggerlo e ricalcolare punteggi e classifiche, anche dopo averli pubblicati.
+        </li>
+        <li>
+          Per i casi che il regolamento non prevede decidono i gestori del sito, sentiti i manager dei
+          campionati coinvolti.
+        </li>
+      </ul>
+    </section>
+
+    <section id="disponibilita" class="card-pad scroll-mt-24">
+      <h2 class="subheading">5. Disponibilità del sito</h2>
+      <p class="mt-2 text-muted">
+        Fanta F1 è un progetto amatoriale, sviluppato nel tempo libero. Facciamo del nostro meglio, ma non
+        possiamo garantire che il sito sia sempre raggiungibile, senza errori, o che i dati non vadano mai
+        persi. Possiamo modificare, sospendere o chiudere il sito o singole funzioni; per le interruzioni
+        programmate cerchiamo di avvisare prima.
+      </p>
+    </section>
+
+    <section id="responsabilita" class="card-pad scroll-mt-24">
+      <h2 class="subheading">6. Responsabilità</h2>
+      <p class="mt-2 text-muted">
+        Nei limiti consentiti dalla legge, chi gestisce il sito non risponde dei danni dovuti all'uso o
+        all'impossibilità di usare il sito, a errori nei dati delle gare o ad accordi presi tra giocatori fuori
+        dal sito. Restano salvi i casi di dolo o colpa grave e i diritti che la legge riconosce ai consumatori.
+      </p>
+    </section>
+
+    <section id="terzi" class="card-pad scroll-mt-24">
+      <h2 class="subheading">7. Formula 1 e siti di terzi</h2>
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-muted">
+        <li>
+          Fanta F1 non è affiliato, sponsorizzato né approvato da Formula 1, FIA, Formula One Management o dalle
+          scuderie. «Formula 1», «F1» e i nomi di scuderie, piloti e Gran Premi appartengono ai rispettivi
+          titolari e sono usati solo per descrivere il gioco.
+        </li>
+        <li>
+          Il sito può contenere link a siti e servizi di terzi, che hanno condizioni e informative proprie. Non
+          rispondiamo dei loro contenuti né del loro funzionamento.
+        </li>
+      </ul>
+    </section>
+
+    <section id="contenuti" class="card-pad scroll-mt-24">
+      <h2 class="subheading">8. Contenuti</h2>
+      <p class="mt-2 text-muted">
+        Il software, la grafica e i testi del sito appartengono a chi lo gestisce. I contenuti che inserisci,
+        come nomi e scelte, restano tuoi: ci autorizzi solo a mostrarli agli altri giocatori, come serve al
+        gioco.
+      </p>
+    </section>
+
+    <section id="chiusura" class="card-pad scroll-mt-24">
+      <h2 class="subheading">9. Chiusura dell'account</h2>
+      <p class="mt-2 text-muted">
+        Puoi chiedere in qualsiasi momento di chiudere il tuo account scrivendo a
+        <a href="mailto:{{ contact_email }}" class="text-accent">{{ contact_email }}</a>. Cosa succede ai tuoi
+        dati è spiegato nell'<a href="{% url 'privacy' %}" class="text-accent">informativa privacy</a>.
+        Possiamo chiudere un account nei casi del <a href="#comportamento" class="text-accent">punto 3</a>.
+      </p>
+    </section>
+
+    <section id="modifiche" class="card-pad scroll-mt-24">
+      <h2 class="subheading">10. Modifiche a questi termini</h2>
+      <p class="mt-2 text-muted">
+        Possiamo aggiornare questi termini. Per le modifiche importanti ti avvisiamo via email o con un avviso
+        sul sito almeno 30 giorni prima che si applichino. Se continui a usare il sito dopo quella data, le
+        accetti; se non sei d'accordo, puoi chiudere l'account.
+      </p>
+    </section>
+
+    <section id="legge" class="card-pad scroll-mt-24">
+      <h2 class="subheading">11. Legge applicabile</h2>
+      <p class="mt-2 text-muted">
+        Questi termini sono regolati dalla legge italiana. Per le controversie con un consumatore è competente
+        il giudice del luogo in cui il consumatore risiede.
+      </p>
+      <p class="mt-2 text-muted">
+        Per qualsiasi domanda: <a href="mailto:{{ contact_email }}" class="text-accent">{{ contact_email }}</a>.
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}
