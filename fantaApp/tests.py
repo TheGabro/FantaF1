@@ -2101,6 +2101,7 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "login",
         "register",
         "privacy",
+        "terms",
     }
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
     # ChampionshipManageTests).
@@ -2761,6 +2762,37 @@ class PrivacyPageTests(TestCase):
 
         self.assertContains(response, "almeno 18 anni")
         self.assertContains(response, f'href="{reverse("privacy")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TermsPageTests(TestCase):
+    """#109: termini d'uso aperti a tutti, raggiungibili dal footer e accettati
+    con la registrazione."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("terms"))
+
+        self.assertContains(response, "Termini e condizioni d'uso")
+        self.assertContains(response, "gratuito e senza scopo di lucro")
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertContains(response, f'href="{reverse("game_rules")}"')
+        self.assertContains(response, f'href="{reverse("privacy")}"')
+        self.assertContains(response, "17 novembre 2026")
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "privacy"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("terms")}"')
+
+    def test_accepted_at_sign_up(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(response, "accetti i")
+        self.assertContains(response, f'href="{reverse("terms")}"')
 
 
 @override_settings(STORAGES=TEST_STORAGES)

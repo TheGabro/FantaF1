@@ -35,9 +35,10 @@
         </div>
       {% endfor %}
       <button type="submit" class="btn-primary w-full py-3">Crea account</button>
-      {# Al posto della casella da spuntare (#107): con il solo servizio come base giuridica basta l'avviso. I termini si aggiungono con #109. #}
+      {# Al posto della casella da spuntare (#107, #109): con il solo servizio come base giuridica basta l'avviso. #}
       <p class="note">
-        Creando l'account dichiari di avere almeno 18 anni e confermi di aver letto
+        Creando l'account dichiari di avere almeno 18 anni, accetti i
+        <a href="{% url 'terms' %}" class="text-accent hover:underline">termini</a> e confermi di aver letto
         l'<a href="{% url 'privacy' %}" class="text-accent hover:underline">informativa privacy</a>.
       </p>
     </form>
