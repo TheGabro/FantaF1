@@ -9,7 +9,15 @@
     <title>{% block title %}Fanta F1{% endblock %}</title>
     {# Anteprima dei link nelle chat (#295): le pagine pubbliche passano titolo e descrizione. #}
     {% block share_meta %}{% include "fantaApp/_share_meta.html" %}{% endblock %}
+    {# Icone (#296): SVG per i browser recenti, ICO per gli altri, PNG per la schermata Home di iPhone e Android. #}
+    <link rel="icon" href="{% static 'fantaApp/img/favicon.ico' %}" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="{% static 'fantaApp/img/favicon.svg' %}" />
+    <link rel="apple-touch-icon" href="{% static 'fantaApp/img/apple-touch-icon.png' %}" />
+    <link rel="manifest" href="{% static 'fantaApp/site.webmanifest' %}" />
+    {# Barra del browser sul telefono dello stesso colore dell'header. Senza JavaScript segue il tema del #}
+    {# sistema (media); lo script qui sotto e app.js la allineano al tema scelto col pulsante. #}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" data-light="#ffffff" data-dark="#1a1b21" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1b21" data-light="#ffffff" data-dark="#1a1b21" />
     <script>
       /* Applica il tema prima del paint per evitare flash: localStorage → preferenza OS */
       (function () {
@@ -19,6 +27,8 @@
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.dataset.theme = theme;
+        var bars = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = 0; i < bars.length; i++) bars[i].content = bars[i].getAttribute('data-' + theme);
       })();
     </script>
     {# Font servito dal sito (#274): il testo normale si precarica, gli altri pesi arrivano con main.css. #}
