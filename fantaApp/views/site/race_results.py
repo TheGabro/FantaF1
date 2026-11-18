@@ -34,8 +34,21 @@ def race_results(request, season, round_number):
         use_weekend_teams(weekend, [entry.driver for entry in results])
         races.append({"label": label, "results": results})
 
+    # Anteprima del link nelle chat (#295), letta da _share_meta.html.
+    share_description = f"Risultati F1 del {weekend.event_name} {weekend.season}"
+    if races:
+        share_description += ": ordine d'arrivo " + " e ".join(
+            "del Gran Premio" if race["label"] == "Gran Premio" else "della Sprint"
+            for race in races
+        )
+
     return render(
         request,
         "fantaApp/site/race_results.html",
-        {"weekend": weekend, "races": races},
+        {
+            "weekend": weekend,
+            "races": races,
+            "share_title": f"{weekend.event_name} {weekend.season} · Risultati — Fanta F1",
+            "share_description": f"{share_description}.",
+        },
     )

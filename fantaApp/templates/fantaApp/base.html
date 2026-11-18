@@ -7,6 +7,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Fanta F1{% endblock %}</title>
+    {# Anteprima dei link nelle chat (#295): le pagine pubbliche passano titolo e descrizione. #}
+    {% block share_meta %}{% include "fantaApp/_share_meta.html" %}{% endblock %}
     <link rel="icon" type="image/svg+xml" href="{% static 'fantaApp/img/favicon.svg' %}" />
     <script>
       /* Applica il tema prima del paint per evitare flash: localStorage → preferenza OS */

@@ -2,6 +2,15 @@
 {% load form_a11y %}
 
 {% block title %}Accedi — Fanta F1{% endblock %}
+{% block share_meta %}
+  {# Un link d'invito aperto senza login arriva qui (?next=): l'anteprima nella chat parla dell'invito (#295). #}
+  {% url 'invite_redeem' as invite_prefix %}
+  {% if next and invite_prefix in next %}
+    {% include "fantaApp/_share_meta.html" with share_title="Ti hanno invitato a un campionato di Fanta F1" share_description="Accedi o crea il tuo account per entrare nel campionato e sfidare i tuoi amici a ogni weekend di gara." %}
+  {% else %}
+    {% include "fantaApp/_share_meta.html" with share_title="Accedi — Fanta F1" share_description="Entra in Fanta F1 con il tuo username o con l'email dell'account e fai le scelte del prossimo weekend." %}
+  {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="mx-auto mt-6 w-full max-w-md sm:mt-12">
