@@ -16,10 +16,11 @@ from fantaApp.views.championship import manage as championship_manage
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.game import faq as game_faq
 from fantaApp.views.game import rules as game_rules
-from fantaApp.views.site import about, home, privacy, standings_drivers, terms
+from fantaApp.views.site import about, favicon, home, privacy, standings_drivers, terms
 
 urlpatterns = [
     path("", home.home, name="home"),
+    path("favicon.ico", favicon.favicon, name="favicon"),
     path(
         "results/<int:season>/<int:round_number>/",
         site_race_results.race_results,

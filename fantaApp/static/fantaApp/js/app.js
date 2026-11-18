@@ -9,6 +9,9 @@
       var next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
       document.documentElement.dataset.theme = next;
       try { localStorage.setItem('ff1-theme', next); } catch (e) { /* storage non disponibile */ }
+      // Barra del browser sul telefono (#296): stesso colore dell'header nel tema scelto.
+      var bars = document.querySelectorAll('meta[name="theme-color"]');
+      for (var i = 0; i < bars.length; i++) bars[i].content = bars[i].getAttribute('data-' + next);
     });
   }
 

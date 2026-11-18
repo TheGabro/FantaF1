@@ -2247,6 +2247,8 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     }
     # Pagine pubbliche con argomenti (#134): rotta -> args nel fixture.
     PUBLIC_PAGES_WITH_ARGS = {"f1_race_results": [2026, 1]}
+    # File cercati nella radice del sito (#296): li prova SiteIconsTests.
+    ROOT_FILES = {"favicon"}
 
     def test_every_route_is_covered(self):
         routes = {p.name for p in fanta_urls.urlpatterns}
@@ -2257,7 +2259,8 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
             | self.PUBLIC_PAGES
             | self.ACTIONS
             | self.LEGACY_REDIRECTS
-            | set(self.PUBLIC_PAGES_WITH_ARGS),
+            | set(self.PUBLIC_PAGES_WITH_ARGS)
+            | self.ROOT_FILES,
         )
 
     def test_public_pages_with_arguments_open_for_anonymous_users(self):
@@ -6584,3 +6587,72 @@ class ShareMetaTests(WeekendPagesFixture, TestCase):
         html = self.client.get(reverse("login")).content.decode()
 
         self.assertEqual(self._meta(html, "property", "og:title"), "Accedi — Fanta F1")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SiteIconsTests(TestCase):
+    """Icone del sito (#296): favicon dalla radice, icona per la schermata Home di
+    iPhone e Android, colore della barra del browser."""
+
+    @staticmethod
+    def _png_size(path):
+        with open(finders.find(path), "rb") as png:
+            header = png.read(24)
+        return int.from_bytes(header[16:20], "big"), int.from_bytes(
+            header[20:24], "big"
+        )
+
+    def test_favicon_ico_at_the_root_redirects_to_the_static_file(self):
+        response = self.client.get("/favicon.ico")
+
+        self.assertRedirects(
+            response,
+            "/static/fantaApp/img/favicon.ico",
+            status_code=302,
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(finders.find("fantaApp/img/favicon.ico"))
+
+    def test_pages_link_the_icons_and_the_manifest(self):
+        html = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn(
+            '<link rel="apple-touch-icon" href="/static/fantaApp/img/apple-touch-icon.png" />',
+            html,
+        )
+        self.assertIn('href="/static/fantaApp/img/favicon.ico" sizes="32x32"', html)
+        self.assertIn(
+            '<link rel="manifest" href="/static/fantaApp/site.webmanifest" />', html
+        )
+
+    def test_theme_color_follows_light_and_dark_theme(self):
+        html = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn(
+            '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff"',
+            html,
+        )
+        self.assertIn(
+            '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1b21"',
+            html,
+        )
+
+    def test_icons_have_the_expected_sizes(self):
+        self.assertEqual(
+            self._png_size("fantaApp/img/apple-touch-icon.png"), (180, 180)
+        )
+        self.assertEqual(self._png_size("fantaApp/img/icon-192.png"), (192, 192))
+        self.assertEqual(self._png_size("fantaApp/img/icon-512.png"), (512, 512))
+
+    def test_manifest_points_to_existing_icons(self):
+        with open(finders.find("fantaApp/site.webmanifest"), encoding="utf-8") as f:
+            manifest = json.load(f)
+
+        self.assertEqual(manifest["start_url"], "/")
+        for icon in manifest["icons"]:
+            with self.subTest(icon=icon["src"]):
+                self.assertTrue(finders.find(f"fantaApp/{icon['src']}"))
+                width, height = (int(n) for n in icon["sizes"].split("x"))
+                self.assertEqual(
+                    self._png_size(f"fantaApp/{icon['src']}"), (width, height)
+                )
