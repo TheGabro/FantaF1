@@ -1,4 +1,5 @@
 {% extends 'fantaApp/account/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Sicurezza — Account — Fanta F1{% endblock %}
 
@@ -18,8 +19,8 @@
     {% for field in form %}
       <div class="form-field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {{ field.errors }}
+        {{ field|linked_to_errors }}
+        {{ field|errors_with_id }}
         {% if field.name == "new_password1" %}
           <ul id="id_new_password1_help" class="helptext">
             {% for rule in password_rules %}<li>{{ rule }}</li>{% endfor %}

@@ -6,6 +6,7 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django import forms
 from django.conf import settings as django_settings
 from django.contrib.staticfiles import finders
 from django.contrib import messages
@@ -1413,6 +1414,119 @@ class CreateChampionshipTests(TestCase):
 
         self.assertContains(response, "fantaApp/js/create-championship.js")
         self.assertNotContains(response, "addEventListener")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class FormFieldErrorsLinkedTests(TestCase):
+    """#292: a field with errors has aria-invalid and aria-describedby pointing
+    to its error list (after the help text, if any), in every form of the site."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+
+    def assertErrorsLinked(self, response, fields):
+        html = response.content.decode()
+        tags = {
+            re.search(r'\bname="([^"]+)"', tag).group(1): tag
+            for tag in re.findall(r"<(?:input|select|textarea)\b[^>]*>", html)
+            if 'name="' in tag
+        }
+        for name in fields:
+            with self.subTest(field=name):
+                tag = tags[name]
+                self.assertIn('aria-invalid="true"', tag)
+                described_by = re.search(r'aria-describedby="([^"]+)"', tag).group(1)
+                self.assertIn(f"id_{name}_error", described_by.split())
+                for target in described_by.split():
+                    self.assertIn(f'id="{target}"', html)  # no dangling reference
+        # Only the fields with errors are marked invalid.
+        self.assertEqual(html.count('aria-invalid="true"'), len(fields))
+
+    def test_filters_keep_the_help_text_and_add_the_error(self):
+        class SampleForm(forms.Form):
+            name = forms.CharField(
+                widget=forms.TextInput(attrs={"aria-describedby": "id_name_help"})
+            )
+
+        template = Template(
+            "{% load form_a11y %}{{ form.name|linked_to_errors }}{{ form.name|errors_with_id }}"
+        )
+        invalid = template.render(Context({"form": SampleForm(data={})}))
+        valid = template.render(Context({"form": SampleForm(data={"name": "Dave"})}))
+
+        self.assertIn('aria-invalid="true"', invalid)
+        self.assertIn('aria-describedby="id_name_help id_name_error"', invalid)
+        self.assertIn('<ul id="id_name_error" class="errorlist"><li>', invalid)
+        self.assertNotIn("aria-invalid", valid)
+        self.assertIn('aria-describedby="id_name_help"', valid)
+        self.assertNotIn("errorlist", valid)
+
+    def test_login(self):
+        response = self.client.post(reverse("login"), {})
+
+        self.assertErrorsLinked(response, ["identifier", "password"])
+
+    def test_login_error_box_is_announced(self):
+        response = self.client.post(
+            reverse("login"), {"identifier": "pilota", "password": "sbagliata"}
+        )
+
+        self.assertContains(response, 'text-accent" role="alert">')
+
+    def test_register(self):
+        response = self.client.post(reverse("register"), {})
+
+        self.assertErrorsLinked(
+            response, ["username", "email", "password", "password2"]
+        )
+
+    def test_account_profile(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("account_profile"), {"username": ""})
+
+        self.assertErrorsLinked(response, ["username"])
+
+    def test_account_security(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("account_security"), {})
+
+        self.assertErrorsLinked(
+            response, ["old_password", "new_password1", "new_password2"]
+        )
+
+    def test_create_championship(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("create_championship"),
+            {
+                "name": "",
+                "year": 2026,
+                "leagues-TOTAL_FORMS": "0",
+                "leagues-INITIAL_FORMS": "0",
+                "leagues-MIN_NUM_FORMS": "0",
+                "leagues-MAX_NUM_FORMS": "1000",
+            },
+        )
+
+        self.assertErrorsLinked(response, ["name"])
+
+    def test_join_championship(self):
+        championship = Championship.objects.create(name="Aperto", year=2026)
+        League.objects.create(championship=championship, name="Serie A")
+        League.objects.create(championship=championship, name="Serie B")
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("join_championship", args=[championship.id]),
+            {"player_name": "", "league": ""},
+        )
+
+        self.assertErrorsLinked(response, ["player_name", "league"])
 
 
 @override_settings(STORAGES=TEST_STORAGES)
