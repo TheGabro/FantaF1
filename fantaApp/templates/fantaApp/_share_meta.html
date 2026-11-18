@@ -1,0 +1,22 @@
+{% load static share %}
+{% comment %}
+Descrizione e anteprima dei link condivisi (#295): WhatsApp, Telegram e i social leggono
+Open Graph, Google la meta description. base.html la include con i testi generici; le
+pagine pubbliche ridefiniscono il blocco «share_meta» passando share_title e share_description
+(o li mettono nel contesto dalla view).
+Le pagine riservate non servono: chi apre il link senza login vede quella di accesso.
+{% endcomment %}
+{% with title=share_title|default:"Fanta F1 — Il fantagioco della Formula 1" description=share_description|default:"Sfida i tuoi amici: scegli i piloti a ogni weekend di gara, gestisci i fantamilioni e scala la classifica del tuo campionato." %}
+    <meta name="description" content="{{ description }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fanta F1" />
+    <meta property="og:locale" content="it_IT" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:url" content="{% canonical_url %}" />
+    <meta property="og:image" content="{% absolute_static 'fantaApp/img/share-preview.jpg' %}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logo di Fanta F1, il fantagioco della Formula 1 tra amici" />
+    <meta name="twitter:card" content="summary_large_image" />
+{% endwith %}

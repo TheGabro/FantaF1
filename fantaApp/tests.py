@@ -6498,3 +6498,89 @@ class TeamNameContrastTests(TestCase):
                     (self._luminance(panel), self._luminance(name)), reverse=True
                 )
                 self.assertGreaterEqual((lighter + 0.05) / (darker + 0.05), 4.5)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ShareMetaTests(WeekendPagesFixture, TestCase):
+    """Anteprima dei link nelle chat (#295): le pagine pubbliche hanno titolo,
+    descrizione e immagine Open Graph, con indirizzi completi."""
+
+    GENERIC_DESCRIPTION = "Sfida i tuoi amici: scegli i piloti a ogni weekend di gara"
+
+    @staticmethod
+    def _meta(html, attribute, name):
+        match = re.search(rf'<meta {attribute}="{name}" content="([^"]*)"', html)
+        return match and match.group(1)
+
+    def _public_urls(self):
+        urls = {name: reverse(name) for name in PageSmokeTests.PUBLIC_PAGES}
+        for name, args in PageSmokeTests.PUBLIC_PAGES_WITH_ARGS.items():
+            urls[name] = reverse(name, args=args)
+        return urls
+
+    def test_public_pages_have_their_own_description_and_open_graph(self):
+        for name, url in self._public_urls().items():
+            with self.subTest(route=name):
+                html = self.client.get(url).content.decode()
+                description = self._meta(html, "name", "description")
+
+                self.assertTrue(description)
+                self.assertNotIn(self.GENERIC_DESCRIPTION, description)
+                self.assertEqual(
+                    self._meta(html, "property", "og:description"), description
+                )
+                self.assertTrue(self._meta(html, "property", "og:title"))
+                self.assertEqual(
+                    self._meta(html, "property", "og:url"), f"http://testserver{url}"
+                )
+                self.assertEqual(
+                    self._meta(html, "property", "og:image"),
+                    "http://testserver/static/fantaApp/img/share-preview.jpg",
+                )
+                self.assertEqual(
+                    self._meta(html, "name", "twitter:card"), "summary_large_image"
+                )
+
+    def test_preview_image_exists(self):
+        self.assertTrue(finders.find("fantaApp/img/share-preview.jpg"))
+
+    def test_other_pages_fall_back_to_the_generic_description(self):
+        self.client.force_login(self.user)
+
+        html = self.client.get(reverse("user_dashboard")).content.decode()
+
+        self.assertIn(self.GENERIC_DESCRIPTION, self._meta(html, "name", "description"))
+        self.assertEqual(self._meta(html, "property", "og:locale"), "it_IT")
+
+    def test_race_results_preview_names_the_weekend(self):
+        weekend = Weekend.objects.get(season=2026, round_number=1)
+
+        html = self.client.get(
+            reverse("f1_race_results", args=[2026, 1])
+        ).content.decode()
+
+        self.assertIn(weekend.event_name, self._meta(html, "property", "og:title"))
+        self.assertIn(weekend.event_name, self._meta(html, "name", "description"))
+
+    def test_invite_link_opened_without_login_previews_the_invite(self):
+        invite_url = reverse("invite_accept", args=["token-di-prova"])
+
+        response = self.client.get(invite_url, follow=True)
+        html = response.content.decode()
+
+        self.assertIn("invitato", self._meta(html, "property", "og:title"))
+
+    def test_og_url_leaves_out_the_query_string(self):
+        html = self.client.get(
+            reverse("login") + "?next=/championships/&from=https://example.com"
+        ).content.decode()
+
+        self.assertEqual(
+            self._meta(html, "property", "og:url"),
+            f"http://testserver{reverse('login')}",
+        )
+
+    def test_plain_login_page_keeps_its_own_preview(self):
+        html = self.client.get(reverse("login")).content.decode()
+
+        self.assertEqual(self._meta(html, "property", "og:title"), "Accedi — Fanta F1")
