@@ -6449,3 +6449,52 @@ class ErrorPagesTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertContains(response, "Qualcosa è andato storto", status_code=500)
         self.assertContains(response, 'href="/"', status_code=500)
+
+
+class TeamNameContrastTests(TestCase):
+    """#293: in the light theme every team name in the driver picker reads at
+    4.5:1 on its tinted panel, also at 18 px on phones. Same formulas as the CSS
+    in frontend/input.css: panel = color-mix(team 8%, white), name =
+    color-mix(team --team-name-mix, black), both interpolated in sRGB."""
+
+    PANEL_TINT = 0.08
+    DEFAULT_NAME_MIX = 0.82
+
+    @staticmethod
+    def _luminance(rgb):
+        channels = [
+            c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+            for c in (value / 255 for value in rgb)
+        ]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    @staticmethod
+    def _mix(color, other, share):
+        return [c * share + o * (1 - share) for c, o in zip(color, other)]
+
+    def test_every_team_name_reaches_4_5_to_1_in_the_light_theme(self):
+        css = (django_settings.BASE_DIR / "frontend" / "input.css").read_text(
+            encoding="utf-8"
+        )
+        teams = dict(
+            re.findall(r"\.(team-[a-z]+)\s*\{\s*--team:\s*#([0-9a-f]{6});", css)
+        )
+        mixes = {}
+        for selectors, percent in re.findall(
+            r"([^{}]+)\{\s*--team-name-mix:\s*(\d+)%;", css
+        ):
+            for selector in re.findall(r"\.(team-[a-z]+)", selectors):
+                mixes[selector] = int(percent) / 100
+        self.assertGreaterEqual(len(teams), 11)
+
+        for team, hex_color in teams.items():
+            with self.subTest(team=team):
+                color = [int(hex_color[i : i + 2], 16) for i in (0, 2, 4)]
+                panel = self._mix(color, [255, 255, 255], self.PANEL_TINT)
+                name = self._mix(
+                    color, [0, 0, 0], mixes.get(team, self.DEFAULT_NAME_MIX)
+                )
+                lighter, darker = sorted(
+                    (self._luminance(panel), self._luminance(name)), reverse=True
+                )
+                self.assertGreaterEqual((lighter + 0.05) / (darker + 0.05), 4.5)
