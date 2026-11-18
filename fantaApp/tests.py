@@ -2685,6 +2685,12 @@ class SiteHeaderTests(TestCase):
 
         self.assertIn('role="status" aria-live="polite"', html)
         self.assertEqual(html.count('role="alert"'), 1)
+        # #291: app.js keeps role="alert" toasts until closed, so every toast
+        # needs its close button, at least 32×32 px (.toast-close).
+        self.assertEqual(
+            html.count('data-toast-close class="toast-close" aria-label="Chiudi l\'avviso"'),
+            2,
+        )
 
 
 @override_settings(STORAGES=TEST_STORAGES)

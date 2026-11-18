@@ -75,12 +75,13 @@
 
     {% if messages %}
       {# Annunciati dagli screen reader: gli errori subito (role="alert"), gli altri appena possibile. #}
+      {# Gli errori restano finché non si chiudono, gli altri spariscono dopo 6 s (app.js). #}
       <div class="pointer-events-none fixed right-4 top-16 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" role="status" aria-live="polite">
         {% for message in messages %}
           <div data-toast class="pointer-events-auto toast {% if message.tags == 'error' %}toast-error{% else %}toast-success{% endif %}"{% if message.tags == 'error' %} role="alert"{% endif %}>
             <span class="mt-0.5 h-2 w-2 shrink-0 rounded-full {% if message.tags == 'error' %}bg-accent{% else %}bg-ok{% endif %}"></span>
             <p class="flex-1">{{ message }}</p>
-            <button type="button" data-toast-close class="text-muted hover:text-ink" aria-label="Chiudi">&times;</button>
+            <button type="button" data-toast-close class="toast-close" aria-label="Chiudi l'avviso">&times;</button>
           </div>
         {% endfor %}
       </div>
