@@ -46,15 +46,35 @@
     });
   });
 
-  // Toast: chiusura manuale e auto-dismiss
+  // Toast: si chiudono con «×». Gli errori (role="alert") restano finché non
+  // si chiudono (WCAG 2.2.1); gli altri spariscono dopo 6 secondi, ma non
+  // mentre hanno il puntatore sopra o il focus: il conto riparte quando escono.
   document.querySelectorAll('[data-toast]').forEach(function (toast) {
     var close = toast.querySelector('[data-toast-close]');
+    var timer = null;
+    var hovered = false;
+    var focused = false;
     var remove = function () {
+      clearTimeout(timer);
       toast.style.transition = 'opacity .3s';
       toast.style.opacity = '0';
       setTimeout(function () { toast.remove(); }, 300);
     };
+    var schedule = function () {
+      clearTimeout(timer);
+      if (!hovered && !focused) timer = setTimeout(remove, 6000);
+    };
     if (close) close.addEventListener('click', remove);
-    setTimeout(remove, 6000);
+    if (toast.getAttribute('role') === 'alert') return;
+
+    toast.addEventListener('mouseenter', function () { hovered = true; clearTimeout(timer); });
+    toast.addEventListener('mouseleave', function () { hovered = false; schedule(); });
+    toast.addEventListener('focusin', function () { focused = true; clearTimeout(timer); });
+    toast.addEventListener('focusout', function (event) {
+      if (toast.contains(event.relatedTarget)) return;
+      focused = false;
+      schedule();
+    });
+    schedule();
   });
 })();
