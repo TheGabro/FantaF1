@@ -1651,6 +1651,18 @@ class ChampionshipManageTests(TestCase):
         self.assertEqual([p.player_name for p in leagues["Serie B"]], ["Pilota"])
         self.assertContains(response, "Rendi manager")
 
+    def test_players_page_does_not_scroll_sideways_on_phones(self):
+        # #290: a plain one-column grid grows to the widest table's min-content
+        # width, so the whole page scrolled sideways at 375 px. The column must
+        # be minmax(0, 1fr) and the tables scroll inside their own wrapper.
+        self.client.force_login(self.manager)
+
+        response = self.client.get(self.players_url)
+
+        self.assertContains(response, '<div class="grid grid-cols-1 gap-6">')
+        self.assertNotContains(response, '<div class="overflow-x-auto">')
+        self.assertContains(response, '<div class="relative overflow-x-auto">')
+
     def test_players_page_query_count_does_not_grow_with_players(self):
         self.client.force_login(self.manager)
         self.client.get(self.players_url)  # warm up session and caches
