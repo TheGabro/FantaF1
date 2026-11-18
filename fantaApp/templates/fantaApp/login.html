@@ -1,4 +1,5 @@
 {% extends 'fantaApp/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Accedi — Fanta F1{% endblock %}
 
@@ -10,7 +11,7 @@
     <p class="mt-1 mb-6 text-muted">Entra con il tuo username o con l'email dell'account.</p>
 
     {% if form_login.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent" role="alert">
         {% for error in form_login.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
@@ -22,8 +23,8 @@
       {% for field in form_login %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {{ field.errors }}
+          {{ field|linked_to_errors }}
+          {{ field|errors_with_id }}
         </div>
       {% endfor %}
       {# Niente «Password dimenticata?» finché non c'è il recupero via email (#105). #}

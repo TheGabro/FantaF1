@@ -1,4 +1,5 @@
 {% extends 'fantaApp/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Registrati — Fanta F1{% endblock %}
 
@@ -22,8 +23,8 @@
       {% for field in form_register %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {{ field.errors }}
+          {{ field|linked_to_errors }}
+          {{ field|errors_with_id }}
           {% if field.name == "password" %}
             {# Regole dei validatori di Django: visibili prima di inviare il form. #}
             <ul id="id_password_help" class="helptext">
