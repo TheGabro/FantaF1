@@ -1698,7 +1698,7 @@ class FormFieldErrorsLinkedTests(TestCase):
         self.assertErrorsLinked(response, ["name"])
 
     def test_join_championship(self):
-        championship = Championship.objects.create(name="Aperto", year=2026)
+        championship = Championship.objects.create(name="Aperto", year=2026, is_private=False)
         League.objects.create(championship=championship, name="Serie A")
         League.objects.create(championship=championship, name="Serie B")
         self.client.force_login(self.user)
@@ -1728,8 +1728,10 @@ class InviteAndJoinTests(TestCase):
             password="password123",
         )
 
+        # Public: these tests are about the join form; private championships
+        # send a request instead (PrivateJoinPageTests).
         self.championship = Championship.objects.create(
-            name="Campionato Invitato", year=2026
+            name="Campionato Invitato", year=2026, is_private=False
         )
         self.league_a = League.objects.create(
             championship=self.championship, name="Serie A"
@@ -7370,3 +7372,68 @@ class ManageJoinRequestViewsTests(TestCase):
         self.join_request.refresh_from_db()
         self.assertEqual(self.join_request.status, ChampionshipJoinRequest.Status.REJECTED)
         self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PrivateJoinPageTests(TestCase):
+    """#50: the join page of a private championship sends a request to the
+    managers instead of enrolling; managers can still enrol themselves."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.manager = User.objects.create_user(username="capo", email="capo@example.com", password="password123")
+        self.guest = User.objects.create_user(username="ospite", email="ospite@example.com", password="password123")
+        self.championship = Championship.objects.create(name="Privato", year=2026)
+        self.league = League.objects.create(championship=self.championship, name="Serie A")
+        ChampionshipManager.objects.create(user=self.manager, championship=self.championship)
+        self.url = reverse("join_championship", args=[self.championship.id])
+
+    def test_page_asks_only_for_the_player_name(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Invia la richiesta")
+        self.assertNotContains(response, 'name="league"')
+
+    def test_post_sends_a_request_and_does_not_enroll(self):
+        self.client.force_login(self.guest)
+
+        response = self.client.post(self.url, {"player_name": "Ospite", "league": self.league.id})
+
+        self.assertRedirects(response, reverse("user_dashboard"), fetch_redirect_response=False)
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+        self.assertTrue(
+            ChampionshipJoinRequest.objects.filter(
+                user=self.guest, championship=self.championship,
+                status=ChampionshipJoinRequest.Status.PENDING,
+            ).exists()
+        )
+
+    def test_pending_request_is_not_sent_twice(self):
+        self.client.force_login(self.guest)
+        self.client.post(self.url, {"player_name": "Ospite"})
+
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, reverse("user_dashboard"), fetch_redirect_response=False)
+        self.assertEqual(ChampionshipJoinRequest.objects.filter(user=self.guest).count(), 1)
+
+    def test_service_errors_are_shown_on_the_form(self):
+        ChampionshipPlayer.objects.create(
+            user=self.manager, championship=self.championship, league=self.league, player_name="Preso"
+        )
+        self.client.force_login(self.guest)
+
+        response = self.client.post(self.url, {"player_name": "Preso"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "già stato usato")
+        self.assertFalse(ChampionshipJoinRequest.objects.exists())
+
+    def test_manager_enrols_directly(self):
+        self.client.force_login(self.manager)
+
+        self.client.post(self.url, {"player_name": "Capo", "league": self.league.id})
+
+        self.assertTrue(ChampionshipPlayer.objects.filter(user=self.manager).exists())

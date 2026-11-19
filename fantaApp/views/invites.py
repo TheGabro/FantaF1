@@ -17,8 +17,10 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from ..forms import creations
-from ..models import Championship, ChampionshipPlayer
-from ..services import enrollment
+from django.core.exceptions import ValidationError
+
+from ..models import Championship, ChampionshipJoinRequest, ChampionshipPlayer
+from ..services import enrollment, helper, join_requests
 
 # Salt dedicato: un token di invito non deve essere spendibile altrove nel sito.
 INVITE_SALT = "fantaApp.invito-campionato"
@@ -110,6 +112,11 @@ def join_championship(request, championship_id):
         messages.error(request, f"Le iscrizioni a «{championship.name}» sono chiuse: il campionato sta per iniziare.")
         return redirect("user_dashboard")
 
+    # #50: a private championship is entered through a request to its managers,
+    # who can still enrol themselves directly.
+    if championship.is_private and not helper.is_championship_manager(request.user, championship):
+        return _request_to_join(request, championship)
+
     if request.method == "POST":
         form = creations.ChampionshipPlayerForm(request.POST, championship=championship)
         if form.is_valid():
@@ -128,4 +135,39 @@ def join_championship(request, championship_id):
     return render(request, "fantaApp/join_championship.html", {
         "championship": championship,
         "form": form,
+    })
+
+
+def _request_to_join(request, championship):
+    """Join page of a private championship: sends a request instead of enrolling."""
+    if ChampionshipJoinRequest.objects.filter(
+        user=request.user, championship=championship, status=ChampionshipJoinRequest.Status.PENDING
+    ).exists():
+        messages.info(request, f"La tua richiesta per «{championship.name}» è in attesa del manager.")
+        return redirect("user_dashboard")
+
+    if request.method == "POST":
+        form = creations.JoinRequestForm(request.POST)
+        if form.is_valid():
+            try:
+                join_requests.request_join(
+                    user=request.user,
+                    championship=championship,
+                    player_name=form.cleaned_data["player_name"],
+                )
+            except ValidationError as error:
+                form.add_error(None, error)
+            else:
+                messages.success(
+                    request,
+                    f"Richiesta inviata: entrerai in «{championship.name}» quando un manager la accetterà.",
+                )
+                return redirect("user_dashboard")
+    else:
+        form = creations.JoinRequestForm(initial={"player_name": request.user.username})
+
+    return render(request, "fantaApp/join_championship.html", {
+        "championship": championship,
+        "form": form,
+        "is_request": True,
     })
