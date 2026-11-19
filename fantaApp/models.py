@@ -486,6 +486,8 @@ class PlayerRaceResult(models.Model):
     point_multiplier = models.FloatField(default=1.0)
     point_modifier = models.PositiveIntegerField(default=0)
     total_points = models.FloatField()
+    # No Grand Prix choice before the start: penalty result (#154)
+    missed_choice = models.BooleanField(default=False)
     calculated_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
