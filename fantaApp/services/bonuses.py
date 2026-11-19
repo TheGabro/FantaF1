@@ -8,6 +8,7 @@ from decimal import Decimal
 from ..models import (
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     PlayerSprintQualifyingChoice,
     QualifyingResult,
     RaceStartingGrid,
@@ -290,6 +291,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "points_multiplier": Decimal("1"),
         "driver": None,
         "position": None,
+        "missed": False,
     }
 
     if qualifying is None:
@@ -303,6 +305,16 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     )
 
     if choice is None:
+        if PlayerQualifyingPenalty.objects.filter(
+            player=player, qualifying=qualifying
+        ).exists():
+            # Missed choice: the malus of the last grid position (#153)
+            last = max(rules.REGULAR_QUALIFYING_BONUS_BY_POSITION)
+            return {
+                **default_result,
+                **get_regular_qualifying_bonus_rule(last),
+                "missed": True,
+            }
         return default_result
 
     # The race bonus follows the Grand Prix starting grid position of the
@@ -324,6 +336,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "points_multiplier": bonus["points_multiplier"],
         "driver": choice.driver,
         "position": result.position,
+        "missed": False,
     }
 
 
@@ -378,6 +391,7 @@ def get_race_bonus(*, player, race) -> dict:
             "qualifying_points": 0,
             "driver": None,
             "position": None,
+            "missed": False,
         }
     else:
         # Weekend regular: il bonus viene dalla scelta singola del pilota
@@ -394,6 +408,7 @@ def get_race_bonus(*, player, race) -> dict:
             "qualifying_points": bonus["qualifying_points"],
             "driver": bonus["driver"],
             "position": bonus["position"],
+            "missed": bonus["missed"],
         }
 
 
