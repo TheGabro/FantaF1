@@ -437,6 +437,22 @@ class PlayerQualifyingChoice(AbstractPlayerChoice):
         unique_together = [("player", "qualifying")]
 
 
+class PlayerQualifyingPenalty(models.Model):
+    """No regular qualifying choice before the start, non-sprint weekend (D.1.a.2, #153)."""
+
+    player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
+    qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
+    # From the third missed choice: best classified driver still available to the
+    # player, marked as used for the rest of the season without giving its bonus
+    burned_driver = models.ForeignKey(
+        Driver, on_delete=models.PROTECT, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("player", "qualifying")]
+
+
 class PlayerQualifyingMultiChoice(AbstractPlayerChoice):
     qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
 
