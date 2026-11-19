@@ -87,21 +87,29 @@
       }).join('');
     }
 
+    /* Regolamento D.2 (#165): la parte dello sconto pupillo che supera il suo
+       costo si toglie dall'altro pilota, senza scendere sotto 0 (come nel backend) */
+    var pupRow = hasPupillo && isSelected(pupilloId()) ? rowById(pupilloId()) : null;
+    var pupExcess = pupRow
+      ? Math.max(Number(pupRow.dataset.driverPupilloDiscount || 0) - Number(pupRow.dataset.driverCost || 0), 0)
+      : 0;
+
     var total = selectedIds.reduce(function (sum, id) {
       var row = rowById(id);
       if (!row) return sum;
-      var isPup = hasPupillo && pupilloId() === String(id);
-      return sum + (isPup
+      return sum + (row === pupRow
         ? Number(row.dataset.driverPupilloCost || row.dataset.driverCost)
-        : Number(row.dataset.driverCost || 0));
+        : Math.max(Number(row.dataset.driverCost || 0) - pupExcess, 0));
     }, 0);
 
-    if (driversCostEl) {
-      driversCostEl.textContent = String(selectedIds.reduce(function (sum, id) {
-        var row = rowById(id);
-        return row ? sum + Number(row.dataset.driverCost || 0) : sum;
-      }, 0));
-    }
+    var driversCost = selectedIds.reduce(function (sum, id) {
+      var row = rowById(id);
+      return row ? sum + Number(row.dataset.driverCost || 0) : sum;
+    }, 0);
+    if (driversCostEl) driversCostEl.textContent = String(driversCost);
+
+    /* Sconto pupillo davvero applicato, eccedenza sull'altro pilota compresa */
+    var pupDiscount = driversCost - total;
 
     /* Lo sconto qualifica si applica solo a selezione completa (come nel backend) */
     if (selectedIds.length === maxDrivers && bonusDiscount) {
@@ -112,8 +120,6 @@
     totalEl.classList.toggle('text-accent', spendableCredit > 0 && total > spendableCredit);
 
     if (pupilloDiscountEl) {
-      var pupRow = isSelected(pupilloId()) ? rowById(pupilloId()) : null;
-      var pupDiscount = pupRow ? Number(pupRow.dataset.driverPupilloDiscount || 0) : 0;
       pupilloDiscountEl.textContent = pupDiscount ? '−' + pupDiscount + ' FM' : '—';
       pupilloDiscountEl.classList.toggle('text-ok', pupDiscount > 0);
     }

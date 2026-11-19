@@ -432,6 +432,38 @@ class GrandPrixChoiceTests(TestCase):
                 pupillo_driver=self.driver_3,
             )
 
+    def test_pupillo_discount_excess_lowers_the_other_driver(self):
+        """#165, D.2: leftover pupillo discount goes to the other driver, the
+        total never goes below 0, the qualifying malus is added afterwards."""
+
+        def amounts(pupillo, other, credit_change=0):
+            with patch.object(
+                bonuses, "get_race_bonus", return_value={"credit_change": credit_change}
+            ):
+                result, _ = pc.get_regular_race_spent_amounts(
+                    player=None,
+                    race=None,
+                    driver_ids=[1, 2],
+                    pupillo_driver_id=1,
+                    options_by_driver_id={
+                        1: {**pupillo, "pupillo_cost": max(pupillo["cost"] - pupillo["pupillo_discount"], 0)},
+                        2: {"cost": other},
+                    },
+                )
+            return result
+
+        # Pupillo 10 FM with a 20 FM discount, other driver 50 FM: 0 + 40
+        self.assertEqual(amounts({"cost": 10, "pupillo_discount": 20}, 50), {1: 0, 2: 40})
+        # Excess bigger than the other driver's cost: total stays at 0
+        self.assertEqual(amounts({"cost": 0, "pupillo_discount": 20}, 5), {1: 0, 2: 0})
+        # No excess: the other driver pays full price
+        self.assertEqual(amounts({"cost": 30, "pupillo_discount": 20}, 50), {1: 10, 2: 50})
+        # Qualifying malus is not offset by the pupillo discount
+        self.assertEqual(
+            sum(amounts({"cost": 0, "pupillo_discount": 20}, 5, credit_change=10).values()),
+            10,
+        )
+
     def test_regular_race_pupillo_discount_grows_on_consecutive_weekends_and_caps(self):
         for bundle in self.weekend_bundles[:4]:
             pc.choose_regular_race_drivers(

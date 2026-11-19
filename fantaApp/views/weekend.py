@@ -559,8 +559,15 @@ def regular_race_choice(request, championship_id, weekend_id, event_id):
     # pupillo e con lo sconto della qualifica) supera i fantamilioni spendibili
     # si mostra spento. È solo un aiuto: il controllo vero resta nel servizio.
     qualifying_discount = max(-regular_race_bonus["credit_change"], 0)
+    # Leftover pupillo discount (D.2) can lower the other driver too.
+    pupillo_excess = max(
+        [0] + [o.get("pupillo_discount", 0) - o["cost"] for o in driver_options]
+    )
     for option in driver_options:
-        lowest_cost = min(option["cost"], option.get("pupillo_cost", option["cost"]))
+        lowest_cost = min(
+            option.get("pupillo_cost", option["cost"]),
+            max(option["cost"] - pupillo_excess, 0),
+        )
         option["over_budget"] = lowest_cost - qualifying_discount > spendable_credit
     # La qualifica è già corsa: dalla scelta si vedono i suoi risultati (#198).
     qualifying = weekend.qualifyings.filter(type="regular").first()
