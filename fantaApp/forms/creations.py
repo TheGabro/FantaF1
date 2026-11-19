@@ -164,7 +164,7 @@ class ChampionshipForm(forms.ModelForm):
         is_private = {"is_private": "Campionato privato"}
         help_texts = {
             "name": "Il nome del campionato, visibile a tutti. Non puoi cambiarlo in seguito"
-            , "is_private": "Se privato, solo chi conosce il link può iscriversi. Non puoi cambiarlo in seguito."
+            , "is_private": "Se privato, si entra su richiesta: un manager accetta e sceglie la lega. Non puoi cambiarlo in seguito."
         }
         labels = {
             "name": "Nome del campionato",
