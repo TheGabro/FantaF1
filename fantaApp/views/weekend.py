@@ -759,22 +759,12 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             + _origin_query(request)
         )
 
-    # Piloti già spesi in un'altra qualifica regular della stagione: restano in
-    # griglia ma bloccati, con il GP in cui sono stati usati.
-    locked_events_by_driver_id = {
-        choice.driver_id: choice.qualifying.weekend.event_name
-        for choice in (
-            PlayerQualifyingChoice.objects.filter(
-                player=player,
-                qualifying__weekend__season=weekend.season,
-                qualifying__type="regular",
-            )
-            .exclude(
-                qualifying=qualifying
-            )  # permette eventuale modifica della stessa gara
-            .select_related("qualifying__weekend")
-        )
-    }
+    # Piloti già spesi (o bruciati, #153) in un'altra qualifica regular della
+    # stagione: restano in griglia ma bloccati, con il GP in cui sono stati usati.
+    # Esclusa questa qualifica: permette di modificare la scelta.
+    locked_events_by_driver_id = pc.get_used_regular_qualifying_drivers(
+        player=player, season=weekend.season, exclude_qualifying=qualifying
+    )
 
     teams_maxed_out = (
         PlayerQualifyingChoice.objects.filter(

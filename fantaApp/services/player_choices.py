@@ -7,10 +7,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from ..models import (
+    ChampionshipPlayer,
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     PlayerRaceChoice,
     PlayerSprintQualifyingChoice,
+    QualifyingResult,
 )
 from . import bonuses, costs, rules
 
@@ -247,17 +250,91 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
 # ============================================================================
 
 
+def get_used_regular_qualifying_drivers(
+    *, player, season, exclude_qualifying=None
+) -> dict:
+    """
+    Drivers already spent in the season's regular qualifyings, chosen or burned
+    by a missed choice (#153): driver id -> event name of that weekend.
+    """
+    used = {}
+    for model, field in (
+        (PlayerQualifyingChoice, "driver"),
+        (PlayerQualifyingPenalty, "burned_driver"),
+    ):
+        rows = model.objects.filter(
+            player=player,
+            qualifying__type="regular",
+            qualifying__weekend__season=season,
+            **{f"{field}__isnull": False},
+        ).select_related("qualifying__weekend")
+        if exclude_qualifying is not None:
+            rows = rows.exclude(qualifying=exclude_qualifying)
+        for row in rows:
+            used[getattr(row, f"{field}_id")] = row.qualifying.weekend.event_name
+    return used
+
+
+@transaction.atomic
+def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPenalty]:
+    """
+    Penalize the players with no choice for a regular qualifying in a non-sprint
+    weekend (D.1.a.2, #153). The malus itself is read by bonuses from the penalty.
+
+    From the (GRACE + 1)-th missed choice of the season the best classified
+    driver still available to the player is burned: marked as used, no bonus.
+
+    Needs the qualifying classification. Safe to run again: get_or_create.
+    """
+    weekend = qualifying.weekend
+    if qualifying.type != "regular" or weekend.weekend_type != "regular":
+        return []
+
+    players = ChampionshipPlayer.objects.filter(
+        championship__year=weekend.season
+    ).exclude(
+        id__in=PlayerQualifyingChoice.objects.filter(qualifying=qualifying).values(
+            "player_id"
+        )
+    )
+    classification = list(
+        QualifyingResult.objects.filter(qualifying=qualifying, position__isnull=False)
+        .order_by("position")
+        .values_list("driver_id", flat=True)
+    )
+
+    penalties = []
+    for player in players:
+        missed = 1 + PlayerQualifyingPenalty.objects.filter(
+            player=player,
+            qualifying__weekend__season=weekend.season,
+            qualifying__weekend__round_number__lt=weekend.round_number,
+        ).count()
+
+        burned_driver_id = None
+        if missed > rules.MISSED_QUALIFYING_CHOICE_GRACE:
+            used = get_used_regular_qualifying_drivers(
+                player=player, season=weekend.season, exclude_qualifying=qualifying
+            )
+            burned_driver_id = next(
+                (driver_id for driver_id in classification if driver_id not in used),
+                None,
+            )
+
+        penalty, _ = PlayerQualifyingPenalty.objects.get_or_create(
+            player=player,
+            qualifying=qualifying,
+            defaults={"burned_driver_id": burned_driver_id},
+        )
+        penalties.append(penalty)
+
+    return penalties
+
+
 @transaction.atomic
 def choose_regular_quali_driver(*, player, qualifying, driver):
-    already_used = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            driver=driver,
-            qualifying__type="regular",
-            qualifying__weekend__season=qualifying.weekend.season,
-        )
-        .exclude(qualifying=qualifying)
-        .exists()
+    already_used = driver.id in get_used_regular_qualifying_drivers(
+        player=player, season=qualifying.weekend.season, exclude_qualifying=qualifying
     )
 
     if already_used:

@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from fantaApp.models import Weekend, Qualifying, QualifyingResult
-from fantaApp.services import drivers
+from fantaApp.services import drivers, player_choices
 from fantaApp.services.sources.base import ResultsNotAvailable
 from fantaApp.services.sources.openF1Source import (
     QUALIFYING_SESSION,
@@ -82,6 +82,14 @@ class Command(BaseCommand):
         QualifyingResult.objects.bulk_create(quali_objs, ignore_conflicts=True)
         self.stdout.write(
             self.style.SUCCESS(f"• {q_type} qualifying imported: {len(quali_objs)}")
+        )
+
+        # Missed choices are penalized once the classification is in (#153)
+        penalties = player_choices.apply_missed_qualifying_penalties(
+            qualifying=qualifying
+        )
+        self.stdout.write(
+            self.style.SUCCESS(f"• missed choice penalties: {len(penalties)}")
         )
 
         # ------------------------------------------------------------------
