@@ -418,6 +418,45 @@ class ChampionshipManager(models.Model):
         return f"{self.user.username} manager of {self.championship.name}"
 
 
+class ChampionshipJoinRequest(models.Model):
+    """A user's request to join a private championship (#75).
+
+    The player only picks a player name; the league is chosen by the manager
+    when approving, so it is not stored here. Create and decide requests
+    through services/join_requests.py, not directly.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        REJECTED = "rejected", "Rejected"
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    championship = models.ForeignKey(
+        Championship, on_delete=models.CASCADE, related_name="join_requests"
+    )
+    player_name = models.CharField(max_length=50)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # Only one open request per user and championship; rejected ones
+            # stay as history, so a user can ask again after a rejection.
+            models.UniqueConstraint(
+                fields=["user", "championship"],
+                condition=models.Q(status="pending"),
+                name="unique_pending_join_request",
+            ),
+        ]
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.player_name} ({self.user.username}) → {self.championship.name}: {self.status}"
+
+
 class AbstractPlayerChoice(models.Model):
     """Base comune: tiene traccia di chi sceglie cosa."""
 

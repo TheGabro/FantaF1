@@ -164,7 +164,7 @@ class ChampionshipForm(forms.ModelForm):
         is_private = {"is_private": "Campionato privato"}
         help_texts = {
             "name": "Il nome del campionato, visibile a tutti. Non puoi cambiarlo in seguito"
-            , "is_private": "Se privato, solo chi conosce il link può iscriversi. Non puoi cambiarlo in seguito."
+            , "is_private": "Se privato, si entra su richiesta: un manager accetta e sceglie la lega. Non puoi cambiarlo in seguito."
         }
         labels = {
             "name": "Nome del campionato",
@@ -260,3 +260,13 @@ class ChampionshipPlayerForm(forms.ModelForm):
                 "Questo nome giocatore è già stato usato in questo campionato."
             )
         return player_name
+
+
+class JoinRequestForm(forms.Form):
+    """Request to join a private championship (#50, #75): only the player name,
+    the league is chosen by the manager. The checks live in services/join_requests."""
+
+    player_name = forms.CharField(
+        label="Il tuo nome giocatore",
+        max_length=ChampionshipPlayer._meta.get_field("player_name").max_length,
+    )

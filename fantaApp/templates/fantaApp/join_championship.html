@@ -8,7 +8,7 @@
   <a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2">← I miei campionati</a>
 
   <div class="card-pad">
-    <p class="eyebrow">Iscrizione al campionato</p>
+    <p class="eyebrow">{% if is_request %}Richiesta di accesso{% else %}Iscrizione al campionato{% endif %}</p>
     <h1 class="heading mt-1">{{ championship.name }}</h1>
     <p class="mt-1 mb-5 text-muted">
       Stagione {{ championship.year }} ·
@@ -31,6 +31,8 @@
         <span class="helptext">È il nome con cui comparirai in classifica.</span>
       </div>
 
+      {% comment %} #50: in a private championship the manager picks the league. {% endcomment %}
+      {% if not is_request %}
       {% comment %}
         Con una lega sola la scelta non esiste: il campo resta nel form (serve al
         modello, che vuole sempre una lega) ma si mostra solo se c'è da scegliere.
@@ -40,8 +42,14 @@
         {{ form.league|linked_to_errors }}
         {{ form.league|errors_with_id }}
       </div>
+      {% endif %}
 
-      <button type="submit" class="btn-primary w-full">Entra nel campionato</button>
+      {% if is_request %}
+        <p class="note">Il campionato è privato: un manager riceverà la tua richiesta e ti inserirà in una lega.</p>
+        <button type="submit" class="btn-primary w-full">Invia la richiesta</button>
+      {% else %}
+        <button type="submit" class="btn-primary w-full">Entra nel campionato</button>
+      {% endif %}
     </form>
   </div>
 
