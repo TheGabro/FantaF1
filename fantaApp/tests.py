@@ -2255,8 +2255,9 @@ class WeekendPagesFixture:
         self.championship = Championship.objects.create(name="Smoke Cup", year=2026)
         self.league = League.objects.create(championship=self.championship, name="Lega")
         # Senza il giocatore: la pagina di iscrizione si apre invece di rimandare al campionato.
+        # Next season: the 2026 weekends below would have closed enrollment (#148).
         self.open_championship = Championship.objects.create(
-            name="Open Cup", year=2026, is_private=False
+            name="Open Cup", year=2027, is_private=False
         )
         League.objects.create(championship=self.open_championship, name="Lega Aperta")
         ChampionshipManager.objects.create(
