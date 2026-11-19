@@ -66,6 +66,7 @@ from .services import bonuses
 from .services import costs
 from .services import credit_consolidation as su
 from .services import player_scoring
+from .services import enrollment
 
 
 class SprintRaceChoiceTests(TestCase):
@@ -7054,3 +7055,85 @@ class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
         self.assertContains(response, "malus +30 FM")
         self.assertContains(response, "pilota bruciato")
         self.assertContains(response, self.burned.last_name)
+
+
+class EnrollmentWindowTests(TestCase):
+    """#148: joining closes a week before the first qualifying of the season,
+    approving join requests closes at FP1 of the first weekend."""
+
+    YEAR = 2031  # a season no other fixture uses
+
+    def setUp(self):
+        self.championship = Championship.objects.create(name="Aperto", year=self.YEAR)
+        self.league = League.objects.create(championship=self.championship, name="Lega Unica")
+        self.circuit = Circuit.objects.create(
+            name="Albert Park", country="Australia", location="Melbourne", api_id="albert_park"
+        )
+
+    def _first_weekend(self, qualifying_in, weekend_type="regular", **extra):
+        """First weekend of YEAR whose first qualifying starts `qualifying_in` from now."""
+        qualifying = timezone.now() + qualifying_in
+        dates = {"fp1_start": qualifying - timedelta(days=1)}
+        if weekend_type == "sprint":
+            dates.update(sprint_qualifying_start=qualifying, qualifying_start=qualifying + timedelta(days=1))
+        else:
+            dates.update(qualifying_start=qualifying)
+        dates.update(extra)
+        return Weekend.objects.create(
+            circuit=self.circuit, event_name="Australian GP", round_number=1,
+            season=self.YEAR, weekend_type=weekend_type, **dates,
+        )
+
+    def test_open_while_the_calendar_is_not_loaded(self):
+        self.assertTrue(enrollment.enrollment_open(self.championship))
+        self.assertTrue(enrollment.approval_open(self.championship))
+
+    def test_open_more_than_a_week_before_the_first_qualifying(self):
+        self._first_weekend(timedelta(days=8))
+
+        self.assertTrue(enrollment.enrollment_open(self.championship))
+
+    def test_closed_in_the_last_week_but_requests_can_still_be_approved(self):
+        self._first_weekend(timedelta(days=6))
+
+        self.assertFalse(enrollment.enrollment_open(self.championship))
+        self.assertTrue(enrollment.approval_open(self.championship))
+
+    def test_approval_closes_at_fp1_of_the_first_weekend(self):
+        self._first_weekend(timedelta(hours=12))  # FP1 started 12 hours ago
+
+        self.assertFalse(enrollment.approval_open(self.championship))
+
+    def test_sprint_weekend_counts_from_the_sprint_qualifying(self):
+        # Sprint qualifying in 6 days, regular qualifying in 7: already closed.
+        self._first_weekend(timedelta(days=6), weekend_type="sprint")
+
+        self.assertFalse(enrollment.enrollment_open(self.championship))
+
+    def test_finished_championship_is_closed(self):
+        self.championship.active = False
+        self.championship.save()
+
+        self.assertFalse(enrollment.enrollment_open(self.championship))
+        self.assertFalse(enrollment.approval_open(self.championship))
+
+    def test_search_lists_only_open_championships(self):
+        self._first_weekend(timedelta(days=3))
+        next_year = Championship.objects.create(name="Prossimo", year=self.YEAR + 1)
+        Championship.objects.create(name="Concluso", year=self.YEAR + 1, active=False)
+
+        self.assertQuerySetEqual(enrollment.open_championships(), [next_year])
+
+    def test_join_page_refuses_after_the_deadline(self):
+        self._first_weekend(timedelta(days=3))
+        user = get_user_model().objects.create_user(
+            username="ritardatario", email="ritardatario@example.com", password="password123"
+        )
+        self.client.force_login(user)
+        url = reverse("join_championship", args=[self.championship.id])
+
+        self.assertRedirects(
+            self.client.get(url), reverse("user_dashboard"), fetch_redirect_response=False
+        )
+        self.client.post(url, {"player_name": "Tardi", "league": self.league.id})
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=user).exists())
