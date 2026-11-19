@@ -160,6 +160,33 @@ class SprintRaceChoiceTests(TestCase):
             api_id=api_id,
         )
 
+    def test_sprint_qualifying_bands_2026(self):
+        """#257: SQ1 hit from P17, SQ2 on P11-P16, SQ3 on P6-P10 (22 cars)."""
+        slots = {"sq1": self.driver_1, "sq2": self.driver_2, "sq3": self.driver_3}
+        for slot, driver in slots.items():
+            PlayerSprintQualifyingChoice.objects.create(
+                player=self.player,
+                qualifying=self.sprint_qualifying,
+                driver=driver,
+                selection_slot=slot,
+            )
+
+        cases = {
+            "sq1": {16: False, 17: True, 22: True},
+            "sq2": {10: False, 11: True, 16: True, 17: False},
+            "sq3": {5: False, 6: True, 10: True, 11: False},
+        }
+        for slot, expected_by_position in cases.items():
+            for position, expected in expected_by_position.items():
+                with self.subTest(slot=slot, position=position):
+                    RaceStartingGrid.objects.filter(
+                        race=self.sprint_race, driver=slots[slot]
+                    ).update(position=position)
+                    bonus = bonuses.get_sprint_qualifying_bonus(
+                        player=self.player, qualifying=self.sprint_qualifying
+                    )
+                    self.assertEqual(bonus[f"{slot}_hit"], expected)
+
     def test_sprint_race_choice_blocks_when_credit_is_not_enough(self):
         url = reverse(
             "sprint_race_choice",
@@ -661,7 +688,7 @@ class SprintWeekendRegularQualifyingBonusTests(TestCase):
         bonus = bonuses.get_race_bonus(player=self.player, race=self.race)
 
         self.assertEqual(bonus["level"], "q2_pass")
-        self.assertEqual(bonus["credit_change"], -20)  # negativo = sconto
+        self.assertEqual(bonus["credit_change"], -30)  # negativo = sconto
         self.assertEqual(bonus["points_multiplier"], Decimal("1.2"))
 
     def test_regular_race_bonus_discount_is_applied_to_total_spent_amount(self):
