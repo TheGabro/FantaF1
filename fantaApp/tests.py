@@ -1168,6 +1168,153 @@ class PlayerScoringTests(TestCase):
         )
 
 
+class MissedGrandPrixChoicePenaltyTests(TestCase):
+    """Penalties for a missed Grand Prix choice (C.3, #154)."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Monaco", country="Monaco", location="Monte Carlo", api_id="c-mon"
+        )
+        self.team = Team.objects.create(
+            name="Penalty Team", short_name="PEN", api_id="t-pen", nationality="IT"
+        )
+        self.driver_1 = self._create_driver(1)
+        self.driver_2 = self._create_driver(2)
+        self.races = [self._create_race(round_number) for round_number in (1, 2, 3, 4)]
+
+        self.championship = Championship.objects.create(name="Penalty Cup", year=2026)
+        league = League.objects.create(championship=self.championship, name="L")
+        self.chooser_low, self.chooser_high, self.missing = [
+            ChampionshipPlayer.objects.create(
+                user=get_user_model().objects.create_user(
+                    username=name, email=f"{name}@example.com", password="pw"
+                ),
+                championship=self.championship,
+                league=league,
+                player_name=name,
+                available_credit=1000,
+            )
+            for name in ("low", "high", "missing")
+        ]
+
+    def _create_driver(self, number):
+        return Driver.objects.create(
+            first_name=f"Pen{number}",
+            last_name="Driver",
+            number=90 + number,
+            short_name=f"PN{number}",
+            team=self.team,
+            season=2026,
+            api_id=f"pen-drv-{number}",
+        )
+
+    def _create_race(self, round_number):
+        weekend = Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Penalty GP {round_number}",
+            round_number=round_number,
+            season=2026,
+            qualifying_start=timezone.now() - timedelta(days=2),
+            race_start=timezone.now() - timedelta(days=1),
+        )
+        Qualifying.objects.create(weekend=weekend, type="regular")
+        return Race.objects.create(weekend=weekend, type="regular")
+
+    def _choose(self, player, race, spent_amount):
+        PlayerRaceChoice.objects.create(
+            player=player, race=race, driver=self.driver_1, spent_amount=spent_amount
+        )
+
+    def _result(self, player, race):
+        return PlayerRaceResult.objects.get(player=player, race=race)
+
+    def test_charges_lowest_spend_among_players_who_chose(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self._choose(self.chooser_high, self.races[0], 120)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+        result = self._result(self.missing, self.races[0])
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 30)
+        self.assertEqual(result.total_points, 0)
+
+    def test_points_penalty_starts_from_third_missed_choice(self):
+        for race in self.races:
+            self._choose(self.chooser_low, race, 0)
+            player_scoring.compute_player_score_per_race(race=race)
+
+        self.assertEqual(
+            [self._result(self.missing, race).total_points for race in self.races],
+            [0, 0, -5, -10],
+        )
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.total_score, -15)
+
+    def test_nobody_chose_no_credit_penalty_but_counter_goes_up(self):
+        for race in self.races[:3]:
+            player_scoring.compute_player_score_per_race(race=race)
+
+        for player in (self.chooser_low, self.chooser_high, self.missing):
+            player.refresh_from_db()
+            self.assertEqual(player.available_credit, 1000)
+            self.assertEqual(self._result(player, self.races[2]).total_points, -5)
+
+    def test_qualifying_malus_is_charged_on_top_and_discount_is_lost(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        qualifying = self.races[0].weekend.qualifyings.get()
+        # missing picked the last on the grid: +30 malus (rules.py, P22)
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_1, position=22
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=qualifying, driver=self.driver_1
+        )
+        # chooser_high picked P6: a -25 discount, lost without a GP choice
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_2, position=6
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.chooser_high, qualifying=qualifying, driver=self.driver_2
+        )
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+        self.assertEqual(
+            self._result(self.chooser_high, self.races[0]).credit_spent, 30
+        )
+
+    def test_credits_go_to_zero_not_below(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self.missing.available_credit = 10
+        self.missing.save()
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 0)
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 10)
+
+    def test_running_again_charges_credits_once(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+
+    def test_sprint_race_has_no_penalty(self):
+        sprint = Race.objects.create(weekend=self.races[0].weekend, type="sprint")
+
+        player_scoring.compute_player_score_per_race(race=sprint)
+
+        self.assertFalse(PlayerRaceResult.objects.filter(race=sprint).exists())
+
+
 @override_settings(STORAGES=TEST_STORAGES)
 class LoginNextRedirectTests(TestCase):
     """F0: il ritorno dal login, su cui poggia ogni link d'invito."""
