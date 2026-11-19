@@ -12,11 +12,10 @@ from .dashboard import MAGATA_POINTS, SUCATA_POINTS
 # Valori del regolamento che services/rules.py non ha ancora: restano qui, in un
 # punto solo per regolamento e domande frequenti, finché il backend non li
 # aggiunge (penalità del GP, C.3: #154; grazia della qualifica del sabato,
-# D.1.a.2: #153; tagli delle Qualifiche Sprint del 2026: #257).
+# D.1.a.2: #153).
 PENALTY_POINTS_STEP = 5
 PENALTY_FREE_MISSES = 2
 QUALIFYING_GRACE_MISSES = 2
-SPRINT_SHOOTOUT_CUTS = {"sq1": 16, "sq2": 10, "sq3": 5}
 
 # Etichette leggibili dei livelli bonus, per le tabelle del regolamento.
 _SLOTS = rules.MULTI_CHOICE_SLOT_SIZES
@@ -26,7 +25,7 @@ _MULTICHOICE_LEVEL_LABELS = {
     "q3_top3": f"…e la top {_SLOTS['q3_top3']} del Q3 è indovinata in pieno",
 }
 # Shootout a cascata: ogni turno indovinato sblocca il successivo (#197).
-_CUTS = SPRINT_SHOOTOUT_CUTS
+_CUTS = rules.SPRINT_SHOOTOUT_CUTS
 _SHOOTOUT_LEVEL_LABELS = {
     "made": "Pronostico inserito, SQ1 non indovinato",
     "sq1_hit": f"SQ1 indovinato: il pilota resta fuori dai primi {_CUTS['sq1']}",
@@ -80,7 +79,7 @@ def rulebook():
         "multi_choice_slot_sizes": rules.MULTI_CHOICE_SLOT_SIZES,
         "grid_q1_pass_max_position": rules.GRID_Q1_PASS_MAX_POSITION,
         "grid_q2_pass_max_position": rules.GRID_Q2_PASS_MAX_POSITION,
-        "shootout_cuts": SPRINT_SHOOTOUT_CUTS,
+        "shootout_cuts": rules.SPRINT_SHOOTOUT_CUTS,
         "penalty_points_step": PENALTY_POINTS_STEP,
         "penalty_first_points_miss": PENALTY_FREE_MISSES + 1,
         "penalty_examples": [PENALTY_POINTS_STEP * n for n in (1, 2, 3)],

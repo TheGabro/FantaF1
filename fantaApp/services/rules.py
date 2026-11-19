@@ -15,11 +15,11 @@ SPRINT_RACE_COST_BY_GRID_POSITION = {
     1: 60,
     2: 50,
     3: 40,
-    4: 30,
-    5: 25,
-    6: 20,
-    7: 15,
-    8: 0,
+    4: 35,
+    5: 30,
+    6: 25,
+    7: 20,
+    8: 15,
     9: 0,
     10: 0,
     11: 0,
@@ -109,7 +109,7 @@ QUALIFYING_MULTICHOICE_BONUS_RULES = {
         "points_multiplier": Decimal("1"),
     },
     "q2_pass": {
-        "credit_discount": 20,
+        "credit_discount": 30,
         "qualifying_points": 500,
         "points_multiplier": Decimal("1.2"),
     },
@@ -131,6 +131,11 @@ MULTI_CHOICE_SLOT_SIZES = {
 # within these positions (22 drivers: Q1 and Q2 knock out 6 each)
 GRID_Q1_PASS_MAX_POSITION = 16
 GRID_Q2_PASS_MAX_POSITION = 10
+
+# Sprint Qualifying (Friday shootout, 22 drivers): each pick must NOT pass the
+# cut of its session. SQ1 hit = out of the top 16 (P17-P22), SQ2 = out of the
+# top 10 (P11-P16), SQ3 = out of the top 5 (P6-P10).
+SPRINT_SHOOTOUT_CUTS = {"sq1": 16, "sq2": 10, "sq3": 5}
 
 # ============================================================================
 # Bonus sprint (weekend sprint - qualifica regular)
@@ -183,7 +188,7 @@ REGULAR_QUALIFYING_BONUS_BY_POSITION = {
         "points_multiplier": Decimal("1"),
     },
     19: {
-        "credit_change": 10,
+        "credit_change": 15,
         "qualifying_points": 0,
         "points_multiplier": Decimal("1"),
     },

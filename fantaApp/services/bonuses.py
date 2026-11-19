@@ -107,9 +107,10 @@ def get_sprint_qualifying_bonus(*, player, qualifying=None) -> dict:
     sq2_position = _slot_position("sq2", choice_by_slot, results_by_driver_id)
     sq3_position = _slot_position("sq3", choice_by_slot, results_by_driver_id)
 
-    sq1_hit = sq1_position is not None and sq1_position > 15
-    sq2_hit = sq2_position is not None and 11 <= sq2_position <= 15
-    sq3_hit = sq3_position is not None and 6 <= sq3_position <= 10
+    cuts = rules.SPRINT_SHOOTOUT_CUTS
+    sq1_hit = sq1_position is not None and sq1_position > cuts["sq1"]
+    sq2_hit = sq2_position is not None and cuts["sq2"] < sq2_position <= cuts["sq1"]
+    sq3_hit = sq3_position is not None and cuts["sq3"] < sq3_position <= cuts["sq2"]
 
     if sq3_hit:
         level = "sq3_hit"
