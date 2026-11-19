@@ -6797,3 +6797,40 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
 
         self.assertEqual(self._apply(qualifying), [])
 
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
+    """#153: the missed qualifying penalty is shown to the player."""
+
+    def setUp(self):
+        super().setUp()
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        self.burned = Driver.objects.get(api_id="drv-smoke-1")
+        PlayerQualifyingPenalty.objects.create(
+            player=player, qualifying=self.regular_qualifying, burned_driver=self.burned
+        )
+        self.client.force_login(self.user)
+
+    def _args(self, event):
+        return [self.championship.id, self.regular_weekend.id, event.id]
+
+    def test_grand_prix_choice_shows_the_malus(self):
+        response = self.client.get(
+            reverse("regular_race_choice", args=self._args(self.regular_race))
+        )
+
+        self.assertContains(response, "Qualifica non scelta")
+        self.assertContains(response, "malus +30 FM")
+
+    def test_qualifying_results_show_malus_and_burned_driver(self):
+        response = self.client.get(
+            reverse("race_qualifying_results", args=self._args(self.regular_qualifying))
+        )
+
+        self.assertContains(response, "Penalità")
+        self.assertContains(response, "malus +30 FM")
+        self.assertContains(response, "pilota bruciato")
+        self.assertContains(response, self.burned.last_name)
