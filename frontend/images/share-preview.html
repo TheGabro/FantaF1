@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+Sorgente dell'immagine di anteprima dei link (#295): fantaApp/static/fantaApp/img/share-preview.jpg.
+Per rigenerarla (da questa cartella), poi convertire in JPEG qualità ~88:
+  chrome --headless=new --hide-scrollbars --allow-file-access-from-files --window-size=1200,630
+         --virtual-time-budget=3000 --screenshot=share-preview.png share-preview.html
+-->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:T;font-weight:900;src:url("../../fantaApp/static/fantaApp/fonts/titillium-web/titillium-web-latin-900-normal.woff2")}
+@font-face{font-family:T;font-weight:600;src:url("../../fantaApp/static/fantaApp/fonts/titillium-web/titillium-web-latin-600-normal.woff2")}
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 40%,#1d1e26 0%,#101014 70%);font-family:T,sans-serif;color:#f4f4f6;position:relative}
+.stripes{position:absolute;inset:0;background:repeating-linear-gradient(-60deg,transparent 0 46px,rgba(255,255,255,.025) 46px 48px)}
+.bar{position:absolute;left:0;right:0;bottom:0;height:14px;background:#e10600}
+.kerb{position:absolute;left:0;right:0;bottom:14px;height:10px;background:repeating-linear-gradient(90deg,#e10600 0 40px,#f4f4f6 40px 80px);opacity:.9}
+.wrap{position:absolute;inset:0 0 24px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.logo{font-weight:900;font-style:italic;text-transform:uppercase;font-size:150px;line-height:1;letter-spacing:-4px;transform:skewX(-6deg)}
+.logo span{color:#ff2e14}
+.tag{margin-top:26px;font-weight:600;font-size:44px;color:#c9cdd5}
+.sub{margin-top:14px;font-weight:600;font-size:30px;color:#9aa1ae;letter-spacing:1px}
+</style></head><body><div class="stripes"></div>
+<div class="wrap"><div class="logo">Fanta<span>F1</span></div>
+<div class="tag">Il fantagioco della Formula 1 tra amici</div>
+<div class="sub">Scegli i piloti · Scala la classifica</div></div>
+<div class="kerb"></div><div class="bar"></div></body></html>

@@ -283,3 +283,11 @@ REGULAR_QUALIFYING_BONUS_BY_POSITION = {
 # ============================================================================
 
 REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM = 2
+
+# ============================================================================
+# Missed Grand Prix choice penalty (C.3, #154)
+# From the (GRACE + 1)-th missed choice of the season: -STEP x (n - GRACE) points
+# ============================================================================
+
+MISSED_GP_CHOICE_GRACE = 2
+MISSED_GP_CHOICE_POINTS_STEP = 5

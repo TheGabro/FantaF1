@@ -1,0 +1,94 @@
+{% extends "fantaApp/base.html" %}
+{% comment %}
+Chi siamo (#108), aperta a tutti senza login. Testo della bozza approvata il
+17/11/2026, con i soprannomi al posto dei nomi. Da aggiungere entro il 1/3/2027: il
+dipartimento di TheGabro, una battuta nuova al posto di «missionwinnow», le foto di
+chi dà il consenso (anche per la foto di gruppo). Le righe di presentazione dei
+membri sono #321.
+{% endcomment %}
+
+{% block title %}Chi siamo — Fanta F1{% endblock %}
+{% block share_meta %}{% include "fantaApp/_share_meta.html" with share_title="Chi siamo — Fanta F1" share_description="Come è nato Fanta F1, dove sta andando e chi c'è dietro." %}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <p class="eyebrow">Fanta F1</p>
+  <h1 class="page-title mt-1">Chi siamo</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    Come è nato il Fanta, dove sta andando e chi c'è dietro.
+  </p>
+</div>
+
+<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+  <div class="grid min-w-0 grid-cols-1 gap-6 lg:col-span-2">
+    <section id="nascita" class="card-pad scroll-mt-24">
+      <h2 class="subheading">La nascita del Fanta</h2>
+      <p class="mt-2 text-muted">
+        Il sogno del Pres, nessun altro modo per definirlo. È nato così, de botto, senza senso: nello
+        spogliatoio del San Pio X di Cesano Maderno, dopo un allenamento a caso (o forse una partita, chissà).
+      </p>
+      <p class="mt-2 text-muted">
+        Tensione per l'inizio della stagione, tre amici che non sapevano più come insultare la Ferrari e un papà
+        che appoggia sempre e comunque le idee malsane del figlio. È iniziata così: una scusa per alzarsi presto
+        la mattina a soffrire e per mettersi sul divano dopo pranzo senza riuscire a dormire.
+      </p>
+      <p class="mt-2 font-semibold">È nato così il Fanta F1 più bello di sempre!</p>
+    </section>
+
+    <section id="futuro" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Lo sviluppo e il futuro</h2>
+      <p class="mt-2 text-muted">
+        Quello che era un foglio di calcolo condiviso tra amici è diventato, stagione dopo stagione, una
+        community, e dal 2027 ha un sito tutto suo: qui si scelgono i piloti, si seguono le classifiche e ci si
+        sfotte in tempo reale.
+      </p>
+      <p class="mt-2 text-muted">
+        L'obiettivo resta lo stesso: una community affiatata con cui condividere la passione per la Formula 1,
+        con quel pizzico di competizione che non guasta mai.
+      </p>
+    </section>
+  </div>
+
+  <div class="grid min-w-0 grid-cols-1 gap-6">
+    <section id="team" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Il team</h2>
+      <p class="mt-2 text-muted">
+        O, per meglio dire, l'<strong class="text-ink">Istituto di Disagio e Statistica Avanzata «D. Kvyat»</strong>.
+        L'IDSA non è una società né un'associazione: è il nome scherzoso che ci siamo dati quando il gioco è
+        nato, e ce lo teniamo stretto.
+      </p>
+      <dl class="mt-3 space-y-3">
+        <div>
+          <dt class="font-semibold">Fede</dt>
+          <dd class="text-muted">Mr. President e Fondatore</dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Pile</dt>
+          <dd class="text-muted">
+            Dipartimento Statistica e Fogli di Calcolo.
+            <span class="italic">«Quasi più appassionato di cucina e Formula 1 che di fogli di calcolo per il Fanta
+            Formula 1»</span> (cit.)
+          </dd>
+        </div>
+        <div>
+          <dt class="font-semibold">Vice</dt>
+          <dd class="text-muted">Dipartimento Chimica e Informatica</dd>
+        </div>
+        <div>
+          <dt class="font-semibold">TheGabro</dt>
+          <dd class="text-muted">Dipartimento in via di nomina</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="contatti" class="card-pad scroll-mt-24">
+      <h2 class="subheading">Contatti</h2>
+      <p class="mt-2 text-muted">
+        Hai domande, idee o hai trovato un errore? Scrivici a
+        <a href="mailto:{{ contact_email }}" class="text-accent">{{ contact_email }}</a>. Se giochi con noi, ci
+        trovi anche nel gruppo WhatsApp dei giocatori, a soffrire e gioire con te per questo fantastico sport!
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -7,7 +7,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}Fanta F1{% endblock %}</title>
+    {# Anteprima dei link nelle chat (#295): le pagine pubbliche passano titolo e descrizione. #}
+    {% block share_meta %}{% include "fantaApp/_share_meta.html" %}{% endblock %}
+    {# Icone (#296): SVG per i browser recenti, ICO per gli altri, PNG per la schermata Home di iPhone e Android. #}
+    <link rel="icon" href="{% static 'fantaApp/img/favicon.ico' %}" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="{% static 'fantaApp/img/favicon.svg' %}" />
+    <link rel="apple-touch-icon" href="{% static 'fantaApp/img/apple-touch-icon.png' %}" />
+    <link rel="manifest" href="{% static 'fantaApp/site.webmanifest' %}" />
+    {# Barra del browser sul telefono dello stesso colore dell'header. Senza JavaScript segue il tema del #}
+    {# sistema (media); lo script qui sotto e app.js la allineano al tema scelto col pulsante. #}
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" data-light="#ffffff" data-dark="#1a1b21" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1b21" data-light="#ffffff" data-dark="#1a1b21" />
     <script>
       /* Applica il tema prima del paint per evitare flash: localStorage → preferenza OS */
       (function () {
@@ -17,6 +27,8 @@
           theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.dataset.theme = theme;
+        var bars = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = 0; i < bars.length; i++) bars[i].content = bars[i].getAttribute('data-' + theme);
       })();
     </script>
     {# Font servito dal sito (#274): il testo normale si precarica, gli altri pesi arrivano con main.css. #}
@@ -75,12 +87,13 @@
 
     {% if messages %}
       {# Annunciati dagli screen reader: gli errori subito (role="alert"), gli altri appena possibile. #}
+      {# Gli errori restano finché non si chiudono, gli altri spariscono dopo 6 s (app.js). #}
       <div class="pointer-events-none fixed right-4 top-16 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" role="status" aria-live="polite">
         {% for message in messages %}
           <div data-toast class="pointer-events-auto toast {% if message.tags == 'error' %}toast-error{% else %}toast-success{% endif %}"{% if message.tags == 'error' %} role="alert"{% endif %}>
             <span class="mt-0.5 h-2 w-2 shrink-0 rounded-full {% if message.tags == 'error' %}bg-accent{% else %}bg-ok{% endif %}"></span>
             <p class="flex-1">{{ message }}</p>
-            <button type="button" data-toast-close class="text-muted hover:text-ink" aria-label="Chiudi">&times;</button>
+            <button type="button" data-toast-close class="toast-close" aria-label="Chiudi l'avviso">&times;</button>
           </div>
         {% endfor %}
       </div>
@@ -93,13 +106,16 @@
     <footer class="border-t border-line py-4">
       <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 note sm:flex-row sm:items-center sm:justify-between">
         <p>Fanta F1 — gioco tra amici, non affiliato a Formula 1&reg;</p>
-        {# Chi siamo, Privacy, Termini e Supportaci si aggiungono qui quando esistono le pagine (#107–#110). #}
+        {# Supportaci si aggiunge qui quando esiste la pagina (#110, dopo l'associazione). #}
         <nav aria-label="Link del sito" class="flex flex-wrap gap-x-4 gap-y-1">
           <a href="{% url 'home' %}" class="hover:text-ink">Home</a>
           <a href="{% url 'f1_drivers_standings' %}" class="hover:text-ink">Classifica piloti F1</a>
           <a href="{% url 'game' %}" class="hover:text-ink">Il gioco</a>
           <a href="{% url 'game_rules' %}" class="hover:text-ink">Regolamento</a>
           <a href="{% url 'game_faq' %}" class="hover:text-ink">Domande frequenti</a>
+          <a href="{% url 'about' %}" class="hover:text-ink">Chi siamo</a>
+          <a href="{% url 'privacy' %}" class="hover:text-ink">Privacy</a>
+          <a href="{% url 'terms' %}" class="hover:text-ink">Termini</a>
         </nav>
       </div>
     </footer>

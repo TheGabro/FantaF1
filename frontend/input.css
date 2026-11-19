@@ -159,6 +159,15 @@
 .team-mer, .team-mcl, .team-ast, .team-wil,
 .team-rb, .team-sau, .team-haa, .team-cad { --team-ink: #15151e; }
 
+/* Quanto colore scuderia resta nel nome della scuderia, nel tema chiaro (il resto
+   è nero): almeno 4,5:1 sul fondo tinto del pannello anche a 18 px (#293). Le
+   livree scure restano all'82%, le chiare si scuriscono solo quanto serve. */
+.team-mer { --team-name-mix: 50%; }
+.team-sau { --team-name-mix: 55%; }
+.team-wil, .team-haa { --team-name-mix: 58%; }
+.team-mcl, .team-cad { --team-name-mix: 65%; }
+.team-rb  { --team-name-mix: 70%; }
+
 @layer base {
   html { @apply font-sans; }
   body { @apply bg-canvas text-ink antialiased min-h-screen; }
@@ -268,6 +277,12 @@
   .toast { @apply flex items-start gap-3 rounded-xl border border-line bg-surface p-4 text-base shadow-lg; }
   .toast-error { @apply border-accent/40; }
   .toast-success { @apply border-ok/40; }
+  /* «×» di almeno 32×32 px (WCAG 2.5.8 chiede 24): margini negativi perché il
+     toast non diventi più alto */
+  .toast-close {
+    @apply -my-1 -mr-2 inline-flex size-8 shrink-0 items-center justify-center rounded-lg
+      text-2xl leading-none text-muted hover:bg-surface-2 hover:text-ink;
+  }
 
   /* Badge posizione griglia */
   .pos-badge { @apply inline-flex h-7 w-9 items-center justify-center rounded-md bg-surface-2 border border-line text-sm font-bold; }
@@ -368,10 +383,10 @@
     .team-group:nth-child(even) .team-group-name { text-align: right; }
     .team-group:nth-child(even) .team-group-cards { justify-content: flex-end; }
   }
-  /* Nel tema chiaro il colore puro non regge il contrasto su fondo tinto
-     (Haas, Williams, Mercedes): si scurisce restando riconoscibile. */
+  /* Nel tema chiaro il colore puro non regge il contrasto su fondo tinto:
+     si scurisce restando riconoscibile, di quanto dice --team-name-mix. */
   .team-group-name {
-    color: color-mix(in srgb, var(--team, #9ca3af) 82%, #000);
+    color: color-mix(in srgb, var(--team, #9ca3af) var(--team-name-mix, 82%), #000);
     @apply text-lg font-black uppercase italic leading-none tracking-wide sm:w-32 sm:shrink-0 sm:text-xl;
   }
   [data-theme="dark"] .team-group-name { color: var(--team, #9ca3af); }

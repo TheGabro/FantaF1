@@ -6,6 +6,7 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from django import forms
 from django.conf import settings as django_settings
 from django.contrib.staticfiles import finders
 from django.contrib import messages
@@ -1090,7 +1091,7 @@ class PlayerScoringTests(TestCase):
         )
         self.assertEqual(updated_result.fia_points, 18)
 
-    def test_compute_player_score_per_race_only_updates_players_with_choices(self):
+    def test_compute_player_score_per_race_penalizes_players_without_choices(self):
         self._create_race_result(
             race=self.race, driver=self.driver_1, position=1, points=25
         )
@@ -1102,16 +1103,17 @@ class PlayerScoringTests(TestCase):
         stats = player_scoring.compute_player_score_per_race(race=self.race)
 
         self.assertEqual(stats["players_updated"], 1)
+        self.assertEqual(stats["players_penalized"], 1)
         self.assertEqual(stats["errors"], [])
         self.player_a.refresh_from_db()
         self.player_b.refresh_from_db()
         self.assertEqual(self.player_a.total_score, 25)
         self.assertEqual(self.player_b.total_score, 0)
-        self.assertFalse(
-            PlayerRaceResult.objects.filter(
-                player=self.player_b, race=self.race
-            ).exists()
-        )
+        # Nobody chose in championship B: first missed choice, no credits charged
+        result = PlayerRaceResult.objects.get(player=self.player_b, race=self.race)
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 0)
+        self.assertEqual(self.player_b.available_credit, 1000)
 
     def test_compute_player_score_per_race_updates_players_across_different_championships(
         self,
@@ -1164,6 +1166,172 @@ class PlayerScoringTests(TestCase):
         self.assertEqual(
             PlayerRaceResult.objects.filter(player=self.player_a).count(), 2
         )
+
+
+class MissedGrandPrixChoicePenaltyTests(TestCase):
+    """Penalties for a missed Grand Prix choice (C.3, #154)."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Monaco", country="Monaco", location="Monte Carlo", api_id="c-mon"
+        )
+        self.team = Team.objects.create(
+            name="Penalty Team", short_name="PEN", api_id="t-pen", nationality="IT"
+        )
+        self.driver_1 = self._create_driver(1)
+        self.driver_2 = self._create_driver(2)
+        self.races = [self._create_race(round_number) for round_number in (1, 2, 3, 4)]
+
+        self.championship = Championship.objects.create(name="Penalty Cup", year=2026)
+        league = League.objects.create(championship=self.championship, name="L")
+        self.chooser_low, self.chooser_high, self.missing = [
+            ChampionshipPlayer.objects.create(
+                user=get_user_model().objects.create_user(
+                    username=name, email=f"{name}@example.com", password="pw"
+                ),
+                championship=self.championship,
+                league=league,
+                player_name=name,
+                available_credit=1000,
+            )
+            for name in ("low", "high", "missing")
+        ]
+
+    def _create_driver(self, number):
+        return Driver.objects.create(
+            first_name=f"Pen{number}",
+            last_name="Driver",
+            number=90 + number,
+            short_name=f"PN{number}",
+            team=self.team,
+            season=2026,
+            api_id=f"pen-drv-{number}",
+        )
+
+    def _create_race(self, round_number):
+        weekend = Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Penalty GP {round_number}",
+            round_number=round_number,
+            season=2026,
+            qualifying_start=timezone.now() - timedelta(days=2),
+            race_start=timezone.now() - timedelta(days=1),
+        )
+        Qualifying.objects.create(weekend=weekend, type="regular")
+        return Race.objects.create(weekend=weekend, type="regular")
+
+    def _choose(self, player, race, spent_amount):
+        PlayerRaceChoice.objects.create(
+            player=player, race=race, driver=self.driver_1, spent_amount=spent_amount
+        )
+
+    def _result(self, player, race):
+        return PlayerRaceResult.objects.get(player=player, race=race)
+
+    def test_charges_lowest_spend_among_players_who_chose(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self._choose(self.chooser_high, self.races[0], 120)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+        result = self._result(self.missing, self.races[0])
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 30)
+        self.assertEqual(result.total_points, 0)
+
+    def test_points_penalty_starts_from_third_missed_choice(self):
+        for race in self.races:
+            self._choose(self.chooser_low, race, 0)
+            player_scoring.compute_player_score_per_race(race=race)
+
+        self.assertEqual(
+            [self._result(self.missing, race).total_points for race in self.races],
+            [0, 0, -5, -10],
+        )
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.total_score, -15)
+
+    def test_nobody_chose_no_credit_penalty_but_counter_goes_up(self):
+        for race in self.races[:3]:
+            player_scoring.compute_player_score_per_race(race=race)
+
+        for player in (self.chooser_low, self.chooser_high, self.missing):
+            player.refresh_from_db()
+            self.assertEqual(player.available_credit, 1000)
+            self.assertEqual(self._result(player, self.races[2]).total_points, -5)
+
+    def test_qualifying_malus_is_charged_on_top_and_discount_is_lost(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        qualifying = self.races[0].weekend.qualifyings.get()
+        # missing picked the last on the grid: +30 malus (rules.py, P22)
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_1, position=22
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=qualifying, driver=self.driver_1
+        )
+        # chooser_high picked P6: a -25 discount, lost without a GP choice
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_2, position=6
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.chooser_high, qualifying=qualifying, driver=self.driver_2
+        )
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+        self.assertEqual(
+            self._result(self.chooser_high, self.races[0]).credit_spent, 30
+        )
+
+    def test_credits_go_to_zero_not_below(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self.missing.available_credit = 10
+        self.missing.save()
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 0)
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 10)
+
+    def test_running_again_charges_credits_once(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+
+    def test_sprint_race_has_no_penalty(self):
+        sprint = Race.objects.create(weekend=self.races[0].weekend, type="sprint")
+
+        player_scoring.compute_player_score_per_race(race=sprint)
+
+        self.assertFalse(PlayerRaceResult.objects.filter(race=sprint).exists())
+
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_player_sees_penalty_in_my_choices_and_race_results(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        self.client.force_login(self.missing.user)
+        race = self.races[0]
+
+        for url in (
+            reverse("championship_my_choices", args=[self.championship.pk]),
+            reverse(
+                "regular_race_results",
+                args=[self.championship.pk, race.weekend.pk, race.pk],
+            ),
+        ):
+            response = self.client.get(url)
+            self.assertContains(response, "Penalità")
+            self.assertContains(response, "addebitati")
+            self.assertContains(response, "30 FM")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -1416,6 +1584,119 @@ class CreateChampionshipTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class FormFieldErrorsLinkedTests(TestCase):
+    """#292: a field with errors has aria-invalid and aria-describedby pointing
+    to its error list (after the help text, if any), in every form of the site."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="pilota", email="pilota@example.com", password="password123"
+        )
+
+    def assertErrorsLinked(self, response, fields):
+        html = response.content.decode()
+        tags = {
+            re.search(r'\bname="([^"]+)"', tag).group(1): tag
+            for tag in re.findall(r"<(?:input|select|textarea)\b[^>]*>", html)
+            if 'name="' in tag
+        }
+        for name in fields:
+            with self.subTest(field=name):
+                tag = tags[name]
+                self.assertIn('aria-invalid="true"', tag)
+                described_by = re.search(r'aria-describedby="([^"]+)"', tag).group(1)
+                self.assertIn(f"id_{name}_error", described_by.split())
+                for target in described_by.split():
+                    self.assertIn(f'id="{target}"', html)  # no dangling reference
+        # Only the fields with errors are marked invalid.
+        self.assertEqual(html.count('aria-invalid="true"'), len(fields))
+
+    def test_filters_keep_the_help_text_and_add_the_error(self):
+        class SampleForm(forms.Form):
+            name = forms.CharField(
+                widget=forms.TextInput(attrs={"aria-describedby": "id_name_help"})
+            )
+
+        template = Template(
+            "{% load form_a11y %}{{ form.name|linked_to_errors }}{{ form.name|errors_with_id }}"
+        )
+        invalid = template.render(Context({"form": SampleForm(data={})}))
+        valid = template.render(Context({"form": SampleForm(data={"name": "Dave"})}))
+
+        self.assertIn('aria-invalid="true"', invalid)
+        self.assertIn('aria-describedby="id_name_help id_name_error"', invalid)
+        self.assertIn('<ul id="id_name_error" class="errorlist"><li>', invalid)
+        self.assertNotIn("aria-invalid", valid)
+        self.assertIn('aria-describedby="id_name_help"', valid)
+        self.assertNotIn("errorlist", valid)
+
+    def test_login(self):
+        response = self.client.post(reverse("login"), {})
+
+        self.assertErrorsLinked(response, ["identifier", "password"])
+
+    def test_login_error_box_is_announced(self):
+        response = self.client.post(
+            reverse("login"), {"identifier": "pilota", "password": "sbagliata"}
+        )
+
+        self.assertContains(response, 'text-accent" role="alert">')
+
+    def test_register(self):
+        response = self.client.post(reverse("register"), {})
+
+        self.assertErrorsLinked(
+            response, ["username", "email", "password", "password2"]
+        )
+
+    def test_account_profile(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("account_profile"), {"username": ""})
+
+        self.assertErrorsLinked(response, ["username"])
+
+    def test_account_security(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(reverse("account_security"), {})
+
+        self.assertErrorsLinked(
+            response, ["old_password", "new_password1", "new_password2"]
+        )
+
+    def test_create_championship(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("create_championship"),
+            {
+                "name": "",
+                "year": 2026,
+                "leagues-TOTAL_FORMS": "0",
+                "leagues-INITIAL_FORMS": "0",
+                "leagues-MIN_NUM_FORMS": "0",
+                "leagues-MAX_NUM_FORMS": "1000",
+            },
+        )
+
+        self.assertErrorsLinked(response, ["name"])
+
+    def test_join_championship(self):
+        championship = Championship.objects.create(name="Aperto", year=2026)
+        League.objects.create(championship=championship, name="Serie A")
+        League.objects.create(championship=championship, name="Serie B")
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse("join_championship", args=[championship.id]),
+            {"player_name": "", "league": ""},
+        )
+
+        self.assertErrorsLinked(response, ["player_name", "league"])
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class InviteAndJoinTests(TestCase):
     """F2, F3 e F4: iscrizione, link d'invito firmato, codice incollato a mano."""
 
@@ -1650,6 +1931,18 @@ class ChampionshipManageTests(TestCase):
         self.assertEqual([p.player_name for p in leagues["Serie A"]], ["Capo"])
         self.assertEqual([p.player_name for p in leagues["Serie B"]], ["Pilota"])
         self.assertContains(response, "Rendi manager")
+
+    def test_players_page_does_not_scroll_sideways_on_phones(self):
+        # #290: a plain one-column grid grows to the widest table's min-content
+        # width, so the whole page scrolled sideways at 375 px. The column must
+        # be minmax(0, 1fr) and the tables scroll inside their own wrapper.
+        self.client.force_login(self.manager)
+
+        response = self.client.get(self.players_url)
+
+        self.assertContains(response, '<div class="grid grid-cols-1 gap-6">')
+        self.assertNotContains(response, '<div class="overflow-x-auto">')
+        self.assertContains(response, '<div class="relative overflow-x-auto">')
 
     def test_players_page_query_count_does_not_grow_with_players(self):
         self.client.force_login(self.manager)
@@ -2100,6 +2393,9 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "f1_drivers_standings",
         "login",
         "register",
+        "about",
+        "privacy",
+        "terms",
     }
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
     # ChampionshipManageTests).
@@ -2118,6 +2414,8 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
     }
     # Pagine pubbliche con argomenti (#134): rotta -> args nel fixture.
     PUBLIC_PAGES_WITH_ARGS = {"f1_race_results": [2026, 1]}
+    # File cercati nella radice del sito (#296): li prova SiteIconsTests.
+    ROOT_FILES = {"favicon"}
 
     def test_every_route_is_covered(self):
         routes = {p.name for p in fanta_urls.urlpatterns}
@@ -2128,7 +2426,8 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
             | self.PUBLIC_PAGES
             | self.ACTIONS
             | self.LEGACY_REDIRECTS
-            | set(self.PUBLIC_PAGES_WITH_ARGS),
+            | set(self.PUBLIC_PAGES_WITH_ARGS)
+            | self.ROOT_FILES,
         )
 
     def test_public_pages_with_arguments_open_for_anonymous_users(self):
@@ -2546,6 +2845,25 @@ class GameFaqPageTests(TestCase):
         self.assertContains(response, "scende di 7 FM")
         self.assertContains(response, "99 FM per il primo")
 
+    def test_tips_follow_the_rules(self):
+        """#260: il gruppo Consigli prende i numeri dalle tabelle del regolamento."""
+        from .services import rules
+
+        response = self.client.get(reverse("game_faq"))
+        self.assertContains(response, 'href="#consigli"')
+        self.assertContains(response, 'id="consigli"')
+        self.assertContains(response, "circa 83 FM a")
+        self.assertContains(response, "Il top da 170 FM")
+        self.assertContains(response, "dalla posizione 7 in su")
+
+        with patch.dict(rules.REGULAR_RACE_COST_BY_GRID_POSITION, {1: 150}), patch.dict(
+            rules.SPRINT_RACE_COST_BY_GRID_POSITION, {1: 70}
+        ):
+            response = self.client.get(reverse("game_faq"))
+
+        self.assertContains(response, "Il top da 180 FM")
+        self.assertContains(response, "la pole costa 70 FM")
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class GamePageRulesLinksTests(TestCase):
@@ -2651,6 +2969,12 @@ class SiteHeaderTests(TestCase):
 
         self.assertIn('role="status" aria-live="polite"', html)
         self.assertEqual(html.count('role="alert"'), 1)
+        # #291: app.js keeps role="alert" toasts until closed, so every toast
+        # needs its close button, at least 32×32 px (.toast-close).
+        self.assertEqual(
+            html.count('data-toast-close class="toast-close" aria-label="Chiudi l\'avviso"'),
+            2,
+        )
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -2718,6 +3042,103 @@ class FooterRulesLinksTests(TestCase):
 
                 self.assertContains(response, f'href="{reverse("game_rules")}"')
                 self.assertContains(response, f'href="{reverse("game_faq")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class PrivacyPageTests(TestCase):
+    """#107: informativa privacy aperta a tutti, raggiungibile dal footer e
+    richiamata sotto il pulsante di registrazione."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("privacy"))
+
+        self.assertContains(response, "Informativa sulla privacy")
+        self.assertContains(response, "contitolari del trattamento")
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertContains(response, "17 novembre 2026")
+        for anchor in ("titolari", "dati", "conservazione", "cookie", "diritti"):
+            self.assertContains(response, f'id="{anchor}"')
+
+    def test_profile_link_only_with_login(self):
+        response = self.client.get(reverse("privacy"))
+        self.assertNotContains(response, f'href="{reverse("account_profile")}"')
+
+        user = get_user_model().objects.create_user(
+            username="lettore", email="lettore@example.com", password="pw123456!"
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("privacy"))
+        self.assertContains(response, f'href="{reverse("account_profile")}"')
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "game_rules"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("privacy")}"')
+
+    def test_sign_up_notice(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(response, "almeno 18 anni")
+        self.assertContains(response, f'href="{reverse("privacy")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class TermsPageTests(TestCase):
+    """#109: termini d'uso aperti a tutti, raggiungibili dal footer e accettati
+    con la registrazione."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("terms"))
+
+        self.assertContains(response, "Termini e condizioni d'uso")
+        self.assertContains(response, "gratuito e senza scopo di lucro")
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertContains(response, f'href="{reverse("game_rules")}"')
+        self.assertContains(response, f'href="{reverse("privacy")}"')
+        self.assertContains(response, "17 novembre 2026")
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "privacy"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("terms")}"')
+
+    def test_accepted_at_sign_up(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertContains(response, "accetti i")
+        self.assertContains(response, f'href="{reverse("terms")}"')
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class AboutPageTests(TestCase):
+    """#108: Chi siamo aperta a tutti, con i soprannomi del team e i contatti
+    senza telefoni."""
+
+    def test_open_to_everyone(self):
+        from .views.site.privacy import CONTACT_EMAIL
+
+        response = self.client.get(reverse("about"))
+
+        self.assertContains(response, "Chi siamo")
+        for nickname in ("Fede", "Pile", "Vice", "TheGabro"):
+            self.assertContains(response, nickname)
+        self.assertContains(response, f'href="mailto:{CONTACT_EMAIL}"')
+        self.assertNotContains(response, "missionwinnow")
+
+    def test_footer_link_on_every_page(self):
+        for name in ("home", "game", "login", "terms"):
+            with self.subTest(route=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, f'href="{reverse("about")}"')
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -6198,3 +6619,207 @@ class ErrorPagesTests(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertContains(response, "Qualcosa è andato storto", status_code=500)
         self.assertContains(response, 'href="/"', status_code=500)
+
+
+class TeamNameContrastTests(TestCase):
+    """#293: in the light theme every team name in the driver picker reads at
+    4.5:1 on its tinted panel, also at 18 px on phones. Same formulas as the CSS
+    in frontend/input.css: panel = color-mix(team 8%, white), name =
+    color-mix(team --team-name-mix, black), both interpolated in sRGB."""
+
+    PANEL_TINT = 0.08
+    DEFAULT_NAME_MIX = 0.82
+
+    @staticmethod
+    def _luminance(rgb):
+        channels = [
+            c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+            for c in (value / 255 for value in rgb)
+        ]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    @staticmethod
+    def _mix(color, other, share):
+        return [c * share + o * (1 - share) for c, o in zip(color, other)]
+
+    def test_every_team_name_reaches_4_5_to_1_in_the_light_theme(self):
+        css = (django_settings.BASE_DIR / "frontend" / "input.css").read_text(
+            encoding="utf-8"
+        )
+        teams = dict(
+            re.findall(r"\.(team-[a-z]+)\s*\{\s*--team:\s*#([0-9a-f]{6});", css)
+        )
+        mixes = {}
+        for selectors, percent in re.findall(
+            r"([^{}]+)\{\s*--team-name-mix:\s*(\d+)%;", css
+        ):
+            for selector in re.findall(r"\.(team-[a-z]+)", selectors):
+                mixes[selector] = int(percent) / 100
+        self.assertGreaterEqual(len(teams), 11)
+
+        for team, hex_color in teams.items():
+            with self.subTest(team=team):
+                color = [int(hex_color[i : i + 2], 16) for i in (0, 2, 4)]
+                panel = self._mix(color, [255, 255, 255], self.PANEL_TINT)
+                name = self._mix(
+                    color, [0, 0, 0], mixes.get(team, self.DEFAULT_NAME_MIX)
+                )
+                lighter, darker = sorted(
+                    (self._luminance(panel), self._luminance(name)), reverse=True
+                )
+                self.assertGreaterEqual((lighter + 0.05) / (darker + 0.05), 4.5)
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ShareMetaTests(WeekendPagesFixture, TestCase):
+    """Anteprima dei link nelle chat (#295): le pagine pubbliche hanno titolo,
+    descrizione e immagine Open Graph, con indirizzi completi."""
+
+    GENERIC_DESCRIPTION = "Sfida i tuoi amici: scegli i piloti a ogni weekend di gara"
+
+    @staticmethod
+    def _meta(html, attribute, name):
+        match = re.search(rf'<meta {attribute}="{name}" content="([^"]*)"', html)
+        return match and match.group(1)
+
+    def _public_urls(self):
+        urls = {name: reverse(name) for name in PageSmokeTests.PUBLIC_PAGES}
+        for name, args in PageSmokeTests.PUBLIC_PAGES_WITH_ARGS.items():
+            urls[name] = reverse(name, args=args)
+        return urls
+
+    def test_public_pages_have_their_own_description_and_open_graph(self):
+        for name, url in self._public_urls().items():
+            with self.subTest(route=name):
+                html = self.client.get(url).content.decode()
+                description = self._meta(html, "name", "description")
+
+                self.assertTrue(description)
+                self.assertNotIn(self.GENERIC_DESCRIPTION, description)
+                self.assertEqual(
+                    self._meta(html, "property", "og:description"), description
+                )
+                self.assertTrue(self._meta(html, "property", "og:title"))
+                self.assertEqual(
+                    self._meta(html, "property", "og:url"), f"http://testserver{url}"
+                )
+                self.assertEqual(
+                    self._meta(html, "property", "og:image"),
+                    "http://testserver/static/fantaApp/img/share-preview.jpg",
+                )
+                self.assertEqual(
+                    self._meta(html, "name", "twitter:card"), "summary_large_image"
+                )
+
+    def test_preview_image_exists(self):
+        self.assertTrue(finders.find("fantaApp/img/share-preview.jpg"))
+
+    def test_other_pages_fall_back_to_the_generic_description(self):
+        self.client.force_login(self.user)
+
+        html = self.client.get(reverse("user_dashboard")).content.decode()
+
+        self.assertIn(self.GENERIC_DESCRIPTION, self._meta(html, "name", "description"))
+        self.assertEqual(self._meta(html, "property", "og:locale"), "it_IT")
+
+    def test_race_results_preview_names_the_weekend(self):
+        weekend = Weekend.objects.get(season=2026, round_number=1)
+
+        html = self.client.get(
+            reverse("f1_race_results", args=[2026, 1])
+        ).content.decode()
+
+        self.assertIn(weekend.event_name, self._meta(html, "property", "og:title"))
+        self.assertIn(weekend.event_name, self._meta(html, "name", "description"))
+
+    def test_invite_link_opened_without_login_previews_the_invite(self):
+        invite_url = reverse("invite_accept", args=["token-di-prova"])
+
+        response = self.client.get(invite_url, follow=True)
+        html = response.content.decode()
+
+        self.assertIn("invitato", self._meta(html, "property", "og:title"))
+
+    def test_og_url_leaves_out_the_query_string(self):
+        html = self.client.get(
+            reverse("login") + "?next=/championships/&from=https://example.com"
+        ).content.decode()
+
+        self.assertEqual(
+            self._meta(html, "property", "og:url"),
+            f"http://testserver{reverse('login')}",
+        )
+
+    def test_plain_login_page_keeps_its_own_preview(self):
+        html = self.client.get(reverse("login")).content.decode()
+
+        self.assertEqual(self._meta(html, "property", "og:title"), "Accedi — Fanta F1")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SiteIconsTests(TestCase):
+    """Icone del sito (#296): favicon dalla radice, icona per la schermata Home di
+    iPhone e Android, colore della barra del browser."""
+
+    @staticmethod
+    def _png_size(path):
+        with open(finders.find(path), "rb") as png:
+            header = png.read(24)
+        return int.from_bytes(header[16:20], "big"), int.from_bytes(
+            header[20:24], "big"
+        )
+
+    def test_favicon_ico_at_the_root_redirects_to_the_static_file(self):
+        response = self.client.get("/favicon.ico")
+
+        self.assertRedirects(
+            response,
+            "/static/fantaApp/img/favicon.ico",
+            status_code=302,
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(finders.find("fantaApp/img/favicon.ico"))
+
+    def test_pages_link_the_icons_and_the_manifest(self):
+        html = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn(
+            '<link rel="apple-touch-icon" href="/static/fantaApp/img/apple-touch-icon.png" />',
+            html,
+        )
+        self.assertIn('href="/static/fantaApp/img/favicon.ico" sizes="32x32"', html)
+        self.assertIn(
+            '<link rel="manifest" href="/static/fantaApp/site.webmanifest" />', html
+        )
+
+    def test_theme_color_follows_light_and_dark_theme(self):
+        html = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn(
+            '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff"',
+            html,
+        )
+        self.assertIn(
+            '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1b21"',
+            html,
+        )
+
+    def test_icons_have_the_expected_sizes(self):
+        self.assertEqual(
+            self._png_size("fantaApp/img/apple-touch-icon.png"), (180, 180)
+        )
+        self.assertEqual(self._png_size("fantaApp/img/icon-192.png"), (192, 192))
+        self.assertEqual(self._png_size("fantaApp/img/icon-512.png"), (512, 512))
+
+    def test_manifest_points_to_existing_icons(self):
+        with open(finders.find("fantaApp/site.webmanifest"), encoding="utf-8") as f:
+            manifest = json.load(f)
+
+        self.assertEqual(manifest["start_url"], "/")
+        for icon in manifest["icons"]:
+            with self.subTest(icon=icon["src"]):
+                self.assertTrue(finders.find(f"fantaApp/{icon['src']}"))
+                width, height = (int(n) for n in icon["sizes"].split("x"))
+                self.assertEqual(
+                    self._png_size(f"fantaApp/{icon['src']}"), (width, height)
+                )

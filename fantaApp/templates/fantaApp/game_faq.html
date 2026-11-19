@@ -8,6 +8,7 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
 {% endcomment %}
 
 {% block title %}Domande frequenti — Fanta F1{% endblock %}
+{% block share_meta %}{% include "fantaApp/_share_meta.html" with share_title="Domande frequenti — Fanta F1" share_description="Le risposte brevi alle domande più comuni su Fanta F1: account e campionati, scelte e scadenze, costi, qualifiche e punteggi." %}{% endblock %}
 
 {% block content %}
 <div class="mb-6">
@@ -30,6 +31,7 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
       <li><a href="#pupillo" class="hover:text-accent">Pupillo</a></li>
       <li><a href="#punti" class="hover:text-accent">Punti e classifiche</a></li>
       <li><a href="#penalita" class="hover:text-accent">Penalità</a></li>
+      <li><a href="#consigli" class="hover:text-accent">Consigli</a></li>
     </ol>
   </nav>
 
@@ -270,6 +272,109 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
         <p class="mt-2 text-muted">
           No: il sito non salva una scelta che costa più dei fantamilioni che hai. Da regolamento una scelta
           non pagabile verrebbe annullata e conterebbe come scelta mancata, con le stesse penalità.
+        </p>
+      </details>
+    </section>
+
+    {# Consigli di strategia (#260): testi approvati il 17/11/2026, numeri da `tips` (views/game/faq.py). #}
+    <section id="consigli" class="card scroll-mt-24">
+      <div class="border-b border-line px-5 py-4">
+        <h2 class="subheading">Consigli</h2>
+        <p class="mt-1 text-muted">Non sono regole, ma qualche dritta per non finire i fantamilioni a luglio.</p>
+      </div>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Non spendere tutto subito</summary>
+        <p class="mt-2 text-muted">
+          I tuoi {{ rulebook.starting_credit }} fantamilioni devono bastare per tutta la stagione:
+          {{ tips.grands_prix }} Gran Premi, più le Sprint. Fai due conti: sono circa {{ tips.per_weekend }} FM a
+          weekend. Il pilota in pole costa {{ tips.pole_cost }} FM di griglia, più fino a {{ tips.standings_first }}
+          se comanda anche il mondiale: prenderlo ogni domenica vuol dire finire i soldi a luglio e guardarsi il
+          resto della stagione dal divano.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> a metà stagione ti restano 900 FM e mancano 12 GP, cioè 75 a
+          weekend. Il top da {{ tips.pole_with_leader }} FM di oggi sono due weekend a pane e acqua domani.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Sfrutta chi parte dietro</summary>
+        <p class="mt-2 text-muted">
+          Dalla posizione {{ tips.grid_free_from }} in giù la griglia non costa nulla: resta solo il sovrapprezzo
+          della classifica piloti, e solo per i primi {{ tips.standings_last_position }} del mondiale. Un big che
+          parte indietro per una penalità o una qualifica storta è il colpo del weekend.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> il leader del mondiale parte {{ tips.grid_free_from|add:1 }}°
+          per un cambio motore. Paghi solo i {{ tips.standings_first }} FM della classifica invece di
+          {{ tips.pole_with_leader }}, e lui di solito la rimonta la fa.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Le qualifiche si pianificano</summary>
+        <p class="mt-2 text-muted">
+          Nelle Qualifiche del sabato ogni pilota si pronostica una volta sola in tutta la stagione, e ogni
+          scuderia al massimo {{ rulebook.max_picks_per_team }} volte. Chi brucia subito i favoriti per la pole si
+          ritrova a dicembre a scegliere tra le ultime file. Tieni i piloti forti per le piste dove volano.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> se il tuo pilota scatta dalla pole, i punti del suo Gran Premio
+          valgono ×{{ tips.pole.points_multiplier }} e in più prendi {{ tips.pole.qualifying_points }} punti
+          qualifica; se parte ultimo ti becchi {{ tips.last.credit_change }} FM di malus. Prima di giocarti il
+          favorito alla prima gara, chiediti dove ti servirà davvero.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Il pupillo è un investimento</summary>
+        <p class="mt-2 text-muted">
+          Nel Gran Premio uno dei tuoi due piloti è il pupillo. Confermarlo weekend dopo weekend ti sconta
+          {{ rulebook.pupillo_step }} FM ogni volta, fino a {{ rulebook.pupillo_max }}. Scegli un pilota costante, che
+          schiereresti comunque spesso: cambiarlo ogni settimana è come cambiare squadra del cuore ogni domenica.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> a sconto pieno un pupillo da {{ tips.pupillo_example_cost }} FM
+          ti costa la metà. E se lo sconto supera il suo prezzo, quello che avanza si toglie dal costo dell'altro
+          pilota.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Punta ai moltiplicatori nelle gare giuste</summary>
+        <p class="mt-2 text-muted">
+          I moltiplicatori arrivano dalle qualifiche. Nel weekend classico conta la posizione in griglia del
+          pilota pronosticato: dalla posizione {{ tips.multiplier_from }} in su i punti del Gran Premio salgono (da
+          ×{{ tips.first_multiplier }} fino al ×{{ tips.pole.points_multiplier }} della pole). Nel weekend sprint,
+          indovinare chi passa Q1, Q2 e chi chiude nei primi tre vale ×{{ tips.top3.points_multiplier }} e
+          {{ tips.top3.credit_discount }} FM di sconto.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> il tuo pilota fa {{ tips.example_points }} punti in gara. Con il
+          ×{{ tips.top3.points_multiplier }} diventano {{ tips.example_points_doubled }}: un buon sabato vale quanto
+          un secondo pilota.
+        </p>
+      </details>
+      <details class="border-b border-line px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Pista che vai, pilota che trovi</summary>
+        <p class="mt-2 text-muted">
+          Ogni pilota ha le sue piste: c'è chi vola tra i muri dei cittadini, chi nelle curve veloci e chi si
+          esalta sotto la pioggia. Prima di scegliere guarda i risultati degli anni scorsi su quel circuito e il
+          meteo del weekend.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> un pilota che sui cittadini va sempre forte, se parte 7° costa
+          {{ tips.seventh_cost }} FM di griglia. Con il sabato giusto è l'affare del weekend.
+        </p>
+      </details>
+      <details class="px-5 py-3">
+        <summary class="cursor-pointer font-semibold">Nei weekend sprint cambia tutto</summary>
+        <p class="mt-2 text-muted">
+          La Sprint ha costi tutti suoi, molto più bassi: la pole costa {{ tips.sprint_pole_cost }} FM e dalla
+          posizione {{ tips.sprint_free_from }} in giù è gratis. Il pronostico delle Qualifiche Sprint, il venerdì,
+          vale fino a {{ tips.shootout_max_discount }} FM di sconto e fino a {{ tips.shootout_max_points }} punti in
+          più. E non dimenticare che la Sprint ha anche una classifica tutta sua.
+        </p>
+        <p class="mt-2 text-muted">
+          <strong class="text-ink">Esempio:</strong> con pochi FM prendi un pilota che parte
+          {{ tips.sprint_example_position }}° nella Sprint: se rimonta, sono punti quasi gratis per la classifica
+          generale e per quella Sprint.
         </p>
       </details>
     </section>

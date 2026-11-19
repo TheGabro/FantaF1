@@ -921,6 +921,10 @@ def _render_race_results_page(
     player_weekend_points = (
         player_race_result.total_points if player_race_result else None
     )
+    missed_choice = bool(player_race_result and player_race_result.missed_choice)
+    if missed_choice:
+        # No choices: the credits used are the missed choice penalty (#154)
+        player_credit_used = player_race_result.credit_spent
     # Griglia di partenza in sola lettura, come controprova della scelta (#233,
     # #234). I costi sono ricalcolati adesso: quanto pagato davvero è nel pannello.
     start_grid = costs.get_race_driver_options(race=race, player=player)
@@ -966,6 +970,7 @@ def _render_race_results_page(
         "player_pupillo": player_pupillo,
         "player_weekend_points": player_weekend_points,
         "player_credit_used": player_credit_used,
+        "missed_choice": missed_choice,
     }
     return render(request, "fantaApp/race_results.html", context)
 
