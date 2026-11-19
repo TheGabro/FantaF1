@@ -5,7 +5,8 @@
   (services.enrollment.open_championships). Public ones are joined directly,
   private ones through a request to the managers (#50, #75).
   Requires in context: query, championships (annotated with players),
-  enrolled_ids and pending_ids (sets of championship ids for the current user).
+  suggestions (open championship names for the datalist), enrolled_ids and
+  pending_ids (sets of championship ids for the current user).
 {% endcomment %}
 
 {% block title %}Cerca un campionato — Fanta F1{% endblock %}
@@ -30,7 +31,12 @@
     class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2"
     placeholder="Nome del campionato"
     aria-label="Nome del campionato"
+    list="championship-names"
+    autocomplete="off"
   />
+  <datalist id="championship-names">
+    {% for name in suggestions %}<option value="{{ name }}"></option>{% endfor %}
+  </datalist>
   <button type="submit" class="btn-secondary shrink-0">Cerca</button>
 </form>
 

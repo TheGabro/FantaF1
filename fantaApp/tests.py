@@ -7492,8 +7492,9 @@ class ChampionshipSearchPageTests(TestCase):
 
         response = self.client.get(self.url, {"q": "bar"})
 
-        self.assertContains(response, "Amici del Bar")
-        self.assertNotContains(response, "Colleghi")
+        # Card titles only: the datalist suggests every open name.
+        self.assertContains(response, ">Amici del Bar</h2>")
+        self.assertNotContains(response, ">Colleghi</h2>")
 
     def test_shows_enrolled_and_pending_states(self):
         enrolled = self._championship("Già Dentro", is_private=False)
@@ -7508,6 +7509,16 @@ class ChampionshipSearchPageTests(TestCase):
         self.assertContains(response, reverse("championship_dashboard", args=[enrolled.id]))
         self.assertContains(response, "Richiesta in attesa del manager")
         self.assertNotContains(response, reverse("join_championship", args=[pending.id]))
+
+    def test_suggests_the_names_of_open_championships_while_typing(self):
+        self._championship("Amici del Bar")
+        self._championship("Chiuso", active=False)
+
+        response = self.client.get(self.url, {"q": "nessun risultato"})
+
+        self.assertContains(response, 'list="championship-names"')
+        self.assertContains(response, '<option value="Amici del Bar">')
+        self.assertNotContains(response, '<option value="Chiuso">')
 
     def test_counts_players(self):
         championship = self._championship("Contati", is_private=False)
