@@ -279,6 +279,14 @@ REGULAR_QUALIFYING_BONUS_BY_POSITION = {
 }
 
 # ============================================================================
+# Missed regular qualifying choice (D.1.a.2, #153)
+# Always the malus of the last grid position in REGULAR_QUALIFYING_BONUS_BY_POSITION;
+# after GRACE missed choices of the season, also a burned driver
+# ============================================================================
+
+MISSED_QUALIFYING_CHOICE_GRACE = 2
+
+# ============================================================================
 # Limite scelte stesso team (qualifica regular)
 # ============================================================================
 
