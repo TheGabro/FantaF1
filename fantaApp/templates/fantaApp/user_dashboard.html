@@ -16,10 +16,11 @@
       {% elif is_premium %}<span class="badge-warn ml-2 align-middle not-italic">Premium</span>{% endif %}
     </h1>
   </div>
-  <div class="flex gap-3">
+  <div class="flex flex-wrap gap-3">
     {% if is_admin or is_staff %}
       <a href="{% url 'admin:index' %}" class="btn-secondary">Pannello admin</a>
     {% endif %}
+    <a href="{% url 'championship_search' %}" class="btn-secondary">Cerca campionato</a>
     <a href="{% url 'create_championship' %}" class="btn-primary" data-open-create-dialog>+ Crea campionato</a>
   </div>
 </div>
@@ -67,10 +68,12 @@
       <p class="text-4xl">🏁</p>
       <h3 class="subheading mt-2">Non sei ancora iscritto a nessun campionato</h3>
       <p class="mx-auto mt-1 max-w-md text-muted">
-        Crea il tuo campionato e invita i tuoi amici, oppure entra in uno esistente
-        col link che ti hanno mandato.
+        Cerca un campionato a cui iscriverti, oppure crea il tuo e fai entrare i tuoi amici.
       </p>
-      <a href="{% url 'create_championship' %}" class="btn-primary mt-4" data-open-create-dialog>Crea un campionato</a>
+      <div class="mt-4 flex flex-wrap justify-center gap-3">
+        <a href="{% url 'championship_search' %}" class="btn-secondary">Cerca un campionato</a>
+        <a href="{% url 'create_championship' %}" class="btn-primary" data-open-create-dialog>Crea un campionato</a>
+      </div>
     </div>
   {% endfor %}
 </div>

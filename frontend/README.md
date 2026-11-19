@@ -79,7 +79,7 @@ esiste già (con #89 ha preso l'indirizzo in inglese), **nuova** = da fare nell'
 | | Sicurezza (password) | `/account/security/` | `account_security` | c'è |
 | | Dati e privacy | `/account/privacy/` | `account_privacy` | futura (#106) |
 | I miei campionati | Campionati in corso | `/championships/` | `user_dashboard` | c'è |
-| | Cerca un campionato | `/championships/search/` | `championship_search` | nuova (#72) |
+| | Cerca un campionato | `/championships/search/` | `championship_search` | c'è (#72): pubblici e privati con le iscrizioni ancora aperte |
 | | Archivio | `/championships/archive/` | `championship_archive` | nuova (#100) |
 | | Crea un campionato | `/championships/create/` | `create_championship` | c'è: di solito si apre nel pop-up di I miei campionati (#157), la pagina resta per chi non ha JavaScript |
 | | Iscriviti | `/championships/<id>/join/` | `join_championship` | c'è |

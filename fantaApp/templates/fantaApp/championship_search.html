@@ -1,0 +1,80 @@
+{% extends 'fantaApp/base.html' %}
+
+{% comment %}
+  Find a championship (#72): the championships that still accept players
+  (services.enrollment.open_championships). Public ones are joined directly,
+  private ones through a request to the managers (#50, #75).
+  Requires in context: query, championships (annotated with players),
+  suggestions (open championship names for the datalist), enrolled_ids and
+  pending_ids (sets of championship ids for the current user).
+{% endcomment %}
+
+{% block title %}Cerca un campionato — Fanta F1{% endblock %}
+
+{% block content %}
+<a href="{% url 'user_dashboard' %}" class="btn-ghost mb-4 -ml-2">← I miei campionati</a>
+
+<div class="mb-6">
+  <p class="eyebrow">Iscrizioni aperte</p>
+  <h1 class="page-title mt-1">Cerca un campionato</h1>
+  <p class="mt-1 max-w-2xl text-muted">
+    Ci si iscrive fino a una settimana prima delle prime qualifiche della stagione.
+    Nei campionati privati un manager accetta la tua richiesta.
+  </p>
+</div>
+
+<form method="get" role="search" class="mb-6 flex flex-col gap-2 sm:flex-row">
+  <input
+    type="search"
+    name="q"
+    value="{{ query }}"
+    class="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2"
+    placeholder="Nome del campionato"
+    aria-label="Nome del campionato"
+    list="championship-names"
+    autocomplete="off"
+  />
+  <datalist id="championship-names">
+    {% for name in suggestions %}<option value="{{ name }}"></option>{% endfor %}
+  </datalist>
+  <button type="submit" class="btn-secondary shrink-0">Cerca</button>
+</form>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for c in championships %}
+    <div class="card-pad flex flex-col">
+      <div class="mb-3 flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <h2 class="text-lg font-bold leading-tight">{{ c.name }}</h2>
+          <p class="note">Stagione {{ c.year }} · {{ c.players }} {% if c.players == 1 %}giocatore{% else %}giocatori{% endif %}</p>
+        </div>
+        <span class="badge-muted shrink-0">{% if c.is_private %}Privato{% else %}Pubblico{% endif %}</span>
+      </div>
+
+      <div class="mt-auto border-t border-line pt-3">
+        {% if c.id in enrolled_ids %}
+          <a href="{% url 'championship_dashboard' c.id %}" class="btn-secondary w-full">Sei iscritto: apri</a>
+        {% elif c.id in pending_ids %}
+          <p class="text-center font-semibold text-muted">Richiesta in attesa del manager</p>
+        {% elif c.is_private %}
+          <a href="{% url 'join_championship' c.id %}" class="btn-secondary w-full">Richiedi accesso</a>
+        {% else %}
+          <a href="{% url 'join_championship' c.id %}" class="btn-primary w-full">Iscriviti</a>
+        {% endif %}
+      </div>
+    </div>
+  {% empty %}
+    <div class="card-pad sm:col-span-2 lg:col-span-3 text-center">
+      <p class="text-4xl">🔍</p>
+      {% if query %}
+        <h2 class="subheading mt-2">Nessun campionato aperto si chiama «{{ query }}»</h2>
+        <p class="mx-auto mt-1 max-w-md text-muted">Controlla il nome o <a href="{% url 'championship_search' %}" class="text-accent hover:underline">guarda tutti i campionati aperti</a>.</p>
+      {% else %}
+        <h2 class="subheading mt-2">Nessun campionato accetta iscrizioni</h2>
+        <p class="mx-auto mt-1 max-w-md text-muted">Puoi crearne uno tu e farci entrare i tuoi amici.</p>
+        <a href="{% url 'create_championship' %}" class="btn-primary mt-4">Crea un campionato</a>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

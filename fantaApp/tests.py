@@ -1547,7 +1547,7 @@ class CreateChampionshipTests(TestCase):
         # Senza JavaScript restano link alla pagina del form.
         self.assertContains(
             response,
-            f'href="{reverse("create_championship")}" class="btn-primary mt-4"'
+            f'href="{reverse("create_championship")}" class="btn-primary"'
             " data-open-create-dialog",
         )
         self.assertFalse(response.context["open_create_dialog"])
@@ -2371,6 +2371,7 @@ class WeekendPagesFixture:
             "user_dashboard": [],
             "create_championship": [],
             "join_championship": [self.open_championship.id],
+            "championship_search": [],
             "championship_dashboard": [c],
             "championship_next_weekend": [c],
             "championship_my_choices": [c],
@@ -7437,3 +7438,93 @@ class PrivateJoinPageTests(TestCase):
         self.client.post(self.url, {"player_name": "Capo", "league": self.league.id})
 
         self.assertTrue(ChampionshipPlayer.objects.filter(user=self.manager).exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ChampionshipSearchPageTests(TestCase):
+    """#72: search lists only championships open to new players, with the right action."""
+
+    YEAR = 2031  # no calendar loaded: enrollment is open
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="cercatore", email="cercatore@example.com", password="password123"
+        )
+        self.client.force_login(self.user)
+        self.url = reverse("championship_search")
+
+    def _championship(self, name, **extra):
+        championship = Championship.objects.create(name=name, year=self.YEAR, **extra)
+        League.objects.create(championship=championship, name="Lega Unica")
+        return championship
+
+    def test_lists_open_championships_with_their_action(self):
+        public = self._championship("Pubblico Cup", is_private=False)
+        private = self._championship("Privato Cup")
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, "Pubblico Cup")
+        self.assertContains(response, "Privato Cup")
+        join_public = reverse("join_championship", args=[public.id])
+        join_private = reverse("join_championship", args=[private.id])
+        self.assertContains(response, f'href="{join_public}" class="btn-primary w-full">Iscriviti')
+        self.assertContains(response, f'href="{join_private}" class="btn-secondary w-full">Richiedi accesso')
+
+    def test_hides_finished_and_closed_championships(self):
+        self._championship("Concluso Cup", active=False)
+        Championship.objects.create(name="Iniziato Cup", year=2026)
+        circuit = Circuit.objects.create(name="Monza", country="Italy", location="Monza", api_id="monza")
+        Weekend.objects.create(
+            circuit=circuit, event_name="Italian GP", round_number=1, season=2026,
+            weekend_type="regular", qualifying_start=timezone.now() + timedelta(days=2),
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertNotContains(response, "Concluso Cup")
+        self.assertNotContains(response, "Iniziato Cup")
+        self.assertContains(response, "Nessun campionato accetta iscrizioni")
+
+    def test_filters_by_name(self):
+        self._championship("Amici del Bar")
+        self._championship("Colleghi")
+
+        response = self.client.get(self.url, {"q": "bar"})
+
+        # Card titles only: the datalist suggests every open name.
+        self.assertContains(response, ">Amici del Bar</h2>")
+        self.assertNotContains(response, ">Colleghi</h2>")
+
+    def test_shows_enrolled_and_pending_states(self):
+        enrolled = self._championship("Già Dentro", is_private=False)
+        ChampionshipPlayer.objects.create(
+            user=self.user, championship=enrolled, league=enrolled.leagues.get(), player_name="Io"
+        )
+        pending = self._championship("In Attesa")
+        join_requests.request_join(user=self.user, championship=pending, player_name="Io")
+
+        response = self.client.get(self.url)
+
+        self.assertContains(response, reverse("championship_dashboard", args=[enrolled.id]))
+        self.assertContains(response, "Richiesta in attesa del manager")
+        self.assertNotContains(response, reverse("join_championship", args=[pending.id]))
+
+    def test_suggests_the_names_of_open_championships_while_typing(self):
+        self._championship("Amici del Bar")
+        self._championship("Chiuso", active=False)
+
+        response = self.client.get(self.url, {"q": "nessun risultato"})
+
+        self.assertContains(response, 'list="championship-names"')
+        self.assertContains(response, '<option value="Amici del Bar">')
+        self.assertNotContains(response, '<option value="Chiuso">')
+
+    def test_counts_players(self):
+        championship = self._championship("Contati", is_private=False)
+        other = get_user_model().objects.create_user(username="altro", email="altro@example.com", password="password123")
+        ChampionshipPlayer.objects.create(
+            user=other, championship=championship, league=championship.leagues.get(), player_name="Altro"
+        )
+
+        self.assertContains(self.client.get(self.url), "1 giocatore<")
