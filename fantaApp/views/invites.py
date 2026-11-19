@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 
 from ..forms import creations
 from ..models import Championship, ChampionshipPlayer
+from ..services import enrollment
 
 # Salt dedicato: un token di invito non deve essere spendibile altrove nel sito.
 INVITE_SALT = "fantaApp.invito-campionato"
@@ -103,6 +104,10 @@ def join_championship(request, championship_id):
 
     if not championship.active:
         messages.error(request, f"«{championship.name}» è concluso: non accetta più iscrizioni.")
+        return redirect("user_dashboard")
+
+    if not enrollment.enrollment_open(championship):
+        messages.error(request, f"Le iscrizioni a «{championship.name}» sono chiuse: il campionato sta per iniziare.")
         return redirect("user_dashboard")
 
     if request.method == "POST":
