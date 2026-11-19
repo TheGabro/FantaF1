@@ -278,6 +278,13 @@ def get_regular_qualifying_bonus_rule(position: int) -> dict:
     return rules.REGULAR_QUALIFYING_BONUS_BY_POSITION.get(position, default).copy()
 
 
+def get_missed_regular_qualifying_bonus_rule() -> dict:
+    """Missed choice: the bonus of the last grid position, read from the table (#153)."""
+    return get_regular_qualifying_bonus_rule(
+        max(rules.REGULAR_QUALIFYING_BONUS_BY_POSITION)
+    )
+
+
 def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     """
     Calcola il bonus per la scelta qualifica regular (weekend non-sprint).
@@ -308,11 +315,9 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         if PlayerQualifyingPenalty.objects.filter(
             player=player, qualifying=qualifying
         ).exists():
-            # Missed choice: the malus of the last grid position (#153)
-            last = max(rules.REGULAR_QUALIFYING_BONUS_BY_POSITION)
             return {
                 **default_result,
-                **get_regular_qualifying_bonus_rule(last),
+                **get_missed_regular_qualifying_bonus_rule(),
                 "missed": True,
             }
         return default_result
