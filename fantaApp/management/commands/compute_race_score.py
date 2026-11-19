@@ -46,6 +46,9 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Giocatori aggiornati: {stats['players_updated']}")
         )
+        self.stdout.write(
+            self.style.SUCCESS(f"Giocatori penalizzati: {stats['players_penalized']}")
+        )
 
         if stats["errors"]:
             self.stdout.write(

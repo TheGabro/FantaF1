@@ -22,7 +22,6 @@ from .race_classification import race_classification
 from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
 from .all_choices.links import results_session_bar, weekend_page_links
 from . import session_state as ss
-from django.db.models import Count
 
 
 @login_required
@@ -759,34 +758,16 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
             + _origin_query(request)
         )
 
-    # Piloti già spesi in un'altra qualifica regular della stagione: restano in
-    # griglia ma bloccati, con il GP in cui sono stati usati.
-    locked_events_by_driver_id = {
-        choice.driver_id: choice.qualifying.weekend.event_name
-        for choice in (
-            PlayerQualifyingChoice.objects.filter(
-                player=player,
-                qualifying__weekend__season=weekend.season,
-                qualifying__type="regular",
-            )
-            .exclude(
-                qualifying=qualifying
-            )  # permette eventuale modifica della stessa gara
-            .select_related("qualifying__weekend")
-        )
-    }
+    # Piloti già spesi (o bruciati, #153) in un'altra qualifica regular della
+    # stagione: restano in griglia ma bloccati, con il GP in cui sono stati usati.
+    # Esclusa questa qualifica: permette di modificare la scelta.
+    locked_events_by_driver_id = pc.get_used_regular_qualifying_drivers(
+        player=player, season=weekend.season, exclude_qualifying=qualifying
+    )
 
-    teams_maxed_out = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            qualifying__weekend__season=weekend.season,
-            qualifying__type="regular",
-        )
-        .exclude(qualifying=qualifying)
-        .values("driver__team_id")
-        .annotate(picks=Count("id"))
-        .filter(picks__gte=rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM)
-        .values_list("driver__team_id", flat=True)
+    # Scuderie al limite, contando anche i piloti bruciati (#153)
+    teams_maxed_out = pc.get_maxed_regular_qualifying_team_ids(
+        locked_events_by_driver_id
     )
 
     if request.method == "POST":
@@ -921,6 +902,10 @@ def _render_race_results_page(
     player_weekend_points = (
         player_race_result.total_points if player_race_result else None
     )
+    missed_choice = bool(player_race_result and player_race_result.missed_choice)
+    if missed_choice:
+        # No choices: the credits used are the missed choice penalty (#154)
+        player_credit_used = player_race_result.credit_spent
     # Griglia di partenza in sola lettura, come controprova della scelta (#233,
     # #234). I costi sono ricalcolati adesso: quanto pagato davvero è nel pannello.
     start_grid = costs.get_race_driver_options(race=race, player=player)
@@ -966,6 +951,7 @@ def _render_race_results_page(
         "player_pupillo": player_pupillo,
         "player_weekend_points": player_weekend_points,
         "player_credit_used": player_credit_used,
+        "missed_choice": missed_choice,
     }
     return render(request, "fantaApp/race_results.html", context)
 

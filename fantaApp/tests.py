@@ -47,6 +47,7 @@ from .models import (
     PlayerQualifyingChoice,
     Qualifying,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     PlayerSprintQualifyingChoice,
     PlayerRaceResult,
     QualifyingResult,
@@ -1091,7 +1092,7 @@ class PlayerScoringTests(TestCase):
         )
         self.assertEqual(updated_result.fia_points, 18)
 
-    def test_compute_player_score_per_race_only_updates_players_with_choices(self):
+    def test_compute_player_score_per_race_penalizes_players_without_choices(self):
         self._create_race_result(
             race=self.race, driver=self.driver_1, position=1, points=25
         )
@@ -1103,16 +1104,17 @@ class PlayerScoringTests(TestCase):
         stats = player_scoring.compute_player_score_per_race(race=self.race)
 
         self.assertEqual(stats["players_updated"], 1)
+        self.assertEqual(stats["players_penalized"], 1)
         self.assertEqual(stats["errors"], [])
         self.player_a.refresh_from_db()
         self.player_b.refresh_from_db()
         self.assertEqual(self.player_a.total_score, 25)
         self.assertEqual(self.player_b.total_score, 0)
-        self.assertFalse(
-            PlayerRaceResult.objects.filter(
-                player=self.player_b, race=self.race
-            ).exists()
-        )
+        # Nobody chose in championship B: first missed choice, no credits charged
+        result = PlayerRaceResult.objects.get(player=self.player_b, race=self.race)
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 0)
+        self.assertEqual(self.player_b.available_credit, 1000)
 
     def test_compute_player_score_per_race_updates_players_across_different_championships(
         self,
@@ -1165,6 +1167,183 @@ class PlayerScoringTests(TestCase):
         self.assertEqual(
             PlayerRaceResult.objects.filter(player=self.player_a).count(), 2
         )
+
+
+class MissedGrandPrixChoicePenaltyTests(TestCase):
+    """Penalties for a missed Grand Prix choice (C.3, #154)."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Monaco", country="Monaco", location="Monte Carlo", api_id="c-mon"
+        )
+        self.team = Team.objects.create(
+            name="Penalty Team", short_name="PEN", api_id="t-pen", nationality="IT"
+        )
+        self.driver_1 = self._create_driver(1)
+        self.driver_2 = self._create_driver(2)
+        self.races = [self._create_race(round_number) for round_number in (1, 2, 3, 4)]
+
+        self.championship = Championship.objects.create(name="Penalty Cup", year=2026)
+        league = League.objects.create(championship=self.championship, name="L")
+        self.chooser_low, self.chooser_high, self.missing = [
+            ChampionshipPlayer.objects.create(
+                user=get_user_model().objects.create_user(
+                    username=name, email=f"{name}@example.com", password="pw"
+                ),
+                championship=self.championship,
+                league=league,
+                player_name=name,
+                available_credit=1000,
+            )
+            for name in ("low", "high", "missing")
+        ]
+
+    def _create_driver(self, number):
+        return Driver.objects.create(
+            first_name=f"Pen{number}",
+            last_name="Driver",
+            number=90 + number,
+            short_name=f"PN{number}",
+            team=self.team,
+            season=2026,
+            api_id=f"pen-drv-{number}",
+        )
+
+    def _create_race(self, round_number):
+        weekend = Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Penalty GP {round_number}",
+            round_number=round_number,
+            season=2026,
+            qualifying_start=timezone.now() - timedelta(days=2),
+            race_start=timezone.now() - timedelta(days=1),
+        )
+        Qualifying.objects.create(weekend=weekend, type="regular")
+        return Race.objects.create(weekend=weekend, type="regular")
+
+    def _choose(self, player, race, spent_amount):
+        PlayerRaceChoice.objects.create(
+            player=player, race=race, driver=self.driver_1, spent_amount=spent_amount
+        )
+
+    def _result(self, player, race):
+        return PlayerRaceResult.objects.get(player=player, race=race)
+
+    def test_charges_lowest_spend_among_players_who_chose(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self._choose(self.chooser_high, self.races[0], 120)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+        result = self._result(self.missing, self.races[0])
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 30)
+        self.assertEqual(result.total_points, 0)
+
+    def test_points_penalty_starts_from_third_missed_choice(self):
+        for race in self.races:
+            self._choose(self.chooser_low, race, 0)
+            player_scoring.compute_player_score_per_race(race=race)
+
+        self.assertEqual(
+            [self._result(self.missing, race).total_points for race in self.races],
+            [0, 0, -5, -10],
+        )
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.total_score, -15)
+
+    def test_nobody_chose_no_credit_penalty_but_counter_goes_up(self):
+        for race in self.races[:3]:
+            player_scoring.compute_player_score_per_race(race=race)
+
+        for player in (self.chooser_low, self.chooser_high, self.missing):
+            player.refresh_from_db()
+            self.assertEqual(player.available_credit, 1000)
+            self.assertEqual(self._result(player, self.races[2]).total_points, -5)
+
+    def test_qualifying_malus_is_charged_on_top_and_discount_is_lost(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        qualifying = self.races[0].weekend.qualifyings.get()
+        # missing picked the last on the grid: +30 malus (rules.py, P22)
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_1, position=22
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=qualifying, driver=self.driver_1
+        )
+        # chooser_high picked P6: a -25 discount, lost without a GP choice
+        RaceStartingGrid.objects.create(
+            race=self.races[0], driver=self.driver_2, position=6
+        )
+        PlayerQualifyingChoice.objects.create(
+            player=self.chooser_high, qualifying=qualifying, driver=self.driver_2
+        )
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+        self.assertEqual(
+            self._result(self.chooser_high, self.races[0]).credit_spent, 30
+        )
+
+    def test_missed_qualifying_malus_is_charged_on_top(self):
+        # Missed both the qualifying (#153, +30 malus) and the Grand Prix
+        self._choose(self.chooser_low, self.races[0], 30)
+        PlayerQualifyingPenalty.objects.create(
+            player=self.missing, qualifying=self.races[0].weekend.qualifyings.get()
+        )
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+
+    def test_credits_go_to_zero_not_below(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        self.missing.available_credit = 10
+        self.missing.save()
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 0)
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 10)
+
+    def test_running_again_charges_credits_once(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 970)
+
+    def test_sprint_race_has_no_penalty(self):
+        sprint = Race.objects.create(weekend=self.races[0].weekend, type="sprint")
+
+        player_scoring.compute_player_score_per_race(race=sprint)
+
+        self.assertFalse(PlayerRaceResult.objects.filter(race=sprint).exists())
+
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_player_sees_penalty_in_my_choices_and_race_results(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        self.client.force_login(self.missing.user)
+        race = self.races[0]
+
+        for url in (
+            reverse("championship_my_choices", args=[self.championship.pk]),
+            reverse(
+                "regular_race_results",
+                args=[self.championship.pk, race.weekend.pk, race.pk],
+            ),
+        ):
+            response = self.client.get(url)
+            self.assertContains(response, "Penalità")
+            self.assertContains(response, "addebitati")
+            self.assertContains(response, "30 FM")
 
 
 @override_settings(STORAGES=TEST_STORAGES)
@@ -6656,3 +6835,222 @@ class SiteIconsTests(TestCase):
                 self.assertEqual(
                     self._png_size(f"fantaApp/{icon['src']}"), (width, height)
                 )
+
+
+class MissedRegularQualifyingChoicePenaltyTests(TestCase):
+    """Penalties for a missed regular qualifying choice (D.1.a.2, #153)."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Imola", country="Italy", location="Imola", api_id="c-imo"
+        )
+        self.team = Team.objects.create(
+            name="Quali Team", short_name="QPT", api_id="t-qpt", nationality="IT"
+        )
+        self.drivers = [
+            Driver.objects.create(
+                first_name=f"Qp{number}",
+                last_name="Driver",
+                number=80 + number,
+                short_name=f"QP{number}",
+                team=self.team,
+                season=2026,
+                api_id=f"qp-drv-{number}",
+            )
+            for number in (1, 2, 3)
+        ]
+        self.qualifyings = [self._create_qualifying(r) for r in (1, 2, 3, 4, 5)]
+
+        championship = Championship.objects.create(name="Quali Cup", year=2026)
+        league = League.objects.create(championship=championship, name="L")
+        self.chooser, self.missing = [
+            ChampionshipPlayer.objects.create(
+                user=get_user_model().objects.create_user(
+                    username=name, email=f"{name}@example.com", password="pw"
+                ),
+                championship=championship,
+                league=league,
+                player_name=name,
+            )
+            for name in ("chooser", "missing")
+        ]
+
+    def _create_qualifying(self, round_number, weekend_type="regular"):
+        weekend = Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Quali GP {round_number}",
+            round_number=round_number,
+            season=2026,
+            weekend_type=weekend_type,
+            qualifying_start=timezone.now() - timedelta(days=1),
+        )
+        Race.objects.create(weekend=weekend, type="regular")
+        qualifying = Qualifying.objects.create(weekend=weekend, type="regular")
+        # Classification: QP1 P1, QP2 P2, QP3 P3
+        for position, driver in enumerate(self.drivers, start=1):
+            QualifyingResult.objects.create(
+                qualifying=qualifying, driver=driver, position=position
+            )
+        return qualifying
+
+    def _apply(self, qualifying):
+        return pc.apply_missed_qualifying_penalties(qualifying=qualifying)
+
+    def _penalty(self, qualifying):
+        return PlayerQualifyingPenalty.objects.get(
+            player=self.missing, qualifying=qualifying
+        )
+
+    def test_first_and_second_missed_choice_only_malus(self):
+        for qualifying in self.qualifyings[:2]:
+            PlayerQualifyingChoice.objects.create(
+                player=self.chooser, qualifying=qualifying, driver=self.drivers[0]
+            )
+            self._apply(qualifying)
+            self.assertIsNone(self._penalty(qualifying).burned_driver)
+
+            bonus = bonuses.get_race_bonus(
+                player=self.missing, race=qualifying.weekend.races.get()
+            )
+            self.assertEqual(bonus["credit_change"], 30)
+            self.assertEqual(bonus["points_multiplier"], 1)
+            self.assertEqual(bonus["qualifying_points"], 0)
+            self.assertTrue(bonus["missed"])
+
+        # Who chose is not penalized
+        self.assertFalse(
+            PlayerQualifyingPenalty.objects.filter(player=self.chooser).exists()
+        )
+
+    def test_third_missed_choice_burns_best_available_driver(self):
+        # QP1 already used by missing in round 1, then rounds 2, 3 and 4 missed
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=self.qualifyings[0], driver=self.drivers[0]
+        )
+        for qualifying in self.qualifyings[1:4]:
+            self._apply(qualifying)
+        self._apply(self.qualifyings[3])  # running again changes nothing
+
+        self.assertIsNone(self._penalty(self.qualifyings[2]).burned_driver)
+        third = self._penalty(self.qualifyings[3])
+        self.assertEqual(third.burned_driver, self.drivers[1])
+        bonus = bonuses.get_race_bonus(
+            player=self.missing, race=self.qualifyings[3].weekend.races.get()
+        )
+        self.assertEqual(bonus["credit_change"], 30)
+        self.assertIsNone(bonus["driver"])
+
+        # The burned driver can no longer be chosen
+        with self.assertRaises(ValidationError):
+            pc.choose_regular_quali_driver(
+                player=self.missing,
+                qualifying=self.qualifyings[4],
+                driver=self.drivers[1],
+            )
+        self.assertIn(
+            self.drivers[1].id,
+            pc.get_used_regular_qualifying_drivers(player=self.missing, season=2026),
+        )
+
+    def test_malus_is_not_reduced_by_pupillo_discount(self):
+        self._apply(self.qualifyings[0])
+        race = self.qualifyings[0].weekend.races.get()
+        first, second = self.drivers[:2]
+
+        amounts, _ = pc.get_regular_race_spent_amounts(
+            player=self.missing,
+            race=race,
+            driver_ids=[first.id, second.id],
+            pupillo_driver_id=first.id,
+            options_by_driver_id={
+                first.id: {"cost": 10, "pupillo_cost": 0},
+                second.id: {"cost": 0},
+            },
+        )
+
+        self.assertEqual(sum(amounts.values()), 30)
+
+    def test_sprint_weekend_qualifying_has_no_penalty(self):
+        qualifying = self._create_qualifying(6, weekend_type="sprint")
+
+        self.assertEqual(self._apply(qualifying), [])
+
+
+
+    def test_burned_driver_counts_for_the_team_limit(self):
+        # QP1 chosen in round 1, QP2 burned in round 4: the team is at its limit
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=self.qualifyings[0], driver=self.drivers[0]
+        )
+        for qualifying in self.qualifyings[1:4]:
+            self._apply(qualifying)
+        self.assertEqual(self._penalty(self.qualifyings[3]).burned_driver, self.drivers[1])
+
+        with self.assertRaisesMessage(ValidationError, "2 volte"):
+            pc.choose_regular_quali_driver(
+                player=self.missing,
+                qualifying=self.qualifyings[4],
+                driver=self.drivers[2],
+            )
+
+    def test_burned_driver_skips_teams_at_their_limit(self):
+        # QP1 and QP2 chosen: the team is at its limit, so QP3 is not available
+        for qualifying, driver in zip(self.qualifyings[:2], self.drivers):
+            PlayerQualifyingChoice.objects.create(
+                player=self.missing, qualifying=qualifying, driver=driver
+            )
+        other_team = Team.objects.create(
+            name="Other Team", short_name="OTH", api_id="t-oth", nationality="IT"
+        )
+        other = Driver.objects.create(
+            first_name="Oth",
+            last_name="Driver",
+            number=89,
+            short_name="OTH",
+            team=other_team,
+            season=2026,
+            api_id="qp-drv-oth",
+        )
+        QualifyingResult.objects.create(
+            qualifying=self.qualifyings[4], driver=other, position=4
+        )
+        for qualifying in self.qualifyings[2:5]:
+            self._apply(qualifying)
+
+        self.assertEqual(self._penalty(self.qualifyings[4]).burned_driver, other)
+
+@override_settings(STORAGES=TEST_STORAGES)
+class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
+    """#153: the missed qualifying penalty is shown to the player."""
+
+    def setUp(self):
+        super().setUp()
+        self.regular_weekend.qualifying_start = timezone.now() - timedelta(hours=1)
+        self.regular_weekend.save()
+        player = ChampionshipPlayer.objects.get(user=self.user)
+        self.burned = Driver.objects.get(api_id="drv-smoke-1")
+        PlayerQualifyingPenalty.objects.create(
+            player=player, qualifying=self.regular_qualifying, burned_driver=self.burned
+        )
+        self.client.force_login(self.user)
+
+    def _args(self, event):
+        return [self.championship.id, self.regular_weekend.id, event.id]
+
+    def test_grand_prix_choice_shows_the_malus(self):
+        response = self.client.get(
+            reverse("regular_race_choice", args=self._args(self.regular_race))
+        )
+
+        self.assertContains(response, "Qualifica non scelta")
+        self.assertContains(response, "malus +30 FM")
+
+    def test_qualifying_results_show_malus_and_burned_driver(self):
+        response = self.client.get(
+            reverse("race_qualifying_results", args=self._args(self.regular_qualifying))
+        )
+
+        self.assertContains(response, "Penalità")
+        self.assertContains(response, "malus +30 FM")
+        self.assertContains(response, "pilota bruciato")
+        self.assertContains(response, self.burned.last_name)

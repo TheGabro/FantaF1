@@ -90,12 +90,21 @@
                   </div>
                 {% endfor %}
 
-                {% if not s.choices and not s.slots %}
+                {% if s.result.missed_choice %}
+                  <p class="text-base"><span class="badge-accent">Penalità</span> Scelta mancata: addebitati <span class="font-semibold tabular-nums">{{ s.result.credit_spent }} FM</span>{% if s.result.total_points %} e <span class="font-semibold tabular-nums">{{ s.result.total_points|decimals }} punti</span>{% endif %}.</p>
+                {% elif not s.choices and not s.slots %}
                   <p class="text-base text-muted">Nessuna scelta effettuata.</p>
                 {% endif %}
               </div>
 
-              {% if s.result %}
+              {% if s.result.missed_choice %}
+                <div class="stat-row shrink-0 rounded-lg border border-line bg-surface-2">
+                  <div class="px-4 py-2">
+                    <p class="stat-label">Totale</p>
+                    <p class="mt-0.5 text-2xl font-black tabular-nums text-accent">{{ s.result.total_points|decimals }}</p>
+                  </div>
+                </div>
+              {% elif s.result %}
                 <div class="stat-row shrink-0 rounded-lg border border-line bg-surface-2">
                   <div class="px-4 py-2">
                     <p class="stat-label">Punti FIA</p>

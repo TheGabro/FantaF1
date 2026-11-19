@@ -1249,7 +1249,12 @@ def championship_my_choices(request, championship_id):
                 result = race_results.get(event_id)
                 session["choices"] = choices
                 session["result"] = result
-                session["spent"] = sum(choice.spent_amount for choice in choices)
+                # A missed choice has no choices: its spend is the penalty (#154)
+                session["spent"] = (
+                    sum(choice.spent_amount for choice in choices)
+                    if choices
+                    else (result.credit_spent if result else 0)
+                )
                 weekend_spent += session["spent"]
                 if result:
                     weekend_points += result.total_points
