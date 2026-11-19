@@ -7179,6 +7179,39 @@ class ChampionshipJoinRequestTests(TestCase):
         self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
         self._request()  # must not raise
 
+    def _season_starts_in(self, qualifying_in):
+        """First weekend of the championship's season; FP1 is a day before qualifying."""
+        circuit = Circuit.objects.create(
+            name="Albert Park", country="Australia", location="Melbourne", api_id="albert_park"
+        )
+        qualifying = timezone.now() + qualifying_in
+        Weekend.objects.create(
+            circuit=circuit, event_name="Australian GP", round_number=1,
+            season=self.championship.year, weekend_type="regular",
+            fp1_start=qualifying - timedelta(days=1), qualifying_start=qualifying,
+        )
+
+    def test_no_request_in_the_last_week_before_the_season(self):
+        self._season_starts_in(timedelta(days=6))
+
+        with self.assertRaises(ValidationError):
+            self._request()
+
+    def test_pending_request_can_be_approved_until_fp1(self):
+        join_request = self._request()
+        self._season_starts_in(timedelta(days=6))
+
+        join_requests.approve(join_request, by=self.manager, league=self.league)
+
+        self.assertTrue(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+    def test_pending_request_cannot_be_approved_after_fp1(self):
+        join_request = self._request()
+        self._season_starts_in(timedelta(hours=12))  # FP1 started 12 hours ago
+
+        with self.assertRaises(ValidationError):
+            join_requests.approve(join_request, by=self.manager, league=self.league)
+
 
 class EnrollmentWindowTests(TestCase):
     """#148: joining closes a week before the first qualifying of the season,

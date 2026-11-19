@@ -16,6 +16,7 @@ from fantaApp.models import (
     ChampionshipManager,
     ChampionshipPlayer,
 )
+from fantaApp.services import enrollment
 
 
 def _check_player_name_free(championship, player_name):
@@ -40,6 +41,8 @@ def request_join(*, user, championship, player_name) -> ChampionshipJoinRequest:
         raise ValidationError("Questo campionato è pubblico: puoi iscriverti direttamente.")
     if not championship.active:
         raise ValidationError(f"«{championship.name}» è concluso: non accetta più iscrizioni.")
+    if not enrollment.enrollment_open(championship):
+        raise ValidationError(f"Le iscrizioni a «{championship.name}» sono chiuse: il campionato sta per iniziare.")
     if ChampionshipPlayer.objects.filter(user=user, championship=championship).exists():
         raise ValidationError(f"Sei già iscritto a «{championship.name}».")
     if ChampionshipJoinRequest.objects.filter(
@@ -66,6 +69,8 @@ def approve(join_request, *, by, league) -> ChampionshipPlayer:
         raise ValidationError("Questa richiesta è già stata gestita.")
 
     championship = join_request.championship
+    if not enrollment.approval_open(championship):
+        raise ValidationError(f"«{championship.name}» è già iniziato: non si possono più accettare richieste.")
     # The checks of request_join can be stale: the name may have been taken,
     # or the user enrolled in another way, while the request was pending.
     if ChampionshipPlayer.objects.filter(
