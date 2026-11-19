@@ -8,6 +8,7 @@ from .models import (
     Circuit,
     Weekend,
     Championship,
+    ChampionshipJoinRequest,
     ChampionshipManager,
     League,
     ChampionshipPlayer,
@@ -292,4 +293,15 @@ class QualifyingAdmin(admin.ModelAdmin):
 
 
 admin.site.register(ChampionshipManager)
+
+
+@admin.register(ChampionshipJoinRequest)
+class ChampionshipJoinRequestAdmin(admin.ModelAdmin):
+    list_display = ["player_name", "user", "championship", "status", "created_at"]
+    list_filter = ["status", "championship__year"]
+    search_fields = ["player_name", "user__username", "championship__name"]
+    # Accepting must go through services.join_requests.approve, which creates
+    # the ChampionshipPlayer: editing the status here would skip it.
+    readonly_fields = ["status"]
+
 admin.site.register(League)
