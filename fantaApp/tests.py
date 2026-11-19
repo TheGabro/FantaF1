@@ -7293,3 +7293,77 @@ class EnrollmentWindowTests(TestCase):
         )
         self.client.post(url, {"player_name": "Tardi", "league": self.league.id})
         self.assertFalse(ChampionshipPlayer.objects.filter(user=user).exists())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class ManageJoinRequestViewsTests(TestCase):
+    """#75: managers accept (choosing the league) or reject join requests from Manage → Players."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.manager = User.objects.create_user(username="capo", email="capo@example.com", password="password123")
+        self.guest = User.objects.create_user(username="ospite", email="ospite@example.com", password="password123")
+        self.championship = Championship.objects.create(name="Privato", year=2026)
+        self.league_a = League.objects.create(championship=self.championship, name="Serie A")
+        self.league_b = League.objects.create(championship=self.championship, name="Serie B")
+        ChampionshipManager.objects.create(user=self.manager, championship=self.championship)
+        self.join_request = join_requests.request_join(
+            user=self.guest, championship=self.championship, player_name="Ospite"
+        )
+        self.players_url = reverse("championship_manage_players", args=[self.championship.id])
+
+    def _url(self, action, join_request=None):
+        join_request = join_request or self.join_request
+        return reverse(
+            f"championship_{action}_join_request", args=[join_request.championship_id, join_request.id]
+        )
+
+    def test_manager_sees_the_pending_request(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.get(self.players_url)
+
+        self.assertContains(response, "Richieste di accesso")
+        self.assertContains(response, "Ospite")
+
+    def test_accept_enrolls_in_the_chosen_league(self):
+        self.client.force_login(self.manager)
+
+        response = self.client.post(self._url("accept"), {"league": self.league_b.id})
+
+        self.assertRedirects(response, self.players_url, fetch_redirect_response=False)
+        player = ChampionshipPlayer.objects.get(user=self.guest)
+        self.assertEqual(player.league, self.league_b)
+
+    def test_accept_without_a_valid_league_enrolls_nobody(self):
+        self.client.force_login(self.manager)
+
+        self.client.post(self._url("accept"), {"league": "abc"})
+
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+    def test_non_manager_cannot_accept(self):
+        self.client.force_login(self.guest)
+
+        self.client.post(self._url("accept"), {"league": self.league_a.id})
+
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())
+
+    def test_request_of_another_championship_is_not_found(self):
+        other = Championship.objects.create(name="Altro", year=2026)
+        self.client.force_login(self.manager)
+        url = reverse("championship_accept_join_request", args=[other.id, self.join_request.id])
+        ChampionshipManager.objects.create(user=self.manager, championship=other)
+
+        response = self.client.post(url, {"league": self.league_a.id})
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_reject_marks_the_request_rejected(self):
+        self.client.force_login(self.manager)
+
+        self.client.post(self._url("reject"))
+
+        self.join_request.refresh_from_db()
+        self.assertEqual(self.join_request.status, ChampionshipJoinRequest.Status.REJECTED)
+        self.assertFalse(ChampionshipPlayer.objects.filter(user=self.guest).exists())

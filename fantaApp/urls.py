@@ -125,6 +125,16 @@ urlpatterns = [
         championship_manage.demote_manager,
         name="championship_demote_manager",
     ),
+    path(
+        "championships/<int:championship_id>/manage/requests/<int:request_id>/accept/",
+        championship_manage.accept_join_request,
+        name="championship_accept_join_request",
+    ),
+    path(
+        "championships/<int:championship_id>/manage/requests/<int:request_id>/reject/",
+        championship_manage.reject_join_request,
+        name="championship_reject_join_request",
+    ),
     # Disiscrizione: pagina (GET) e azione (POST) sullo stesso indirizzo (#160).
     path(
         "championships/<int:championship_id>/leave/",
