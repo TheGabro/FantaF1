@@ -1288,6 +1288,17 @@ class MissedGrandPrixChoicePenaltyTests(TestCase):
             self._result(self.chooser_high, self.races[0]).credit_spent, 30
         )
 
+    def test_missed_qualifying_malus_is_charged_on_top(self):
+        # Missed both the qualifying (#153, +30 malus) and the Grand Prix
+        self._choose(self.chooser_low, self.races[0], 30)
+        PlayerQualifyingPenalty.objects.create(
+            player=self.missing, qualifying=self.races[0].weekend.qualifyings.get()
+        )
+
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+
     def test_credits_go_to_zero_not_below(self):
         self._choose(self.chooser_low, self.races[0], 30)
         self.missing.available_credit = 10
