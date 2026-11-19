@@ -3,6 +3,7 @@ Costanti e tabelle di gioco per FantaF1.
 Questo file contiene SOLO le costanti - la logica di calcolo è in bonuses.py e costs.py.
 """
 
+from datetime import timedelta
 from decimal import Decimal
 
 
@@ -299,3 +300,12 @@ REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM = 2
 
 MISSED_GP_CHOICE_GRACE = 2
 MISSED_GP_CHOICE_POINTS_STEP = 5
+
+# ============================================================================
+# Championship enrollment window (#148)
+# Joining (and sending a join request) closes this long before the first
+# qualifying of the season; managers can still approve pending requests
+# until FP1 of the first weekend.
+# ============================================================================
+
+ENROLLMENT_CLOSES_BEFORE = timedelta(days=7)
