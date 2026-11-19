@@ -260,3 +260,13 @@ class ChampionshipPlayerForm(forms.ModelForm):
                 "Questo nome giocatore è già stato usato in questo campionato."
             )
         return player_name
+
+
+class JoinRequestForm(forms.Form):
+    """Request to join a private championship (#50, #75): only the player name,
+    the league is chosen by the manager. The checks live in services/join_requests."""
+
+    player_name = forms.CharField(
+        label="Il tuo nome giocatore",
+        max_length=ChampionshipPlayer._meta.get_field("player_name").max_length,
+    )
