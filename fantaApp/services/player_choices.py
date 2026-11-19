@@ -46,7 +46,18 @@ def get_regular_race_spent_amounts(
     """
     Grand Prix cost of each selected driver: grid + standings cost, pupillo
     discount and qualifying bonus. Returns (spent amount by driver id, qualifying bonus).
+
+    Rulebook D.2: the part of the pupillo discount exceeding the pupillo's cost
+    reduces the other driver's cost, never below 0. The qualifying malus is added
+    afterwards, so the pupillo discount never offsets it (p.13).
     """
+    pupillo_excess = 0
+    if pupillo_driver_id is not None:
+        pupillo_option = options_by_driver_id[pupillo_driver_id]
+        pupillo_excess = max(
+            pupillo_option.get("pupillo_discount", 0) - pupillo_option["cost"], 0
+        )
+
     selected_costs_by_driver_id = {}
     for driver_id in driver_ids:
         option = options_by_driver_id[driver_id]
@@ -55,7 +66,9 @@ def get_regular_race_spent_amounts(
                 "pupillo_cost", option["cost"]
             )
         else:
-            selected_costs_by_driver_id[driver_id] = option["cost"]
+            selected_costs_by_driver_id[driver_id] = max(
+                option["cost"] - pupillo_excess, 0
+            )
 
     qualifying_bonus = bonuses.get_race_bonus(player=player, race=race)
     adjusted_costs_by_driver_id = bonuses.apply_race_credit_change(
