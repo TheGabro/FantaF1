@@ -41,3 +41,4 @@ docs/
 airflow/logs/
 airflow/auth/
 .claude/
+graphify-out/
