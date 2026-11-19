@@ -2255,8 +2255,9 @@ class WeekendPagesFixture:
         self.championship = Championship.objects.create(name="Smoke Cup", year=2026)
         self.league = League.objects.create(championship=self.championship, name="Lega")
         # Senza il giocatore: la pagina di iscrizione si apre invece di rimandare al campionato.
+        # Next season: the 2026 weekends below would have closed enrollment (#148).
         self.open_championship = Championship.objects.create(
-            name="Open Cup", year=2026, is_private=False
+            name="Open Cup", year=2027, is_private=False
         )
         League.objects.create(championship=self.open_championship, name="Lega Aperta")
         ChampionshipManager.objects.create(
@@ -2413,13 +2414,15 @@ class PageSmokeTests(WeekendPagesFixture, TestCase):
         "terms",
     }
     # Azioni, non pagine: hanno i loro test (InviteAndJoinTests, LoginNextRedirectTests,
-    # ChampionshipManageTests).
+    # ChampionshipManageTests, ManageJoinRequestViewsTests).
     ACTIONS = {
         "logout",
         "invite_redeem",
         "invite_accept",
         "championship_promote_manager",
         "championship_demote_manager",
+        "championship_accept_join_request",
+        "championship_reject_join_request",
     }
     # Indirizzi vecchi rimandati ai nuovi (#89): li prova LegacyUrlRedirectTests.
     LEGACY_REDIRECTS = {
