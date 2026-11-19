@@ -13,6 +13,7 @@ from fantaApp.views.all_choices import sprint_race as all_choices_sprint_race
 from fantaApp.views.all_choices import weekend_summary as all_choices_weekend
 from fantaApp.views.championship import leave as championship_leave
 from fantaApp.views.championship import manage as championship_manage
+from fantaApp.views.championships import search as championship_search
 from fantaApp.views.game import landing as game_landing
 from fantaApp.views.game import faq as game_faq
 from fantaApp.views.game import rules as game_rules
@@ -44,6 +45,7 @@ urlpatterns = [
     path("account/profile/", account_profile.profile, name="account_profile"),
     path("account/security/", account_security.security, name="account_security"),
     path("championships/", dashboard.user_dashboard, name="user_dashboard"),
+    path("championships/search/", championship_search.search, name="championship_search"),
     path(
         "championships/create/",
         dashboard.create_championship,
@@ -124,6 +126,16 @@ urlpatterns = [
         "championships/<int:championship_id>/manage/players/<int:player_id>/demote/",
         championship_manage.demote_manager,
         name="championship_demote_manager",
+    ),
+    path(
+        "championships/<int:championship_id>/manage/requests/<int:request_id>/accept/",
+        championship_manage.accept_join_request,
+        name="championship_accept_join_request",
+    ),
+    path(
+        "championships/<int:championship_id>/manage/requests/<int:request_id>/reject/",
+        championship_manage.reject_join_request,
+        name="championship_reject_join_request",
     ),
     # Disiscrizione: pagina (GET) e azione (POST) sullo stesso indirizzo (#160).
     path(

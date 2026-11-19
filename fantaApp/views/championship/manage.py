@@ -1,12 +1,19 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from fantaApp.models import Championship, ChampionshipManager, ChampionshipPlayer
-from fantaApp.services import helper
+from fantaApp.models import (
+    Championship,
+    ChampionshipJoinRequest,
+    ChampionshipManager,
+    ChampionshipPlayer,
+    League,
+)
+from fantaApp.services import enrollment, helper, join_requests
 from fantaApp.views import dashboard
 
 
@@ -39,6 +46,11 @@ def players(request, championship_id):
                 championship.managers.values_list("user_id", flat=True)
             ),
             "board": _next_weekend_board(championship, context["open_weekends"]),
+            # #75: requests to join a private championship, oldest first.
+            "pending_requests": championship.join_requests.filter(
+                status=ChampionshipJoinRequest.Status.PENDING
+            ).select_related("user"),
+            "approval_open": enrollment.approval_open(championship),
         }
     )
     return render(request, "fantaApp/championship_manage_players.html", context)
@@ -147,3 +159,49 @@ def demote_manager(request, championship_id, player_id):
 
     messages.success(request, f"{player.player_name} non è più manager del campionato.")
     return redirect("championship_manage_players", championship_id=championship.id)
+
+
+def _decide_join_request(request, championship_id, request_id, decide):
+    """Shared by accept/reject: manager check, then the service does the rest."""
+    championship = get_object_or_404(Championship, pk=championship_id)
+    if not helper.is_championship_manager(request.user, championship):
+        messages.error(request, "Solo un manager può gestire le richieste di accesso.")
+        return redirect("championship_dashboard", championship_id=championship.id)
+
+    # Filtering by championship too: a manager of A must not decide requests of B.
+    join_request = get_object_or_404(
+        ChampionshipJoinRequest, pk=request_id, championship=championship
+    )
+    try:
+        decide(join_request)
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    return redirect("championship_manage_players", championship_id=championship.id)
+
+
+@login_required
+@require_POST
+def accept_join_request(request, championship_id, request_id):
+    """Accept a join request, enrolling the player in the league the manager picked."""
+
+    def accept(join_request):
+        league_id = request.POST.get("league", "")
+        league = League.objects.filter(pk=league_id).first() if league_id.isdigit() else None
+        if league is None:
+            raise ValidationError("Scegli la lega in cui inserire il giocatore.")
+        join_requests.approve(join_request, by=request.user, league=league)
+        messages.success(request, f"{join_request.player_name} è entrato in «{league.name}».")
+
+    return _decide_join_request(request, championship_id, request_id, accept)
+
+
+@login_required
+@require_POST
+def reject_join_request(request, championship_id, request_id):
+    """Reject a join request; the user can send a new one later."""
+
+    def reject(join_request):
+        join_requests.reject(join_request, by=request.user)
+        messages.info(request, f"Richiesta di {join_request.player_name} rifiutata.")
+
+    return _decide_join_request(request, championship_id, request_id, reject)

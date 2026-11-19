@@ -9,6 +9,8 @@
   Richiede in context: leagues (con participants__user in prefetch),
   manager_user_ids (insieme degli user_id dei manager), board (None senza
   weekend aperti: weekend, sessions, rows con player/cells/missing, players_missing).
+  #75: pending_requests (pending join requests with user) and approval_open
+  (False once FP1 of the first weekend has started).
 {% endcomment %}
 
 {% block title %}Giocatori — {{ championship.name }} — Fanta F1{% endblock %}
@@ -17,6 +19,60 @@
 
 {% block section_content %}
 <div class="grid grid-cols-1 gap-6">
+  {% if pending_requests %}
+    <section class="card">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div class="min-w-0">
+          <h2 class="subheading">Richieste di accesso</h2>
+          <p class="text-muted">
+            {% if approval_open %}Scegli la lega in cui inserire ogni giocatore.{% else %}Il campionato è iniziato: le richieste non si possono più accettare.{% endif %}
+          </p>
+        </div>
+        <span class="badge-muted">{{ pending_requests|length }} in attesa</span>
+      </div>
+      <div class="relative overflow-x-auto">
+        <table class="table-clean">
+          <thead>
+            <tr>
+              <th>Giocatore</th>
+              <th>Utente</th>
+              <th class="!text-right"><span class="sr-only">Azioni</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for join_request in pending_requests %}
+              <tr>
+                <td class="font-semibold">{{ join_request.player_name }}</td>
+                <td class="text-muted">{{ join_request.user.username }}</td>
+                <td class="text-right">
+                  <div class="flex flex-wrap items-center justify-end gap-2">
+                    {% if approval_open %}
+                      <form method="post" action="{% url 'championship_accept_join_request' championship.id join_request.id %}" class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <select name="league" aria-label="Lega per {{ join_request.player_name }}" class="!py-1.5 text-sm"{% if leagues|length < 2 %} hidden{% endif %}>
+                          {% for league in leagues %}<option value="{{ league.id }}">{{ league.name }}</option>{% endfor %}
+                        </select>
+                        <button type="submit" class="btn-primary !px-3 !py-1.5 text-sm">Accetta</button>
+                      </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'championship_reject_join_request' championship.id join_request.id %}" data-confirm-submit>
+                      {% csrf_token %}
+                      <button type="submit" class="btn-secondary !px-3 !py-1.5 text-sm"
+                              data-confirm-text="Vuoi rifiutare la richiesta di {{ join_request.player_name }}?"
+                              data-confirm-ok="Rifiuta">
+                        Rifiuta
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
   <section class="card">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
       <div class="min-w-0">
