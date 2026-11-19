@@ -1,4 +1,5 @@
 {% extends 'fantaApp/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Iscriviti a {{ championship.name }} — Fanta F1{% endblock %}
 
@@ -15,7 +16,7 @@
     </p>
 
     {% if form.non_field_errors %}
-      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent">
+      <div class="mb-4 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 font-semibold text-accent" role="alert">
         {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
     {% endif %}
@@ -25,8 +26,8 @@
 
       <div class="form-field">
         <label for="{{ form.player_name.id_for_label }}">{{ form.player_name.label }}</label>
-        {{ form.player_name }}
-        {{ form.player_name.errors }}
+        {{ form.player_name|linked_to_errors }}
+        {{ form.player_name|errors_with_id }}
         <span class="helptext">È il nome con cui comparirai in classifica.</span>
       </div>
 
@@ -36,8 +37,8 @@
       {% endcomment %}
       <div class="form-field{% if form.fields.league.queryset|length < 2 %} hidden{% endif %}">
         <label for="{{ form.league.id_for_label }}">{{ form.league.label }}</label>
-        {{ form.league }}
-        {{ form.league.errors }}
+        {{ form.league|linked_to_errors }}
+        {{ form.league|errors_with_id }}
       </div>
 
       <button type="submit" class="btn-primary w-full">Entra nel campionato</button>

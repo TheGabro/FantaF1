@@ -1,6 +1,8 @@
 {% extends 'fantaApp/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Registrati — Fanta F1{% endblock %}
+{% block share_meta %}{% include "fantaApp/_share_meta.html" with share_title="Registrati — Fanta F1" share_description="Crea il tuo account Fanta F1 in meno di un minuto: bastano username, email e password. Un solo account per tutti i campionati." %}{% endblock %}
 
 {% block content %}
 <div class="mx-auto mt-6 w-full max-w-md sm:mt-12">
@@ -22,8 +24,8 @@
       {% for field in form_register %}
         <div class="form-field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {{ field.errors }}
+          {{ field|linked_to_errors }}
+          {{ field|errors_with_id }}
           {% if field.name == "password" %}
             {# Regole dei validatori di Django: visibili prima di inviare il form. #}
             <ul id="id_password_help" class="helptext">
@@ -35,6 +37,12 @@
         </div>
       {% endfor %}
       <button type="submit" class="btn-primary w-full py-3">Crea account</button>
+      {# Al posto della casella da spuntare (#107, #109): con il solo servizio come base giuridica basta l'avviso. #}
+      <p class="note">
+        Creando l'account dichiari di avere almeno 18 anni, accetti i
+        <a href="{% url 'terms' %}" class="text-accent hover:underline">termini</a> e confermi di aver letto
+        l'<a href="{% url 'privacy' %}" class="text-accent hover:underline">informativa privacy</a>.
+      </p>
     </form>
   </div>
 

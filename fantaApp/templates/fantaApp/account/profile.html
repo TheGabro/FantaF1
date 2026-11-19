@@ -1,4 +1,5 @@
 {% extends 'fantaApp/account/base.html' %}
+{% load form_a11y %}
 
 {% block title %}Dati personali — Account — Fanta F1{% endblock %}
 
@@ -12,8 +13,8 @@
     {% for field in form %}
       <div class="form-field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {{ field.errors }}
+        {{ field|linked_to_errors }}
+        {{ field|errors_with_id }}
         {% if field.help_text %}<span id="{{ field.auto_id }}_help" class="helptext">{{ field.help_text }}</span>{% endif %}
       </div>
     {% endfor %}

@@ -16,7 +16,7 @@
 {% block extra_head %}<script defer src="{% static 'fantaApp/js/confirm-submit.js' %}"></script>{% endblock %}
 
 {% block section_content %}
-<div class="grid gap-6">
+<div class="grid grid-cols-1 gap-6">
   <section class="card">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
       <div class="min-w-0">
@@ -44,7 +44,7 @@
     {% elif not board.rows %}
       <p class="px-5 py-4 text-muted">Nessun giocatore iscritto.</p>
     {% else %}
-      <div class="overflow-x-auto">
+      <div class="relative overflow-x-auto">
         <table class="table-clean">
           <thead>
             <tr>
@@ -89,7 +89,7 @@
         </div>
 
         {% if players %}
-          <div class="overflow-x-auto">
+          <div class="relative overflow-x-auto">
             <table class="table-clean">
               <thead>
                 <tr>

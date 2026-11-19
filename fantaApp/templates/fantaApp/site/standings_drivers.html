@@ -1,6 +1,7 @@
 {% extends 'fantaApp/base.html' %}
 
 {% block title %}Classifica piloti F1 — Fanta F1{% endblock %}
+{% block share_meta %}{% include "fantaApp/_share_meta.html" with share_title="Classifica piloti F1 — Fanta F1" share_description="Classifica piloti di Formula 1 aggiornata all'ultimo Gran Premio: posizione, scuderia, vittorie e punti." %}{% endblock %}
 
 {% block content %}
 <p class="mb-2 eyebrow">Formula 1{% if weekend %} · Stagione {{ weekend.season }}{% endif %}</p>
