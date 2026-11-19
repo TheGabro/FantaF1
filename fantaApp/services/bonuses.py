@@ -8,6 +8,7 @@ from decimal import Decimal
 from ..models import (
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     PlayerSprintQualifyingChoice,
     QualifyingResult,
     RaceStartingGrid,
@@ -277,6 +278,13 @@ def get_regular_qualifying_bonus_rule(position: int) -> dict:
     return rules.REGULAR_QUALIFYING_BONUS_BY_POSITION.get(position, default).copy()
 
 
+def get_missed_regular_qualifying_bonus_rule() -> dict:
+    """Missed choice: the bonus of the last grid position, read from the table (#153)."""
+    return get_regular_qualifying_bonus_rule(
+        max(rules.REGULAR_QUALIFYING_BONUS_BY_POSITION)
+    )
+
+
 def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     """
     Calcola il bonus per la scelta qualifica regular (weekend non-sprint).
@@ -290,6 +298,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "points_multiplier": Decimal("1"),
         "driver": None,
         "position": None,
+        "missed": False,
     }
 
     if qualifying is None:
@@ -303,6 +312,14 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     )
 
     if choice is None:
+        if PlayerQualifyingPenalty.objects.filter(
+            player=player, qualifying=qualifying
+        ).exists():
+            return {
+                **default_result,
+                **get_missed_regular_qualifying_bonus_rule(),
+                "missed": True,
+            }
         return default_result
 
     # The race bonus follows the Grand Prix starting grid position of the
@@ -324,6 +341,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "points_multiplier": bonus["points_multiplier"],
         "driver": choice.driver,
         "position": result.position,
+        "missed": False,
     }
 
 
@@ -378,6 +396,7 @@ def get_race_bonus(*, player, race) -> dict:
             "qualifying_points": 0,
             "driver": None,
             "position": None,
+            "missed": False,
         }
     else:
         # Weekend regular: il bonus viene dalla scelta singola del pilota
@@ -394,6 +413,7 @@ def get_race_bonus(*, player, race) -> dict:
             "qualifying_points": bonus["qualifying_points"],
             "driver": bonus["driver"],
             "position": bonus["position"],
+            "missed": bonus["missed"],
         }
 
 

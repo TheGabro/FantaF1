@@ -161,6 +161,9 @@
     {% else %}
       <div class="rounded-lg border border-dashed border-line p-3 text-muted">
         Nessuna scelta per questa qualifica.
+        {% if missed_penalty %}
+          <p class="mt-1"><span class="badge-accent">Penalità</span> malus +{{ missed_malus }} FM sul Gran Premio{% if missed_penalty.burned_driver %}, pilota bruciato: <span class="font-semibold text-ink">{{ missed_penalty.burned_driver.first_name }} {{ missed_penalty.burned_driver.last_name }}</span>, non potrai più sceglierlo{% endif %}.</p>
+        {% endif %}
       </div>
     {% endif %}
   </aside>

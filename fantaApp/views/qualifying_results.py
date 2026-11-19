@@ -18,6 +18,7 @@ from django.urls import reverse
 from ..models import (
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     Qualifying,
     RaceStartingGrid,
 )
@@ -170,6 +171,14 @@ def race_qualifying_results(request, championship_id, weekend_id, event_id):
     if player:
         build_pick = _multi_pick if is_sprint_weekend else _regular_pick
         pick, picked_drivers = build_pick(player, qualifying, results)
+    # No choice in a non-sprint weekend: malus and maybe a burned driver (#153)
+    missed_penalty = (
+        PlayerQualifyingPenalty.objects.filter(player=player, qualifying=qualifying)
+        .select_related("burned_driver")
+        .first()
+        if player and pick is None
+        else None
+    )
 
     use_weekend_teams(weekend, [entry.driver for entry in results] + picked_drivers)
 
@@ -194,6 +203,10 @@ def race_qualifying_results(request, championship_id, weekend_id, event_id):
             # None per chi non gioca: vede solo la classifica ufficiale.
             "player": player,
             "pick": pick,
+            "missed_penalty": missed_penalty,
+            "missed_malus": bonuses.get_missed_regular_qualifying_bonus_rule()[
+                "credit_change"
+            ],
             "is_sprint_weekend": is_sprint_weekend,
             # Scelte di tutti i giocatori nella stessa qualifica (#211, #212),
             # solo per chi gioca o gestisce il campionato.

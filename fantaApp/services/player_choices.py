@@ -3,14 +3,20 @@ Funzioni per le scelte dei giocatori (choose_*).
 La logica di calcolo bonus è in bonuses.py, la logica costi in costs.py.
 """
 
+from collections import Counter
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from ..models import (
+    ChampionshipPlayer,
+    Driver,
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingPenalty,
     PlayerRaceChoice,
     PlayerSprintQualifyingChoice,
+    QualifyingResult,
 )
 from . import bonuses, costs, rules
 
@@ -247,34 +253,115 @@ def choose_sprint_quali_driver(*, player, qualifying, driver, slot):
 # ============================================================================
 
 
+def get_used_regular_qualifying_drivers(
+    *, player, season, exclude_qualifying=None
+) -> dict:
+    """
+    Drivers already spent in the season's regular qualifyings, chosen or burned
+    by a missed choice (#153): driver id -> event name of that weekend.
+    """
+    used = {}
+    for model, field in (
+        (PlayerQualifyingChoice, "driver"),
+        (PlayerQualifyingPenalty, "burned_driver"),
+    ):
+        rows = model.objects.filter(
+            player=player,
+            qualifying__type="regular",
+            qualifying__weekend__season=season,
+            **{f"{field}__isnull": False},
+        ).select_related("qualifying__weekend")
+        if exclude_qualifying is not None:
+            rows = rows.exclude(qualifying=exclude_qualifying)
+        for row in rows:
+            used[getattr(row, f"{field}_id")] = row.qualifying.weekend.event_name
+    return used
+
+
+def get_maxed_regular_qualifying_team_ids(used_driver_ids) -> set:
+    """Teams already picked MAX_PICKS_PER_TEAM times; burned drivers count too (#153)."""
+    picks = Counter(
+        Driver.objects.filter(id__in=used_driver_ids).values_list("team_id", flat=True)
+    )
+    return {
+        team_id
+        for team_id, count in picks.items()
+        if count >= rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM
+    }
+
+
+@transaction.atomic
+def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPenalty]:
+    """
+    Penalize the players with no choice for a regular qualifying in a non-sprint
+    weekend (D.1.a.2, #153). The malus itself is read by bonuses from the penalty.
+
+    From the (GRACE + 1)-th missed choice of the season the best classified
+    driver still available to the player is burned: marked as used, no bonus.
+
+    Needs the qualifying classification. Safe to run again: get_or_create.
+    """
+    weekend = qualifying.weekend
+    if qualifying.type != "regular" or weekend.weekend_type != "regular":
+        return []
+
+    players = ChampionshipPlayer.objects.filter(
+        championship__year=weekend.season
+    ).exclude(
+        id__in=PlayerQualifyingChoice.objects.filter(qualifying=qualifying).values(
+            "player_id"
+        )
+    )
+    classification = list(
+        QualifyingResult.objects.filter(qualifying=qualifying, position__isnull=False)
+        .order_by("position")
+        .values_list("driver_id", "driver__team_id")
+    )
+
+    penalties = []
+    for player in players:
+        missed = 1 + PlayerQualifyingPenalty.objects.filter(
+            player=player,
+            qualifying__weekend__season=weekend.season,
+            qualifying__weekend__round_number__lt=weekend.round_number,
+        ).count()
+
+        burned_driver_id = None
+        if missed > rules.MISSED_QUALIFYING_CHOICE_GRACE:
+            # Available = the player could still choose it: not used, team not maxed
+            used = get_used_regular_qualifying_drivers(
+                player=player, season=weekend.season, exclude_qualifying=qualifying
+            )
+            maxed_team_ids = get_maxed_regular_qualifying_team_ids(used)
+            burned_driver_id = next(
+                (
+                    driver_id
+                    for driver_id, team_id in classification
+                    if driver_id not in used and team_id not in maxed_team_ids
+                ),
+                None,
+            )
+
+        penalty, _ = PlayerQualifyingPenalty.objects.get_or_create(
+            player=player,
+            qualifying=qualifying,
+            defaults={"burned_driver_id": burned_driver_id},
+        )
+        penalties.append(penalty)
+
+    return penalties
+
+
 @transaction.atomic
 def choose_regular_quali_driver(*, player, qualifying, driver):
-    already_used = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            driver=driver,
-            qualifying__type="regular",
-            qualifying__weekend__season=qualifying.weekend.season,
-        )
-        .exclude(qualifying=qualifying)
-        .exists()
+    used = get_used_regular_qualifying_drivers(
+        player=player, season=qualifying.weekend.season, exclude_qualifying=qualifying
     )
 
-    if already_used:
+    if driver.id in used:
         raise ValidationError("Driver already used in this season's Regular Qualifying")
 
-    same_team_picks = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            driver__team=driver.team,
-            qualifying__type="regular",
-            qualifying__weekend__season=qualifying.weekend.season,
-        )
-        .exclude(qualifying=qualifying)
-        .count()
-    )
-
-    if same_team_picks >= rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM:
+    if driver.team_id in get_maxed_regular_qualifying_team_ids(used):
         raise ValidationError(
             f"Hai gia' scelto un pilota {driver.team.name} "
             f"{rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM} volte in questa stagione."
