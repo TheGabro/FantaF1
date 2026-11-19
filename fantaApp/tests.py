@@ -1314,6 +1314,25 @@ class MissedGrandPrixChoicePenaltyTests(TestCase):
 
         self.assertFalse(PlayerRaceResult.objects.filter(race=sprint).exists())
 
+    @override_settings(STORAGES=TEST_STORAGES)
+    def test_player_sees_penalty_in_my_choices_and_race_results(self):
+        self._choose(self.chooser_low, self.races[0], 30)
+        player_scoring.compute_player_score_per_race(race=self.races[0])
+        self.client.force_login(self.missing.user)
+        race = self.races[0]
+
+        for url in (
+            reverse("championship_my_choices", args=[self.championship.pk]),
+            reverse(
+                "regular_race_results",
+                args=[self.championship.pk, race.weekend.pk, race.pk],
+            ),
+        ):
+            response = self.client.get(url)
+            self.assertContains(response, "Penalità")
+            self.assertContains(response, "addebitati")
+            self.assertContains(response, "30 FM")
+
 
 @override_settings(STORAGES=TEST_STORAGES)
 class LoginNextRedirectTests(TestCase):
