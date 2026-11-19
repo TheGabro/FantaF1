@@ -4,9 +4,10 @@ Le funzioni qui sono pensate per essere chiamate da task schedulati (Airflow/man
 """
 
 from django.db import transaction
+from django.db.models import Sum
 
-from ..models import PlayerRaceChoice, PlayerRaceResult, RaceResult
-from . import bonuses
+from ..models import ChampionshipPlayer, PlayerRaceChoice, PlayerRaceResult, RaceResult
+from . import bonuses, rules
 
 
 def _get_fia_points_for_choices(choices: list[PlayerRaceChoice], race) -> int:
@@ -124,13 +125,7 @@ def compute_player_score_per_race(*, race) -> dict:
             # Calcola e salva i punti per questa gara
             compute_race_points(player=player, race=race)
 
-            # total_score = somma dei PlayerRaceResult di questo ChampionshipPlayer
-            # (gia' scoping al singolo campionato: ChampionshipPlayer e' per-campionato)
-            total = sum(
-                r.total_points for r in PlayerRaceResult.objects.filter(player=player)
-            )
-            player.total_score = int(total)
-            player.save(update_fields=["total_score"])
+            _refresh_total_score(player)
 
             players_updated += 1
         except Exception as e:
@@ -142,8 +137,100 @@ def compute_player_score_per_race(*, race) -> dict:
                 }
             )
 
+    penalized = apply_missed_choice_penalties(race=race)
+    for player in penalized:
+        _refresh_total_score(player)
+
     return {
         "race": str(race),
         "players_updated": players_updated,
+        "players_penalized": len(penalized),
         "errors": errors,
     }
+
+
+def _refresh_total_score(player):
+    # total_score = somma dei PlayerRaceResult di questo ChampionshipPlayer
+    # (gia' scoping al singolo campionato: ChampionshipPlayer e' per-campionato)
+    total = sum(r.total_points for r in PlayerRaceResult.objects.filter(player=player))
+    player.total_score = int(total)
+    player.save(update_fields=["total_score"])
+
+
+def apply_missed_choice_penalties(*, race) -> list[ChampionshipPlayer]:
+    """
+    Penalize the players with no choice for a Grand Prix (C.3, #154).
+
+    - Credits: the lowest spend among the players of the same championship who
+      chose, plus the player's qualifying malus (discounts are lost). Nobody
+      chose in the championship: only the malus. Credits never go below zero.
+    - Points: from the (GRACE + 1)-th missed choice of the season,
+      -STEP x (n - GRACE). The counter goes up even when nobody chose.
+
+    Safe to run again: credits are charged only when the result is created.
+
+    Returns:
+        The penalized players.
+    """
+    if race.type != "regular":
+        return []
+
+    season = race.weekend.season
+    spent_by_player_id = dict(
+        PlayerRaceChoice.objects.filter(race=race)
+        .values("player_id")
+        .annotate(total=Sum("spent_amount"))
+        .values_list("player_id", "total")
+    )
+    players = list(
+        ChampionshipPlayer.objects.select_for_update().filter(
+            championship__year=season
+        )
+    )
+
+    min_spent_by_championship_id = {}
+    for player in players:
+        spent = spent_by_player_id.get(player.id)
+        if spent is not None:
+            current = min_spent_by_championship_id.get(player.championship_id, spent)
+            min_spent_by_championship_id[player.championship_id] = min(current, spent)
+
+    penalized = []
+    for player in players:
+        if player.id in spent_by_player_id:
+            continue
+
+        malus = max(bonuses.get_race_bonus(player=player, race=race)["credit_change"], 0)
+        penalty = min_spent_by_championship_id.get(player.championship_id, 0) + malus
+
+        missed = 1 + PlayerRaceResult.objects.filter(
+            player=player,
+            missed_choice=True,
+            race__type="regular",
+            race__weekend__season=season,
+            race__weekend__round_number__lt=race.weekend.round_number,
+        ).count()
+        points = -rules.MISSED_GP_CHOICE_POINTS_STEP * max(
+            missed - rules.MISSED_GP_CHOICE_GRACE, 0
+        )
+
+        result, created = PlayerRaceResult.objects.get_or_create(
+            player=player,
+            race=race,
+            defaults={
+                "credit_spent": min(penalty, max(player.available_credit, 0)),
+                "fia_points": 0,
+                "total_points": points,
+                "missed_choice": True,
+            },
+        )
+        if created:
+            player.available_credit -= result.credit_spent
+            player.save(update_fields=["available_credit"])
+        elif result.missed_choice:
+            # An earlier race processed again can change the counter
+            result.total_points = points
+            result.save(update_fields=["total_points", "updated_at"])
+        penalized.append(player)
+
+    return penalized

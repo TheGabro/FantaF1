@@ -1091,7 +1091,7 @@ class PlayerScoringTests(TestCase):
         )
         self.assertEqual(updated_result.fia_points, 18)
 
-    def test_compute_player_score_per_race_only_updates_players_with_choices(self):
+    def test_compute_player_score_per_race_penalizes_players_without_choices(self):
         self._create_race_result(
             race=self.race, driver=self.driver_1, position=1, points=25
         )
@@ -1103,16 +1103,17 @@ class PlayerScoringTests(TestCase):
         stats = player_scoring.compute_player_score_per_race(race=self.race)
 
         self.assertEqual(stats["players_updated"], 1)
+        self.assertEqual(stats["players_penalized"], 1)
         self.assertEqual(stats["errors"], [])
         self.player_a.refresh_from_db()
         self.player_b.refresh_from_db()
         self.assertEqual(self.player_a.total_score, 25)
         self.assertEqual(self.player_b.total_score, 0)
-        self.assertFalse(
-            PlayerRaceResult.objects.filter(
-                player=self.player_b, race=self.race
-            ).exists()
-        )
+        # Nobody chose in championship B: first missed choice, no credits charged
+        result = PlayerRaceResult.objects.get(player=self.player_b, race=self.race)
+        self.assertTrue(result.missed_choice)
+        self.assertEqual(result.credit_spent, 0)
+        self.assertEqual(self.player_b.available_credit, 1000)
 
     def test_compute_player_score_per_race_updates_players_across_different_championships(
         self,
