@@ -3,11 +3,14 @@ Funzioni per le scelte dei giocatori (choose_*).
 La logica di calcolo bonus è in bonuses.py, la logica costi in costs.py.
 """
 
+from collections import Counter
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from ..models import (
     ChampionshipPlayer,
+    Driver,
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
     PlayerQualifyingPenalty,
@@ -275,6 +278,18 @@ def get_used_regular_qualifying_drivers(
     return used
 
 
+def get_maxed_regular_qualifying_team_ids(used_driver_ids) -> set:
+    """Teams already picked MAX_PICKS_PER_TEAM times; burned drivers count too (#153)."""
+    picks = Counter(
+        Driver.objects.filter(id__in=used_driver_ids).values_list("team_id", flat=True)
+    )
+    return {
+        team_id
+        for team_id, count in picks.items()
+        if count >= rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM
+    }
+
+
 @transaction.atomic
 def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPenalty]:
     """
@@ -300,7 +315,7 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
     classification = list(
         QualifyingResult.objects.filter(qualifying=qualifying, position__isnull=False)
         .order_by("position")
-        .values_list("driver_id", flat=True)
+        .values_list("driver_id", "driver__team_id")
     )
 
     penalties = []
@@ -313,11 +328,17 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
 
         burned_driver_id = None
         if missed > rules.MISSED_QUALIFYING_CHOICE_GRACE:
+            # Available = the player could still choose it: not used, team not maxed
             used = get_used_regular_qualifying_drivers(
                 player=player, season=weekend.season, exclude_qualifying=qualifying
             )
+            maxed_team_ids = get_maxed_regular_qualifying_team_ids(used)
             burned_driver_id = next(
-                (driver_id for driver_id in classification if driver_id not in used),
+                (
+                    driver_id
+                    for driver_id, team_id in classification
+                    if driver_id not in used and team_id not in maxed_team_ids
+                ),
                 None,
             )
 
@@ -333,25 +354,14 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
 
 @transaction.atomic
 def choose_regular_quali_driver(*, player, qualifying, driver):
-    already_used = driver.id in get_used_regular_qualifying_drivers(
+    used = get_used_regular_qualifying_drivers(
         player=player, season=qualifying.weekend.season, exclude_qualifying=qualifying
     )
 
-    if already_used:
+    if driver.id in used:
         raise ValidationError("Driver already used in this season's Regular Qualifying")
 
-    same_team_picks = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            driver__team=driver.team,
-            qualifying__type="regular",
-            qualifying__weekend__season=qualifying.weekend.season,
-        )
-        .exclude(qualifying=qualifying)
-        .count()
-    )
-
-    if same_team_picks >= rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM:
+    if driver.team_id in get_maxed_regular_qualifying_team_ids(used):
         raise ValidationError(
             f"Hai gia' scelto un pilota {driver.team.name} "
             f"{rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM} volte in questa stagione."

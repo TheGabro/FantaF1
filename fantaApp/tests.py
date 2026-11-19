@@ -6799,6 +6799,48 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
 
 
 
+    def test_burned_driver_counts_for_the_team_limit(self):
+        # QP1 chosen in round 1, QP2 burned in round 4: the team is at its limit
+        PlayerQualifyingChoice.objects.create(
+            player=self.missing, qualifying=self.qualifyings[0], driver=self.drivers[0]
+        )
+        for qualifying in self.qualifyings[1:4]:
+            self._apply(qualifying)
+        self.assertEqual(self._penalty(self.qualifyings[3]).burned_driver, self.drivers[1])
+
+        with self.assertRaisesMessage(ValidationError, "2 volte"):
+            pc.choose_regular_quali_driver(
+                player=self.missing,
+                qualifying=self.qualifyings[4],
+                driver=self.drivers[2],
+            )
+
+    def test_burned_driver_skips_teams_at_their_limit(self):
+        # QP1 and QP2 chosen: the team is at its limit, so QP3 is not available
+        for qualifying, driver in zip(self.qualifyings[:2], self.drivers):
+            PlayerQualifyingChoice.objects.create(
+                player=self.missing, qualifying=qualifying, driver=driver
+            )
+        other_team = Team.objects.create(
+            name="Other Team", short_name="OTH", api_id="t-oth", nationality="IT"
+        )
+        other = Driver.objects.create(
+            first_name="Oth",
+            last_name="Driver",
+            number=89,
+            short_name="OTH",
+            team=other_team,
+            season=2026,
+            api_id="qp-drv-oth",
+        )
+        QualifyingResult.objects.create(
+            qualifying=self.qualifyings[4], driver=other, position=4
+        )
+        for qualifying in self.qualifyings[2:5]:
+            self._apply(qualifying)
+
+        self.assertEqual(self._penalty(self.qualifyings[4]).burned_driver, other)
+
 @override_settings(STORAGES=TEST_STORAGES)
 class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
     """#153: the missed qualifying penalty is shown to the player."""

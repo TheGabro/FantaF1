@@ -22,7 +22,6 @@ from .race_classification import race_classification
 from .dashboard import _mark_missing_grids, _player_choice_index, _weekend_sessions
 from .all_choices.links import results_session_bar, weekend_page_links
 from . import session_state as ss
-from django.db.models import Count
 
 
 @login_required
@@ -766,17 +765,9 @@ def regular_weekend_race_qualifying_choice(request, player, champ, weekend, even
         player=player, season=weekend.season, exclude_qualifying=qualifying
     )
 
-    teams_maxed_out = (
-        PlayerQualifyingChoice.objects.filter(
-            player=player,
-            qualifying__weekend__season=weekend.season,
-            qualifying__type="regular",
-        )
-        .exclude(qualifying=qualifying)
-        .values("driver__team_id")
-        .annotate(picks=Count("id"))
-        .filter(picks__gte=rules.REGULAR_QUALIFYING_MAX_PICKS_PER_TEAM)
-        .values_list("driver__team_id", flat=True)
+    # Scuderie al limite, contando anche i piloti bruciati (#153)
+    teams_maxed_out = pc.get_maxed_regular_qualifying_team_ids(
+        locked_events_by_driver_id
     )
 
     if request.method == "POST":
