@@ -1547,7 +1547,7 @@ class CreateChampionshipTests(TestCase):
         # Senza JavaScript restano link alla pagina del form.
         self.assertContains(
             response,
-            f'href="{reverse("create_championship")}" class="btn-primary mt-4"'
+            f'href="{reverse("create_championship")}" class="btn-primary"'
             " data-open-create-dialog",
         )
         self.assertFalse(response.context["open_create_dialog"])
