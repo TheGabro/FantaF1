@@ -7132,6 +7132,8 @@ class EnrollmentWindowTests(TestCase):
         self.client.force_login(user)
         url = reverse("join_championship", args=[self.championship.id])
 
-        self.assertRedirects(self.client.get(url), reverse("user_dashboard"))
+        self.assertRedirects(
+            self.client.get(url), reverse("user_dashboard"), fetch_redirect_response=False
+        )
         self.client.post(url, {"player_name": "Tardi", "league": self.league.id})
         self.assertFalse(ChampionshipPlayer.objects.filter(user=user).exists())
