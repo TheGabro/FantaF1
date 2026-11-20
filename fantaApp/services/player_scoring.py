@@ -166,6 +166,9 @@ def apply_missed_choice_penalties(*, race) -> list[ChampionshipPlayer]:
       chose in the championship: only the malus. Credits never go below zero.
     - Points: from the (GRACE + 1)-th missed choice of the season,
       -STEP x (n - GRACE). The counter goes up even when nobody chose.
+      A player with no credits left loses no points.
+    - The missed qualifying malus is not part of it: it is charged on its own
+      right after the qualifying (#153).
 
     Safe to run again: credits are charged only when the result is created.
 
@@ -213,6 +216,11 @@ def apply_missed_choice_penalties(*, race) -> list[ChampionshipPlayer]:
         points = -rules.MISSED_GP_CHOICE_POINTS_STEP * max(
             missed - rules.MISSED_GP_CHOICE_GRACE, 0
         )
+        # Out of credits, the player could not choose: no points lost.
+        # ponytail: "out of credits" = available_credit <= 0; a 0-cost pair
+        # (discounts, pupillo) could still have been possible, refine if needed
+        if player.available_credit <= 0:
+            points = 0
 
         result, created = PlayerRaceResult.objects.get_or_create(
             player=player,
