@@ -383,6 +383,9 @@ def get_race_bonus(*, player, race) -> dict:
     - Weekend regular: bonus da scelta singola pilota (PlayerQualifyingChoice)
 
     credit_change: positivo = malus (costo aumenta), negativo = sconto (costo diminuisce)
+
+    No qualifying points (∂) here: the race bonus follows the starting grid,
+    the ∂ the classification, and they are saved per player (#166).
     """
     qualifying = race.weekend.qualifyings.filter(type="regular").first()
 
@@ -400,7 +403,6 @@ def get_race_bonus(*, player, race) -> dict:
                 "credit_discount"
             ],  # sconto → credit_change negativo
             "points_multiplier": multichoice_bonus["points_multiplier"],
-            "qualifying_points": 0,
             "driver": None,
             "position": None,
             "missed": False,
@@ -418,7 +420,6 @@ def get_race_bonus(*, player, race) -> dict:
                 "credit_change"
             ],  # positivo = malus, negativo = sconto
             "points_multiplier": bonus["points_multiplier"],
-            "qualifying_points": bonus["qualifying_points"],
             "driver": bonus["driver"],
             "position": bonus["position"],
             "missed": bonus["missed"],

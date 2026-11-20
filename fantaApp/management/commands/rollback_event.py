@@ -14,6 +14,7 @@ from django.db import transaction
 
 from fantaApp.models import (
     EventProcessingStatus,
+    PlayerQualifyingResult,
     PlayerRaceResult,
     QualifyingResult,
     Race,
@@ -58,9 +59,13 @@ class Command(BaseCommand):
             deleted_results, _ = QualifyingResult.objects.filter(
                 qualifying=qualifying
             ).delete()
+            deleted_points, _ = PlayerQualifyingResult.objects.filter(
+                qualifying=qualifying
+            ).delete()
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"• {qualifying}: {deleted_results} QualifyingResult cancellati"
+                    f"• {qualifying}: {deleted_results} QualifyingResult, "
+                    f"{deleted_points} PlayerQualifyingResult cancellati"
                 )
             )
 

@@ -49,6 +49,7 @@ from .models import (
     Qualifying,
     PlayerQualifyingMultiChoice,
     PlayerQualifyingPenalty,
+    PlayerQualifyingResult,
     PlayerSprintQualifyingChoice,
     PlayerRaceResult,
     QualifyingResult,
@@ -7000,7 +7001,6 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
             self.assertEqual(bonus["credit_change"], 0)
             self.assertEqual(bonus["penalty_credit"], 30)
             self.assertEqual(bonus["points_multiplier"], 1)
-            self.assertEqual(bonus["qualifying_points"], 0)
             self.assertTrue(bonus["missed"])
 
         self.missing.refresh_from_db()
@@ -7628,3 +7628,132 @@ class ChampionshipSearchPageTests(TestCase):
         )
 
         self.assertContains(self.client.get(self.url), "1 giocatore<")
+
+
+class PlayerQualifyingPointsTests(TestCase):
+    """#166: qualifying points (∂) saved per player and qualifying."""
+
+    def setUp(self):
+        self.circuit = Circuit.objects.create(
+            name="Suzuka", country="Japan", location="Suzuka", api_id="c-suz"
+        )
+        team = Team.objects.create(
+            name="Delta Team", short_name="DLT", api_id="t-dlt", nationality="JP"
+        )
+        self.drivers = [
+            Driver.objects.create(
+                first_name=f"Dp{number}",
+                last_name="Driver",
+                number=60 + number,
+                short_name=f"DP{number}",
+                team=team,
+                season=2026,
+                api_id=f"dp-drv-{number}",
+            )
+            for number in (1, 2, 3)
+        ]
+        self.championship = Championship.objects.create(name="Delta Cup", year=2026)
+        league = League.objects.create(championship=self.championship, name="L")
+        self.chooser, self.missing = [
+            ChampionshipPlayer.objects.create(
+                user=get_user_model().objects.create_user(
+                    username=name, email=f"{name}@example.com", password="pw"
+                ),
+                championship=self.championship,
+                league=league,
+                player_name=name,
+            )
+            for name in ("delta-chooser", "delta-missing")
+        ]
+        self.regular = self._qualifying(1, "regular")
+        self.sprint_weekend = self._qualifying(2, "sprint")
+
+    def _qualifying(self, round_number, weekend_type):
+        weekend = Weekend.objects.create(
+            circuit=self.circuit,
+            event_name=f"Delta GP {round_number}",
+            round_number=round_number,
+            season=2026,
+            weekend_type=weekend_type,
+            qualifying_start=timezone.now() - timedelta(days=1),
+        )
+        qualifying = Qualifying.objects.create(weekend=weekend, type="regular")
+        for position, driver in enumerate(self.drivers, start=1):
+            QualifyingResult.objects.create(
+                qualifying=qualifying, driver=driver, position=position
+            )
+        return qualifying
+
+    def _saved(self, player, qualifying):
+        return PlayerQualifyingResult.objects.get(
+            player=player, qualifying=qualifying
+        ).qualifying_points
+
+    def test_regular_pick_saved_missed_choice_has_no_row(self):
+        PlayerQualifyingChoice.objects.create(
+            player=self.chooser, qualifying=self.regular, driver=self.drivers[1]
+        )
+
+        self.assertEqual(
+            player_scoring.compute_player_qualifying_points(qualifying=self.regular), 1
+        )
+        player_scoring.compute_player_qualifying_points(qualifying=self.regular)
+
+        self.assertEqual(
+            self._saved(self.chooser, self.regular),
+            bonuses.get_regular_qualifying_bonus_rule(2)["qualifying_points"],
+        )
+        self.assertEqual(PlayerQualifyingResult.objects.count(), 1)
+        self.assertFalse(
+            PlayerQualifyingResult.objects.filter(player=self.missing).exists()
+        )
+
+    def test_sprint_weekend_multichoice_level_saved(self):
+        PlayerQualifyingMultiChoice.objects.create(
+            player=self.chooser,
+            qualifying=self.sprint_weekend,
+            driver=self.drivers[0],
+            selection_slot="q1_pass",
+        )
+        with patch.object(bonuses, "resolve_multichoice_level", return_value="q2_pass"):
+            player_scoring.compute_player_qualifying_points(
+                qualifying=self.sprint_weekend
+            )
+
+        self.assertEqual(
+            self._saved(self.chooser, self.sprint_weekend),
+            bonuses.get_qualifying_multichoice_bonus_rule("q2_pass")["qualifying_points"],
+        )
+
+    def test_standings_read_the_saved_points(self):
+        for qualifying, points in ((self.regular, 300), (self.sprint_weekend, 500)):
+            PlayerQualifyingResult.objects.create(
+                player=self.chooser, qualifying=qualifying, qualifying_points=points
+            )
+
+        stats = dashboard._qualifying_points_by_player(self.championship)
+
+        mine = stats[self.chooser.id]
+        self.assertEqual((mine["points"], mine["played"], mine["best"]), (800, 2, 500))
+        self.assertNotIn(self.missing.id, stats)
+
+    def test_rollback_removes_the_saved_points(self):
+        PlayerQualifyingResult.objects.create(
+            player=self.chooser, qualifying=self.regular, qualifying_points=300
+        )
+        EventProcessingStatus.objects.create(
+            qualifying=self.regular,
+            status=Status.PROCESSED,
+            eligible_after=timezone.now(),
+        )
+
+        call_command(
+            "rollback_event",
+            season=2026,
+            round=1,
+            type="regular",
+            event="qualifying",
+            stdout=StringIO(),
+        )
+
+        self.assertFalse(PlayerQualifyingResult.objects.exists())
