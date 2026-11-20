@@ -562,6 +562,25 @@ class PlayerRaceResult(models.Model):
         )
 
 
+class PlayerQualifyingResult(models.Model):
+    """Qualifying points (∂) of a player for a qualifying (D.1.d, #166).
+
+    Saved when the qualifying results are processed, only for the players who
+    chose: a missed choice is worth 0 ∂ and has no row.
+    """
+
+    player = models.ForeignKey(ChampionshipPlayer, on_delete=models.CASCADE)
+    qualifying = models.ForeignKey(Qualifying, on_delete=models.CASCADE)
+    qualifying_points = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("player", "qualifying")]
+
+    def __str__(self):
+        return f"{self.player.player_name} - {self.qualifying}: {self.qualifying_points} ∂"
+
+
 class Status(models.TextChoices):
     PENDING = "pending", "Pending"
     WAITING_FOR_RESULTS = "waiting_for_results", "Waiting for results"

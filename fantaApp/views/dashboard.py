@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
 from django.shortcuts import render, redirect, get_object_or_404
 from ..forms import creations
 from ..models import (
@@ -15,14 +15,13 @@ from ..models import (
     Weekend,
     PlayerQualifyingChoice,
     PlayerQualifyingMultiChoice,
+    PlayerQualifyingResult,
     PlayerSprintQualifyingChoice,
     PlayerRaceChoice,
     PlayerRaceResult,
-    QualifyingResult,
     RaceStartingGrid,
 )
 from ..services import player_choices as pc
-from ..services import bonuses
 from ..services import costs
 from ..services import helper
 from ..services import rules
@@ -593,81 +592,23 @@ def championship_league_standings(request, championship_id):
 # ── Classifica qualifiche ──────────────────────────────────────────────────────
 def _qualifying_points_by_player(championship):
     """
-    Punti qualifica di stagione per giocatore, calcolati al volo.
+    Season qualifying points by player, from the saved ∂ (#166): one query.
 
-    Non esiste un PlayerQualifyingResult: i punti stanno solo nelle tabelle di
-    rules.py e vengono ricavati qui da scelte + risultati, caricati in blocco
-    (tre query in tutto, indipendenti dal numero di giocatori). Se un domani il
-    backend li persiste, questa funzione si riduce a una query su quel modello.
-
-    Ritorna {player_id: {"points": int, "played": int, "best": int}}, dove
-    'played' conta solo le qualifiche con i risultati già disponibili.
+    Returns {player_id: {"points": int, "played": int, "best": int}}, where
+    'played' counts the qualifyings with a choice and results.
     """
-    season = championship.year
-
-    results_by_qualifying = defaultdict(dict)
-    for result in QualifyingResult.objects.filter(qualifying__weekend__season=season):
-        results_by_qualifying[result.qualifying_id][result.driver_id] = result
-
-    stats = defaultdict(lambda: {"points": 0, "played": 0, "best": 0})
-
-    def record(player_id, points):
-        entry = stats[player_id]
-        entry["points"] += points
-        entry["played"] += 1
-        entry["best"] = max(entry["best"], points)
-
-    # Weekend regular: un pilota solo, punti in base alla posizione ottenuta.
-    for choice in PlayerQualifyingChoice.objects.filter(
-        player__championship=championship,
-        qualifying__weekend__season=season,
-        qualifying__type="regular",
-    ):
-        results = results_by_qualifying.get(choice.qualifying_id)
-        if not results:
-            continue  # qualifica non ancora corsa o risultati non importati
-        result = results.get(choice.driver_id)
-        position = result.position if result else None
-        record(
-            choice.player_id,
-            bonuses.get_regular_qualifying_bonus_rule(position)["qualifying_points"]
-            if position
-            else 0,
+    return {
+        row["player_id"]: row
+        for row in PlayerQualifyingResult.objects.filter(
+            player__championship=championship
         )
-
-    # Weekend sprint: multichoice Q1/Q2/Q3, punti in base al livello raggiunto.
-    choices_by_player_qualifying = defaultdict(lambda: defaultdict(list))
-    for (
-        player_id,
-        qualifying_id,
-        slot,
-        driver_id,
-    ) in PlayerQualifyingMultiChoice.objects.filter(
-        player__championship=championship,
-        qualifying__weekend__season=season,
-        qualifying__weekend__weekend_type="sprint",
-    ).values_list(
-        "player_id", "qualifying_id", "selection_slot", "driver_id"
-    ):
-        choices_by_player_qualifying[(player_id, qualifying_id)][slot].append(driver_id)
-
-    for (
-        player_id,
-        qualifying_id,
-    ), choices_by_slot in choices_by_player_qualifying.items():
-        results = results_by_qualifying.get(qualifying_id)
-        if not results:
-            continue
-        level = bonuses.resolve_multichoice_level(
-            choices_by_slot=choices_by_slot,
-            results_by_driver_id=results,
+        .values("player_id")
+        .annotate(
+            points=Sum("qualifying_points"),
+            played=Count("id"),
+            best=Max("qualifying_points"),
         )
-        record(
-            player_id,
-            bonuses.get_qualifying_multichoice_bonus_rule(level)["qualifying_points"],
-        )
-
-    return stats
+    }
 
 
 @login_required

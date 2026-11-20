@@ -230,7 +230,6 @@ def choose_regular_race_drivers(*, player, race, drivers, pupillo_driver):
         "qualifying_bonus_credit_change": qualifying_bonus["credit_change"],
         "qualifying_bonus_points_multiplier": qualifying_bonus["points_multiplier"],
         "qualifying_bonus_level": qualifying_bonus["level"],
-        "qualifying_bonus_qualifying_points": qualifying_bonus["qualifying_points"],
     }
 
 
