@@ -150,9 +150,9 @@ Ogni risposta porta alla sezione del regolamento che la spiega per intero.
         <summary class="cursor-pointer font-semibold">Come funziona la qualifica del sabato nei weekend classici?</summary>
         <p class="mt-2 text-muted">
           Pronostichi il pilota che farà la pole. Ogni pilota si usa una sola volta nella stagione, ogni
-          scuderia al massimo {{ rulebook.max_picks_per_team }} volte. La posizione in qualifica dà i punti
-          qualifica (∂); la posizione in griglia dà uno sconto o un malus sul Gran Premio e un moltiplicatore
-          dei suoi punti, fino a ×{{ rulebook.regular_qualifying.0.points_multiplier }} con la pole.
+          scuderia al massimo {{ rulebook.max_picks_per_team }} volte. Conta la posizione nella griglia di
+          partenza del Gran Premio: dà i punti qualifica (∂), uno sconto o un malus sul Gran Premio e un
+          moltiplicatore dei suoi punti, fino a ×{{ rulebook.regular_qualifying.0.points_multiplier }} con la pole.
           <a href="{% url 'game_rules' %}#qualifiche-classico" class="text-accent">Tabella →</a>
         </p>
       </details>

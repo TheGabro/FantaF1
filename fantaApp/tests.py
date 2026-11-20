@@ -4610,6 +4610,8 @@ class SaturdayQualifyingResultsTests(WeekendPagesFixture, TestCase):
     def test_during_the_session_says_qualifying_in_progress(self):
         self._pick()
         self._started(timedelta(hours=1, minutes=59))
+        # During the session there is no Grand Prix grid yet
+        RaceStartingGrid.objects.filter(race=self.regular_race).delete()
 
         response = self.client.get(self.url)
 
@@ -4713,12 +4715,12 @@ class SprintWeekendQualifyingResultsTests(WeekendPagesFixture, TestCase):
         self.assertEqual(
             pick["qualifying_ticks"], [("Q1", True), ("Q2", False), ("Top 3", False)]
         )
-        q1_rule = bonuses.get_qualifying_multichoice_bonus_rule("q1_pass")
-        self.assertEqual(pick["qualifying_points"], q1_rule["qualifying_points"])
         self.assertEqual(
             pick["grid_ticks"], [("Q1", True), ("Q2", True), ("Top 3", False)]
         )
+        # #166: points, discount and multiplier all follow the grid level (Q2)
         rule = bonuses.get_qualifying_multichoice_bonus_rule("q2_pass")
+        self.assertEqual(pick["qualifying_points"], rule["qualifying_points"])
         self.assertEqual(pick["credit_discount"], rule["credit_discount"])
         self.assertEqual(pick["points_multiplier"], rule["points_multiplier"])
         self.assertContains(response, "Passano il Q1")
@@ -4954,7 +4956,7 @@ class SaturdayQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
         self.assertNotContains(response, "Smoke1")
         self.assertNotIn("rows", response.context)
 
-    def test_position_and_points_from_the_classification_bonus_from_the_grid(self):
+    def test_position_from_the_classification_points_and_bonus_from_the_grid(self):
         self._start()
         self._choose(self.me, self.d2)  # P2 in qualifica
         self._player("bruno")  # non ha scelto
@@ -4973,9 +4975,11 @@ class SaturdayQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
         from_classification = bonuses.get_regular_qualifying_bonus_rule(2)
         from_grid = bonuses.get_regular_qualifying_bonus_rule(1)
         self.assertEqual(mine["position"], 2)
-        self.assertEqual(
-            mine["qualifying_points"], from_classification["qualifying_points"]
+        self.assertNotEqual(
+            from_classification["qualifying_points"], from_grid["qualifying_points"]
         )
+        # #166: the qualifying points follow the grid too
+        self.assertEqual(mine["qualifying_points"], from_grid["qualifying_points"])
         self.assertEqual(mine["grid_position"], 1)
         self.assertEqual(mine["credit_change"], from_grid["credit_change"])
         self.assertEqual(mine["points_multiplier"], from_grid["points_multiplier"])
@@ -5148,8 +5152,9 @@ class SprintWeekendQualifyingAllChoicesTests(WeekendPagesFixture, TestCase):
         self.assertEqual(
             mine["qualifying_ticks"], [("Q1", True), ("Q2", False), ("Top 3", False)]
         )
-        q1_rule = bonuses.get_qualifying_multichoice_bonus_rule("q1_pass")
-        self.assertEqual(mine["qualifying_points"], q1_rule["qualifying_points"])
+        # #166: the qualifying points follow the grid level (Q2)
+        q2_rule = bonuses.get_qualifying_multichoice_bonus_rule("q2_pass")
+        self.assertEqual(mine["qualifying_points"], q2_rule["qualifying_points"])
         self.assertEqual(
             mine["grid_ticks"], [("Q1", True), ("Q2", True), ("Top 3", False)]
         )
@@ -7678,9 +7683,14 @@ class PlayerQualifyingPointsTests(TestCase):
             qualifying_start=timezone.now() - timedelta(days=1),
         )
         qualifying = Qualifying.objects.create(weekend=weekend, type="regular")
+        race = Race.objects.create(weekend=weekend, type="regular")
+        # Grid reversed from the classification (e.g. grid penalties)
         for position, driver in enumerate(self.drivers, start=1):
             QualifyingResult.objects.create(
                 qualifying=qualifying, driver=driver, position=position
+            )
+            RaceStartingGrid.objects.create(
+                race=race, driver=driver, position=len(self.drivers) + 1 - position
             )
         return qualifying
 
@@ -7689,9 +7699,10 @@ class PlayerQualifyingPointsTests(TestCase):
             player=player, qualifying=qualifying
         ).qualifying_points
 
-    def test_regular_pick_saved_missed_choice_has_no_row(self):
+    def test_regular_pick_saved_from_the_grid_missed_choice_has_no_row(self):
+        # Pole in qualifying, third on the grid: the grid counts
         PlayerQualifyingChoice.objects.create(
-            player=self.chooser, qualifying=self.regular, driver=self.drivers[1]
+            player=self.chooser, qualifying=self.regular, driver=self.drivers[0]
         )
 
         self.assertEqual(
@@ -7701,7 +7712,7 @@ class PlayerQualifyingPointsTests(TestCase):
 
         self.assertEqual(
             self._saved(self.chooser, self.regular),
-            bonuses.get_regular_qualifying_bonus_rule(2)["qualifying_points"],
+            bonuses.get_regular_qualifying_bonus_rule(3)["qualifying_points"],
         )
         self.assertEqual(PlayerQualifyingResult.objects.count(), 1)
         self.assertFalse(

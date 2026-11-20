@@ -242,8 +242,8 @@ def get_qualifying_multichoice_bonus(*, player, qualifying=None) -> dict:
     ).select_related("driver"):
         choices_by_slot.setdefault(choice.selection_slot, []).append(choice.driver_id)
 
-    # The race bonus follows the Grand Prix starting grid; the qualifying
-    # points (dashboard) still use the qualifying classification
+    # The race bonus (like the qualifying points) follows the Grand Prix
+    # starting grid, penalties included
     level = resolve_multichoice_level(
         choices_by_slot=choices_by_slot,
         results_by_driver_id=_grid_by_driver_id(
@@ -329,8 +329,8 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
             }
         return default_result
 
-    # The race bonus follows the Grand Prix starting grid position of the
-    # chosen driver; the qualifying points (dashboard) use the classification
+    # Race bonus and qualifying points follow the Grand Prix starting grid
+    # position of the chosen driver
     result = RaceStartingGrid.objects.filter(
         race__weekend=qualifying.weekend, race__type="regular", driver=choice.driver
     ).first()
@@ -384,8 +384,8 @@ def get_race_bonus(*, player, race) -> dict:
 
     credit_change: positivo = malus (costo aumenta), negativo = sconto (costo diminuisce)
 
-    No qualifying points (∂) here: the race bonus follows the starting grid,
-    the ∂ the classification, and they are saved per player (#166).
+    No qualifying points (∂) here: they are saved per player when the grid
+    is imported (player_scoring.compute_player_qualifying_points, #166).
     """
     qualifying = race.weekend.qualifyings.filter(type="regular").first()
 

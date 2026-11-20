@@ -99,10 +99,6 @@
       <div class="mt-4 border-t border-line pt-3">
         <p class="font-semibold">In qualifica</p>
         {% include "fantaApp/_level_ticks.html" with ticks=pick.qualifying_ticks %}
-        <div class="mt-2 flex items-center justify-between">
-          <span class="note">Punti qualifica</span>
-          <span class="text-xl font-black text-ok">{{ pick.qualifying_points }}</span>
-        </div>
       </div>
       {% endif %}
 
@@ -111,6 +107,10 @@
         {% if pick.grid_available %}
           {% include "fantaApp/_level_ticks.html" with ticks=pick.grid_ticks %}
           <div class="mt-2 flex items-center justify-between">
+            <span class="note">Punti qualifica</span>
+            <span class="text-xl font-black text-ok">{{ pick.qualifying_points }}</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between">
             <span class="note">Fantamilioni sul Gran Premio</span>
             <span class="font-bold {% if pick.credit_discount %}text-ok{% endif %}">{% if pick.credit_discount %}sconto {{ pick.credit_discount }} FM{% else %}nessuno sconto{% endif %}</span>
           </div>
@@ -119,7 +119,7 @@
             <span class="font-bold">×{{ pick.points_multiplier|decimals }}</span>
           </div>
         {% else %}
-          <p class="note mt-1">Sconto e moltiplicatore sul Gran Premio si conoscono con la griglia di partenza.</p>
+          <p class="note mt-1">Sconto e moltiplicatore sul Gran Premio e punti qualifica si conoscono con la griglia di partenza.</p>
         {% endif %}
       </div>
     {% elif pick %}
@@ -134,15 +134,15 @@
           <dt class="note">Posizione in qualifica</dt>
           <dd class="font-bold">{% if pick.position %}P{{ pick.position }}{% else %}—{% endif %}</dd>
         </div>
-        <div class="flex items-center justify-between">
-          <dt class="note">Punti qualifica</dt>
-          <dd class="text-xl font-black text-ok">{{ pick.qualifying_points }}</dd>
-        </div>
         {% endif %}
         {% if pick.grid_position %}
         <div class="flex items-center justify-between">
           <dt class="note">Griglia del Gran Premio</dt>
           <dd class="font-bold">P{{ pick.grid_position }}</dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="note">Punti qualifica</dt>
+          <dd class="text-xl font-black text-ok">{{ pick.qualifying_points }}</dd>
         </div>
         <div class="flex items-center justify-between">
           <dt class="note">Fantamilioni sul Gran Premio</dt>
@@ -155,7 +155,7 @@
           <dd class="font-bold">×{{ pick.points_multiplier|decimals }}</dd>
         </div>
         {% else %}
-        <p class="note">Sconto o malus e moltiplicatore sul Gran Premio si conoscono con la griglia di partenza, penalità incluse.</p>
+        <p class="note">Sconto o malus, moltiplicatore sul Gran Premio e punti qualifica si conoscono con la griglia di partenza, penalità incluse.</p>
         {% endif %}
       </dl>
     {% else %}

@@ -133,8 +133,8 @@ def qualifying_row(qualifying, player, pick, results, grid):
 
 
 def _regular_row(player, choice, results, grid):
-    """Weekend regular (#205): il pilota scelto, posizione e punti qualifica in
-    classifica, posizione in griglia con sconto o malus e moltiplicatore."""
+    """Weekend regular (#205): il pilota scelto, posizione in classifica,
+    posizione in griglia con punti qualifica, sconto o malus e moltiplicatore (#166)."""
     row = {
         "player": player,
         "driver": choice.driver if choice else None,
@@ -145,22 +145,15 @@ def _regular_row(player, choice, results, grid):
         "points_multiplier": None,
     }
     if choice and results:
-        # Come la classifica qualifiche: 0 punti a un pilota non classificato.
         result = results.get(choice.driver_id)
         row["position"] = result.position if result else None
-        row["qualifying_points"] = (
-            bonuses.get_regular_qualifying_bonus_rule(row["position"])[
-                "qualifying_points"
-            ]
-            if row["position"]
-            else 0
-        )
     if choice and grid:
         # Come get_regular_qualifying_choice_bonus: fuori dalla griglia
         # nessuna variazione e moltiplicatore 1.
         grid_row = grid.get(choice.driver_id)
         row["grid_position"] = grid_row.position if grid_row else None
         rule = bonuses.get_regular_qualifying_bonus_rule(row["grid_position"])
+        row["qualifying_points"] = rule["qualifying_points"]
         row["credit_change"] = rule["credit_change"]
         row["points_multiplier"] = rule["points_multiplier"]
     return row
@@ -168,8 +161,8 @@ def _regular_row(player, choice, results, grid):
 
 def _multi_row(player, choices_by_slot, results, grid):
     """Weekend sprint (#206): solo gli esiti, Q1, Q2 e Top 3 a cascata. Due
-    livelli come nel backend: in classifica per i punti qualifica, sulla
-    griglia del GP per sconto e moltiplicatore."""
+    livelli: in classifica solo come informazione, sulla griglia del GP per
+    punti qualifica, sconto e moltiplicatore (#166)."""
     row = {
         "player": player,
         "chose": choices_by_slot is not None,
@@ -184,9 +177,6 @@ def _multi_row(player, choices_by_slot, results, grid):
             choices_by_slot=choices_by_slot, results_by_driver_id=results
         )
         row["qualifying_ticks"] = _level_ticks(level)
-        row["qualifying_points"] = bonuses.get_qualifying_multichoice_bonus_rule(level)[
-            "qualifying_points"
-        ]
     if choices_by_slot and grid:
         # Come get_qualifying_multichoice_bonus.
         level = bonuses.resolve_multichoice_level(
@@ -194,6 +184,7 @@ def _multi_row(player, choices_by_slot, results, grid):
         )
         rule = bonuses.get_qualifying_multichoice_bonus_rule(level)
         row["grid_ticks"] = _level_ticks(level)
+        row["qualifying_points"] = rule["qualifying_points"]
         row["credit_discount"] = rule["credit_discount"]
         row["points_multiplier"] = rule["points_multiplier"]
     return row

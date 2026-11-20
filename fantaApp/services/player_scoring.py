@@ -15,7 +15,6 @@ from ..models import (
     PlayerQualifyingResult,
     PlayerRaceChoice,
     PlayerRaceResult,
-    QualifyingResult,
     RaceResult,
 )
 from . import bonuses, rules
@@ -25,9 +24,12 @@ from . import bonuses, rules
 def compute_player_qualifying_points(*, qualifying) -> int:
     """
     Save the qualifying points (∂, D.1.d) of every player who chose for this
-    Saturday qualifying, from its classification (#166):
-    - non-sprint weekend: the single pick, by its classified position;
-    - sprint weekend: the multichoice level reached (Q1/Q2/top 3).
+    Saturday qualifying, from the Grand Prix starting grid (penalties included),
+    like the race bonus (#166):
+    - non-sprint weekend: the single pick, by its grid position;
+    - sprint weekend: the multichoice level reached on the grid (Q1/Q2/top 3).
+
+    Called when the grid is imported: a new import refreshes the points.
 
     Missed choices are worth 0 ∂ and get no row. The Sprint Qualifying
     (shootout) gives no ∂. Safe to run again: update_or_create.
@@ -38,11 +40,10 @@ def compute_player_qualifying_points(*, qualifying) -> int:
     if qualifying.type != "regular":
         return 0
 
-    results_by_driver_id = {
-        result.driver_id: result
-        for result in QualifyingResult.objects.filter(qualifying=qualifying)
-    }
-    if not results_by_driver_id:
+    grid_by_driver_id = bonuses._grid_by_driver_id(
+        weekend=qualifying.weekend, race_type="regular"
+    )
+    if not grid_by_driver_id:
         return 0
 
     points_by_player_id = {}
@@ -55,7 +56,8 @@ def compute_player_qualifying_points(*, qualifying) -> int:
         for player_id, choices_by_slot in choices_by_player_id.items():
             level = bonuses.resolve_multichoice_level(
                 choices_by_slot=choices_by_slot,
-                results_by_driver_id=results_by_driver_id,
+                results_by_driver_id=grid_by_driver_id,
+                on_grid=True,
             )
             points_by_player_id[player_id] = bonuses.get_qualifying_multichoice_bonus_rule(
                 level
@@ -64,12 +66,12 @@ def compute_player_qualifying_points(*, qualifying) -> int:
         for player_id, driver_id in PlayerQualifyingChoice.objects.filter(
             qualifying=qualifying
         ).values_list("player_id", "driver_id"):
-            result = results_by_driver_id.get(driver_id)
+            grid_row = grid_by_driver_id.get(driver_id)
             points_by_player_id[player_id] = (
-                bonuses.get_regular_qualifying_bonus_rule(result.position)[
+                bonuses.get_regular_qualifying_bonus_rule(grid_row.position)[
                     "qualifying_points"
                 ]
-                if result is not None and result.position
+                if grid_row is not None
                 else 0
             )
 
