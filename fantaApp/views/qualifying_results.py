@@ -70,20 +70,15 @@ def _regular_pick(player, qualifying, results):
         return None, []
     result = next((r for r in results if r.driver_id == choice.driver_id), None)
     position = result.position if result else None
-    # Sconto e moltiplicatore sul GP dipendono dalla griglia del GP
-    # (penalità incluse); i punti qualifica dalla classifica della qualifica,
-    # con lo stesso calcolo della classifica qualifiche.
+    # Punti qualifica, sconto e moltiplicatore sul GP dipendono dalla griglia
+    # del GP (penalità incluse), come i punti salvati (#166).
     bonus = bonuses.get_regular_qualifying_choice_bonus(
         player=player, qualifying=qualifying
     )
     pick = {
         "driver": choice.driver,
         "position": position,
-        "qualifying_points": (
-            bonuses.get_regular_qualifying_bonus_rule(position)["qualifying_points"]
-            if position
-            else 0
-        ),
+        "qualifying_points": bonus["qualifying_points"],
         "grid_position": bonus["position"],
         "credit_change": bonus["credit_change"],
         "points_multiplier": bonus["points_multiplier"],
@@ -92,9 +87,9 @@ def _regular_pick(player, qualifying, results):
 
 
 def _multi_pick(player, qualifying, results):
-    """Pronostico a slot (weekend sprint, #196). Come nel backend, i punti
-    qualifica seguono la classifica della qualifica, sconto e moltiplicatore sul
-    GP la griglia del GP: i due livelli possono essere diversi."""
+    """Pronostico a slot (weekend sprint, #196). Gli esiti in qualifica seguono
+    la classifica; punti qualifica, sconto e moltiplicatore sul GP la griglia
+    del GP (#166): i due livelli possono essere diversi."""
     choices = list(
         PlayerQualifyingMultiChoice.objects.filter(player=player, qualifying=qualifying)
         .select_related("driver", "driver__team")
@@ -124,13 +119,9 @@ def _multi_pick(player, qualifying, results):
             for code, label in MULTI_SLOTS
         ],
         "qualifying_ticks": _level_ticks(qualifying_level) if results else None,
-        "qualifying_points": (
-            bonuses.get_qualifying_multichoice_bonus_rule(qualifying_level)[
-                "qualifying_points"
-            ]
-            if results
-            else None
-        ),
+        "qualifying_points": bonuses.get_qualifying_multichoice_bonus_rule(
+            grid_bonus["level"]
+        )["qualifying_points"],
         "grid_available": RaceStartingGrid.objects.filter(
             race__weekend=qualifying.weekend, race__type="regular"
         ).exists(),

@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from fantaApp.models import Race, RaceStartingGrid, Weekend
-from fantaApp.services import drivers
+from fantaApp.models import Qualifying, Race, RaceStartingGrid, Weekend
+from fantaApp.services import drivers, player_scoring
 from fantaApp.services.sources.base import ResultsNotAvailable
 from fantaApp.services.sources.openF1Source import QUALIFYING_SESSION, get_starting_grid
 
@@ -62,6 +62,13 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"• Starting grid imported: {len(driver_ids)} drivers")
         )
+
+        # Qualifying points (∂) follow the Grand Prix grid (#166)
+        if r_type == "regular":
+            saved = player_scoring.compute_player_qualifying_points(
+                qualifying=Qualifying.objects.get(weekend=weekend, type="regular")
+            )
+            self.stdout.write(self.style.SUCCESS(f"• qualifying points saved: {saved}"))
 
         # ------------------------------------------------------------------
         # Commit / Rollback

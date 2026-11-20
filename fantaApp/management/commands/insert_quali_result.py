@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from fantaApp.models import Weekend, Qualifying, QualifyingResult
-from fantaApp.services import drivers, player_choices, player_scoring
+from fantaApp.services import drivers, player_choices
 from fantaApp.services.sources.base import ResultsNotAvailable
 from fantaApp.services.sources.openF1Source import (
     QUALIFYING_SESSION,
@@ -91,9 +91,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"• missed choice penalties: {len(penalties)}")
         )
-        # Qualifying points (∂) saved per player (#166)
-        saved = player_scoring.compute_player_qualifying_points(qualifying=qualifying)
-        self.stdout.write(self.style.SUCCESS(f"• qualifying points saved: {saved}"))
 
         # ------------------------------------------------------------------
         # Commit / Rollback

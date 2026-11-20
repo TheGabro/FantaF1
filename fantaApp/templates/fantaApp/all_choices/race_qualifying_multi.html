@@ -4,7 +4,8 @@
 Scelte dei giocatori nelle Qualifiche dei weekend sprint, a slot (#206). Dal via:
 una riga per giocatore con i soli esiti, senza i piloti scelti. Livelli Q1, Q2 e
 Top 3 a cascata due volte, come nei risultati della qualifica (#196): in
-classifica per i punti qualifica, sulla griglia del GP per sconto e moltiplicatore.
+classifica solo come informazione, sulla griglia del GP per punti qualifica,
+sconto e moltiplicatore (#166).
 {% endcomment %}
 
 {% block choices_table %}
@@ -54,8 +55,8 @@ classifica per i punti qualifica, sulla griglia del GP per sconto e moltiplicato
     </table>
   </div>
   <p class="note mt-3">
-    Si vedono solo gli esiti, non i piloti scelti. In qualifica e punti compaiono con la classifica delle Qualifiche{% if not has_results %} (non ancora pubblicata){% endif %};
-    griglia, FM e moltiplicatore sul Gran Premio con la griglia di partenza del GP, penalità comprese{% if not has_grid %} (non ancora pubblicata){% endif %}.
+    Si vedono solo gli esiti, non i piloti scelti. In qualifica compare con la classifica delle Qualifiche{% if not has_results %} (non ancora pubblicata){% endif %};
+    punti, griglia, FM e moltiplicatore sul Gran Premio con la griglia di partenza del GP, penalità comprese{% if not has_grid %} (non ancora pubblicata){% endif %}.
     FM sul GP: − sconto sul costo dei piloti del Gran Premio.
   </p>
 {% endblock %}
