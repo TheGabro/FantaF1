@@ -216,9 +216,8 @@ def apply_missed_choice_penalties(*, race) -> list[ChampionshipPlayer]:
         points = -rules.MISSED_GP_CHOICE_POINTS_STEP * max(
             missed - rules.MISSED_GP_CHOICE_GRACE, 0
         )
-        # Out of credits, the player could not choose: no points lost.
-        # ponytail: "out of credits" = available_credit <= 0; a 0-cost pair
-        # (discounts, pupillo) could still have been possible, refine if needed
+        # Out of credits: no points lost, even if discounts and pupillo could
+        # still have made a 0-cost choice possible (game rule, by design)
         if player.available_credit <= 0:
             points = 0
 
