@@ -486,6 +486,9 @@ class PlayerQualifyingPenalty(models.Model):
     burned_driver = models.ForeignKey(
         Driver, on_delete=models.PROTECT, null=True, blank=True
     )
+    # Credits taken from the player right after the qualifying, apart from the
+    # Grand Prix choice: the pupillo and the discounts never offset it
+    credit_charged = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

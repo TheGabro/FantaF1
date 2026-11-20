@@ -316,10 +316,10 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
           <dd class="text-muted">
             È un processo diverso dal Gran Premio. Le prime {{ rulebook.qualifying_grace }} volte della stagione
             sono di grazia: si paga solo il malus come se il pilota fosse arrivato ultimo
-            (+{{ last.credit_change }} fantamilioni sul Gran Premio, moltiplicatore ×{{ last.points_multiplier }},
+            ({{ last.credit_change }} fantamilioni tolti subito dopo la qualifica, moltiplicatore ×{{ last.points_multiplier }},
             nessun punto ∂). Dalla {{ rulebook.qualifying_burn_from }}ª volta, in più, il pilota meglio classificato
             in quella qualifica tra quelli ancora disponibili viene «bruciato»: conta come già usato. Il malus
-            non si sconta con il pupillo.
+            è un addebito a parte, anche se poi non scegli il Gran Premio: il pupillo e gli sconti non lo riducono.
           </dd>
           {% endwith %}
         </div>
@@ -332,7 +332,10 @@ tabelle di services/rules.py usate dal calcolo: non possono divergere dal gioco.
         </div>
         <div>
           <dt class="font-semibold">Fantamilioni</dt>
-          <dd class="text-muted">Le penalità non portano mai i fantamilioni sotto zero.</dd>
+          <dd class="text-muted">
+            Le penalità non portano mai i fantamilioni sotto zero. Chi resta senza fantamilioni non perde
+            punti per le scelte che non può più fare.
+          </dd>
         </div>
       </dl>
     </section>

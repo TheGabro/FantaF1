@@ -21,7 +21,7 @@
   <div class="flex flex-wrap items-center gap-2">
     <span class="badge-muted">Fantamilioni spendibili: <strong class="ml-1">{{ spendable_credit }}</strong></span>
     {% if reserved_credit %}<span class="badge-warn">{{ reserved_credit }} FM prenotati su gare future</span>{% endif %}
-    <span class="{% if regular_race_bonus.credit_change > 0 %}badge-warn{% elif regular_race_bonus.credit_change < 0 or regular_race_bonus.points_multiplier != 1 %}badge-ok{% else %}badge-muted{% endif %}">{% if regular_race_bonus.missed %}Qualifica non scelta{% else %}Risultato qualifica{% endif %}{% if regular_race_bonus.position %} (P{{ regular_race_bonus.position }}){% elif regular_race_bonus.level == "q1_pass" %} (Q1 superata){% elif regular_race_bonus.level == "q2_pass" %} (Q2 superata){% elif regular_race_bonus.level == "q3_top3" %} (top 3 centrata){% endif %}: {% if regular_race_bonus.credit_change < 0 %}sconto {% widthratio regular_race_bonus.credit_change 1 -1 %} FM{% elif regular_race_bonus.credit_change > 0 %}malus +{{ regular_race_bonus.credit_change }} FM{% elif regular_race_bonus.position or regular_race_bonus.level != "none" %}nessuna variazione di costo{% else %}nessuno{% endif %}{% if regular_race_bonus.points_multiplier != 1 %} · punti ×{{ regular_race_bonus.points_multiplier }}{% endif %}</span>
+    <span class="{% if regular_race_bonus.credit_change > 0 or regular_race_bonus.missed %}badge-warn{% elif regular_race_bonus.credit_change < 0 or regular_race_bonus.points_multiplier != 1 %}badge-ok{% else %}badge-muted{% endif %}">{% if regular_race_bonus.missed %}Qualifica non scelta{% else %}Risultato qualifica{% endif %}{% if regular_race_bonus.position %} (P{{ regular_race_bonus.position }}){% elif regular_race_bonus.level == "q1_pass" %} (Q1 superata){% elif regular_race_bonus.level == "q2_pass" %} (Q2 superata){% elif regular_race_bonus.level == "q3_top3" %} (top 3 centrata){% endif %}: {% if regular_race_bonus.missed %}penalità di {{ regular_race_bonus.penalty_credit }} FM già scalata{% elif regular_race_bonus.credit_change < 0 %}sconto {% widthratio regular_race_bonus.credit_change 1 -1 %} FM{% elif regular_race_bonus.credit_change > 0 %}malus +{{ regular_race_bonus.credit_change }} FM{% elif regular_race_bonus.position or regular_race_bonus.level != "none" %}nessuna variazione di costo{% else %}nessuno{% endif %}{% if regular_race_bonus.points_multiplier != 1 %} · punti ×{{ regular_race_bonus.points_multiplier }}{% endif %}</span>
   </div>
 </div>
 
@@ -54,6 +54,11 @@
       <div class="flex justify-between"><dt class="text-muted">Modificatore qualifica</dt><dd class="font-bold {% if regular_race_bonus.credit_change < 0 %}text-ok{% elif regular_race_bonus.credit_change > 0 %}text-accent{% endif %}">{% if regular_race_bonus.credit_change < 0 %}−{% widthratio regular_race_bonus.credit_change 1 -1 %} FM{% elif regular_race_bonus.credit_change > 0 %}+{{ regular_race_bonus.credit_change }} FM{% else %}—{% endif %}</dd></div>
       <div class="flex justify-between"><dt class="text-muted">Sconto pupillo</dt><dd class="font-bold" id="selected-pupillo-discount">—</dd></div>
       <div class="flex justify-between text-base"><dt class="font-bold">Costo totale</dt><dd class="font-black"><span id="selected-total-cost">0</span> FM</dd></div>
+      {% if regular_race_bonus.missed %}
+        {# #153: charged right after the qualifying, apart from this choice: information only #}
+        <div class="flex justify-between border-t border-line pt-1.5"><dt class="text-muted">Penalità qualifica non scelta</dt><dd class="font-bold text-accent">{{ regular_race_bonus.penalty_credit }} FM</dd></div>
+        <p class="note">Già scalata dai fantamilioni dopo la qualifica: non entra nel costo totale e il pupillo non la riduce.</p>
+      {% endif %}
     </dl>
 
     <div id="selected-drivers-inputs">

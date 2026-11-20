@@ -307,7 +307,9 @@ def get_maxed_regular_qualifying_team_ids(used_driver_ids) -> set:
 def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPenalty]:
     """
     Penalize the players with no choice for a regular qualifying in a non-sprint
-    weekend (D.1.a.2, #153). The malus itself is read by bonuses from the penalty.
+    weekend (D.1.a.2, #153). The malus of the last grid position is charged here,
+    once, as its own debit: it is not part of the Grand Prix choice, so the
+    pupillo and the discounts never offset it. Credits never go below zero.
 
     From the (GRACE + 1)-th missed choice of the season the best classified
     driver still available to the player is burned: marked as used, no bonus.
@@ -318,7 +320,7 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
     if qualifying.type != "regular" or weekend.weekend_type != "regular":
         return []
 
-    players = ChampionshipPlayer.objects.filter(
+    players = ChampionshipPlayer.objects.select_for_update().filter(
         championship__year=weekend.season
     ).exclude(
         id__in=PlayerQualifyingChoice.objects.filter(qualifying=qualifying).values(
@@ -331,6 +333,7 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
         .values_list("driver_id", "driver__team_id")
     )
 
+    malus = bonuses.get_missed_regular_qualifying_bonus_rule()["credit_change"]
     penalties = []
     for player in players:
         missed = 1 + PlayerQualifyingPenalty.objects.filter(
@@ -355,11 +358,17 @@ def apply_missed_qualifying_penalties(*, qualifying) -> list[PlayerQualifyingPen
                 None,
             )
 
-        penalty, _ = PlayerQualifyingPenalty.objects.get_or_create(
+        penalty, created = PlayerQualifyingPenalty.objects.get_or_create(
             player=player,
             qualifying=qualifying,
-            defaults={"burned_driver_id": burned_driver_id},
+            defaults={
+                "burned_driver_id": burned_driver_id,
+                "credit_charged": min(malus, max(player.available_credit, 0)),
+            },
         )
+        if created:
+            player.available_credit -= penalty.credit_charged
+            player.save(update_fields=["available_credit"])
         penalties.append(penalty)
 
     return penalties

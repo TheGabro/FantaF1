@@ -300,6 +300,7 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
         "driver": None,
         "position": None,
         "missed": False,
+        "penalty_credit": 0,
     }
 
     if qualifying is None:
@@ -313,13 +314,18 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
     )
 
     if choice is None:
-        if PlayerQualifyingPenalty.objects.filter(
+        penalty = PlayerQualifyingPenalty.objects.filter(
             player=player, qualifying=qualifying
-        ).exists():
+        ).first()
+        if penalty is not None:
+            # Last-position bonus, but its malus was already charged on its own
+            # right after the qualifying (penalty_credit): no change on the GP cost
             return {
                 **default_result,
                 **get_missed_regular_qualifying_bonus_rule(),
+                "credit_change": 0,
                 "missed": True,
+                "penalty_credit": penalty.credit_charged,
             }
         return default_result
 
@@ -337,12 +343,12 @@ def get_regular_qualifying_choice_bonus(*, player, qualifying) -> dict:
 
     bonus = get_regular_qualifying_bonus_rule(result.position)
     return {
+        **default_result,
         "credit_change": bonus["credit_change"],
         "qualifying_points": bonus["qualifying_points"],
         "points_multiplier": bonus["points_multiplier"],
         "driver": choice.driver,
         "position": result.position,
-        "missed": False,
     }
 
 
@@ -398,6 +404,7 @@ def get_race_bonus(*, player, race) -> dict:
             "driver": None,
             "position": None,
             "missed": False,
+            "penalty_credit": 0,
         }
     else:
         # Weekend regular: il bonus viene dalla scelta singola del pilota
@@ -415,6 +422,7 @@ def get_race_bonus(*, player, race) -> dict:
             "driver": bonus["driver"],
             "position": bonus["position"],
             "missed": bonus["missed"],
+            "penalty_credit": bonus["penalty_credit"],
         }
 
 

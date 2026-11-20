@@ -204,9 +204,6 @@ def race_qualifying_results(request, championship_id, weekend_id, event_id):
             "player": player,
             "pick": pick,
             "missed_penalty": missed_penalty,
-            "missed_malus": bonuses.get_missed_regular_qualifying_bonus_rule()[
-                "credit_change"
-            ],
             "is_sprint_weekend": is_sprint_weekend,
             # Scelte di tutti i giocatori nella stessa qualifica (#211, #212),
             # solo per chi gioca o gestisce il campionato.

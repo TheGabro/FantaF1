@@ -1350,16 +1350,31 @@ class MissedGrandPrixChoicePenaltyTests(TestCase):
             self._result(self.chooser_high, self.races[0]).credit_spent, 30
         )
 
-    def test_missed_qualifying_malus_is_charged_on_top(self):
-        # Missed both the qualifying (#153, +30 malus) and the Grand Prix
+    def test_missed_qualifying_malus_is_not_charged_again(self):
+        # Missed both the qualifying (#153) and the Grand Prix: the qualifying
+        # malus was already charged on its own after the qualifying
         self._choose(self.chooser_low, self.races[0], 30)
         PlayerQualifyingPenalty.objects.create(
-            player=self.missing, qualifying=self.races[0].weekend.qualifyings.get()
+            player=self.missing,
+            qualifying=self.races[0].weekend.qualifyings.get(),
+            credit_charged=30,
         )
 
         player_scoring.compute_player_score_per_race(race=self.races[0])
 
-        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 60)
+        self.assertEqual(self._result(self.missing, self.races[0]).credit_spent, 30)
+
+    def test_out_of_credits_no_points_penalty(self):
+        self.missing.available_credit = 0
+        self.missing.save(update_fields=["available_credit"])
+        for race in self.races:
+            self._choose(self.chooser_low, race, 0)
+            player_scoring.compute_player_score_per_race(race=race)
+
+        self.assertEqual(
+            [self._result(self.missing, race).total_points for race in self.races],
+            [0, 0, 0, 0],
+        )
 
     def test_credits_go_to_zero_not_below(self):
         self._choose(self.chooser_low, self.races[0], 30)
@@ -6977,13 +6992,19 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
             self._apply(qualifying)
             self.assertIsNone(self._penalty(qualifying).burned_driver)
 
+            # Malus charged on its own, not on the Grand Prix cost
+            self.assertEqual(self._penalty(qualifying).credit_charged, 30)
             bonus = bonuses.get_race_bonus(
                 player=self.missing, race=qualifying.weekend.races.get()
             )
-            self.assertEqual(bonus["credit_change"], 30)
+            self.assertEqual(bonus["credit_change"], 0)
+            self.assertEqual(bonus["penalty_credit"], 30)
             self.assertEqual(bonus["points_multiplier"], 1)
             self.assertEqual(bonus["qualifying_points"], 0)
             self.assertTrue(bonus["missed"])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 2000 - 60)
 
         # Who chose is not penalized
         self.assertFalse(
@@ -7005,8 +7026,11 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
         bonus = bonuses.get_race_bonus(
             player=self.missing, race=self.qualifyings[3].weekend.races.get()
         )
-        self.assertEqual(bonus["credit_change"], 30)
+        self.assertEqual(bonus["credit_change"], 0)
         self.assertIsNone(bonus["driver"])
+        # Three penalties, the run repeated on round 4 charges nothing more
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 2000 - 90)
 
         # The burned driver can no longer be chosen
         with self.assertRaises(ValidationError):
@@ -7021,6 +7045,7 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
         )
 
     def test_malus_is_not_reduced_by_pupillo_discount(self):
+        # Pupillo brings the Grand Prix choice to 0: the weekend still costs 30
         self._apply(self.qualifyings[0])
         race = self.qualifyings[0].weekend.races.get()
         first, second = self.drivers[:2]
@@ -7031,12 +7056,24 @@ class MissedRegularQualifyingChoicePenaltyTests(TestCase):
             driver_ids=[first.id, second.id],
             pupillo_driver_id=first.id,
             options_by_driver_id={
-                first.id: {"cost": 10, "pupillo_cost": 0},
-                second.id: {"cost": 0},
+                first.id: {"cost": 10, "pupillo_discount": 20, "pupillo_cost": 0},
+                second.id: {"cost": 10},
             },
         )
 
-        self.assertEqual(sum(amounts.values()), 30)
+        self.assertEqual(sum(amounts.values()), 0)
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 2000 - 30)
+
+    def test_penalty_never_takes_credits_below_zero(self):
+        self.missing.available_credit = 10
+        self.missing.save(update_fields=["available_credit"])
+
+        self._apply(self.qualifyings[0])
+
+        self.missing.refresh_from_db()
+        self.assertEqual(self.missing.available_credit, 0)
+        self.assertEqual(self._penalty(self.qualifyings[0]).credit_charged, 10)
 
     def test_sprint_weekend_qualifying_has_no_penalty(self):
         qualifying = self._create_qualifying(6, weekend_type="sprint")
@@ -7098,7 +7135,10 @@ class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
         player = ChampionshipPlayer.objects.get(user=self.user)
         self.burned = Driver.objects.get(api_id="drv-smoke-1")
         PlayerQualifyingPenalty.objects.create(
-            player=player, qualifying=self.regular_qualifying, burned_driver=self.burned
+            player=player,
+            qualifying=self.regular_qualifying,
+            burned_driver=self.burned,
+            credit_charged=30,
         )
         self.client.force_login(self.user)
 
@@ -7111,7 +7151,8 @@ class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
         )
 
         self.assertContains(response, "Qualifica non scelta")
-        self.assertContains(response, "malus +30 FM")
+        self.assertContains(response, "penalità di 30 FM già scalata")
+        self.assertContains(response, "Penalità qualifica non scelta")
 
     def test_qualifying_results_show_malus_and_burned_driver(self):
         response = self.client.get(
@@ -7119,7 +7160,7 @@ class MissedRegularQualifyingChoicePagesTests(WeekendPagesFixture, TestCase):
         )
 
         self.assertContains(response, "Penalità")
-        self.assertContains(response, "malus +30 FM")
+        self.assertContains(response, "30 FM scalati")
         self.assertContains(response, "pilota bruciato")
         self.assertContains(response, self.burned.last_name)
 
