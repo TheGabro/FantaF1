@@ -7591,3 +7591,34 @@ class ChampionshipSearchPageTests(TestCase):
         )
 
         self.assertContains(self.client.get(self.url), "1 giocatore<")
+
+
+class ProductionHstsTests(TestCase):
+    """#294: in produzione le risposte HTTPS chiedono al browser di usare solo
+    HTTPS per un giorno, senza sottodomini né preload; in sviluppo niente HSTS."""
+
+    def _settings(self, debug):
+        import runpy
+        from pathlib import Path
+
+        path = Path(django_settings.BASE_DIR) / "FantaF1" / "settings.py"
+        with patch.dict("os.environ", {"DEBUG": debug}):
+            return runpy.run_path(str(path))
+
+    def test_production_settings_enable_hsts_for_one_day(self):
+        production = self._settings("False")
+
+        self.assertEqual(production["SECURE_HSTS_SECONDS"], 86400)
+        self.assertNotIn("SECURE_HSTS_INCLUDE_SUBDOMAINS", production)
+        self.assertNotIn("SECURE_HSTS_PRELOAD", production)
+
+    def test_development_settings_have_no_hsts(self):
+        self.assertNotIn("SECURE_HSTS_SECONDS", self._settings("True"))
+
+    @override_settings(
+        STORAGES=TEST_STORAGES, SECURE_HSTS_SECONDS=86400, SECURE_SSL_REDIRECT=False
+    )
+    def test_https_responses_carry_the_header(self):
+        response = self.client.get(reverse("game_rules"), secure=True)
+
+        self.assertEqual(response["Strict-Transport-Security"], "max-age=86400")

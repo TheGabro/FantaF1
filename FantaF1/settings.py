@@ -178,6 +178,12 @@ if not DEBUG:
     # I cookie di sessione e CSRF vengono inviati solo su connessioni HTTPS.
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HSTS: dopo la prima visita il browser usa solo HTTPS per questo dominio,
+    # anche se si scrive http:// (#294). Si parte da un giorno; dopo una
+    # settimana senza problemi si porta a un anno (31536000). Niente
+    # includeSubDomains ne' preload finche' il sito e' su un sottodominio di
+    # onrender.com.
+    SECURE_HSTS_SECONDS = 86400
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
