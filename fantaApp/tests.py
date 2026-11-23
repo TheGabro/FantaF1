@@ -1599,6 +1599,39 @@ class CreateChampionshipTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class DashboardStaffBadgeTests(TestCase):
+    """#320: in I miei campionati chi gestisce il sito ha il badge «Staff»,
+    non «Admin»; il pulsante «Pannello admin» resta."""
+
+    BADGE = '<span class="badge-accent ml-2 align-middle not-italic">'
+
+    def _dashboard(self, user_type):
+        user = get_user_model().objects.create_user(
+            username=f"utente-{user_type}",
+            email=f"{user_type}@example.com",
+            password="pw123456!",
+            user_type=user_type,
+        )
+        self.client.force_login(user)
+        return self.client.get(reverse("user_dashboard"))
+
+    def test_site_staff_has_the_staff_badge(self):
+        for user_type in ("admin", "staff"):
+            with self.subTest(user_type=user_type):
+                response = self._dashboard(user_type)
+
+                self.assertContains(response, f"{self.BADGE}Staff</span>")
+                self.assertNotContains(response, f"{self.BADGE}Admin</span>")
+                self.assertContains(response, "Pannello admin")
+
+    def test_players_have_no_badge(self):
+        response = self._dashboard("user")
+
+        self.assertNotContains(response, self.BADGE)
+        self.assertNotContains(response, "Pannello admin")
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class FormFieldErrorsLinkedTests(TestCase):
     """#292: a field with errors has aria-invalid and aria-describedby pointing
     to its error list (after the help text, if any), in every form of the site."""

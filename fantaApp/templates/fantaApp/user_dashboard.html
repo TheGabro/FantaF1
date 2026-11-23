@@ -11,8 +11,7 @@
     <p class="eyebrow">La tua area di gioco</p>
     <h1 class="page-title mt-1">
       Ciao, {{ user.username }}
-      {% if is_admin %}<span class="badge-accent ml-2 align-middle not-italic">Admin</span>
-      {% elif is_staff %}<span class="badge-accent ml-2 align-middle not-italic">Staff</span>
+      {% if is_admin or is_staff %}<span class="badge-accent ml-2 align-middle not-italic">Staff</span>
       {% elif is_premium %}<span class="badge-warn ml-2 align-middle not-italic">Premium</span>{% endif %}
     </h1>
   </div>
