@@ -2887,6 +2887,20 @@ class GameFaqPageTests(TestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
+class SprintQualifyingWordingTests(TestCase):
+    """#319: regolamento e domande frequenti usano il nome del glossario,
+    «Qualifiche Sprint», e non «shootout»."""
+
+    def test_no_shootout_in_rules_and_faq(self):
+        for name in ("game_rules", "game_faq"):
+            with self.subTest(page=name):
+                response = self.client.get(reverse(name))
+
+                self.assertContains(response, "Qualifiche Sprint")
+                self.assertNotIn("shootout", response.content.decode().lower())
+
+
+@override_settings(STORAGES=TEST_STORAGES)
 class GamePageRulesLinksTests(TestCase):
     """#231: la pagina del gioco porta al regolamento e alle domande frequenti,
     da anonimi e da utenti con l'accesso."""
