@@ -65,7 +65,9 @@
   <section class="card-pad lg:col-span-2">
     <h2 class="subheading">Regolamento del gioco</h2>
     <p class="mt-1 text-muted">Punteggi, costi, pupillo e classifiche: le regole sono le stesse per tutti i campionati.</p>
-    <a href="{% url 'game_rules' %}" class="btn-secondary mt-4">Leggi il regolamento</a>
+    <a href="{% url 'game_rules' %}" target="_blank" rel="noopener" class="btn-secondary mt-4">
+      Leggi il regolamento <span aria-hidden="true">↗</span><span class="sr-only">(si apre in una nuova scheda)</span>
+    </a>
   </section>
 
   <section class="card-pad lg:col-span-2">

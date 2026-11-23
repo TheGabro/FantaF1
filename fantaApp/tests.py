@@ -2031,6 +2031,22 @@ class ChampionshipManageTests(TestCase):
         self.client.force_login(self.player_user)
         self.assertNotContains(self.client.get(self.info_url), self.players_url)
 
+    def test_info_opens_the_rules_in_a_new_tab(self):
+        # #332: il regolamento pubblico si apre in una nuova scheda, così il
+        # campionato resta aperto in quella di partenza.
+        self.client.force_login(self.player_user)
+
+        response = self.client.get(self.info_url)
+
+        self.assertContains(
+            response,
+            f'<a href="{reverse("game_rules")}" target="_blank" rel="noopener"',
+        )
+        self.assertContains(response, '<span aria-hidden="true">↗</span>')
+        self.assertContains(
+            response, '<span class="sr-only">(si apre in una nuova scheda)</span>'
+        )
+
     def test_manager_promotes_a_player(self):
         self.client.force_login(self.manager)
 
